@@ -18,7 +18,7 @@ doc: ag
 	cabal haddock --executables
 
 clean:
-	# -rm src/JSMonotoneFWAG.hs src/SoftTypingAG.hs src/ControlFlowAG.hs
+	-rm src/Parser/Base.hs
 	cabal clean
 
 lint:

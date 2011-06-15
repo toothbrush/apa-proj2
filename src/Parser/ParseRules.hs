@@ -4,7 +4,6 @@ module Parser.ParseRules where
     import Text.ParserCombinators.UU
     import Text.ParserCombinators.UU.Utils
     import Text.ParserCombinators.UU.BasicInstances
-    import Text.ParserCombinators.UU.Utils
     import Parser.Base
 
     pTerm :: Parser Term
@@ -18,16 +17,16 @@ module Parser.ParseRules where
     pVarName = lexeme (pToken "$" *> pList (pLetter <|> pDigit))
 
     pVar :: Parser Term
-    pVar = Var <$> pVarName <* pSpaces
+    pVar = Var <$> pVarName
 
     pLam :: Parser Term
-    pLam = Lam <$ pSymbol "\\" <*> pVarName <* pSymbol "->" <*> pTerm
+    pLam = Lam <$> (pSymbol "\\" *> pVarName) <*> (pSymbol "->" *> pTerm)
 
     pApp :: Parser Term
     pApp = App <$> parens pTerm <*> parens pTerm
 
     pLet :: Parser Term
-    pLet = Let <$> pSymbol "let" *> pVarName <* pSymbol "="
-               *> pTerm <* pSymbol "in" *> pTerm <* pSymbol "ni"
+    pLet = Let <$> (pSymbol "let" *> pVarName <* pSymbol "=")
+               <*> pTerm <*> (pSymbol "in" *> pTerm <* pSymbol "ni")
 
     parens p = pLParen *> p <* pRParen
