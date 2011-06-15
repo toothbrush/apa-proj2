@@ -4,13 +4,14 @@ module Parser.ParseRules where
 import Text.ParserCombinators.UU
 import Text.ParserCombinators.UU.Utils
 import Text.ParserCombinators.UU.BasicInstances
-import Parser.Base
+import Base
 
 pTerm :: Parser Term
 pTerm =  pVar
      <|> pLam
      <|> pApp
      <|> pLet
+     <|> pParens pTerm
 
 pVarName :: Parser String
 pVarName = lexeme (pSym '$' *> pList (pLetter <|> pDigit))

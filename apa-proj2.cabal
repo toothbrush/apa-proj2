@@ -53,6 +53,22 @@ Executable parse
   -- Packages needed in order to build this package.
   Build-depends:       base,
                        uu-parsinglib,
+                       cco,
+                       haskell98
+  
+  -- Modules not exported by this package.
+  -- Other-modules:       
+  
+  -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
+  -- Build-tools:         
+  
+Executable infer
+  -- .hs or .lhs file containing the Main module.
+  Main-is:          Infer.hs
+  hs-source-dirs:      src
+  -- Packages needed in order to build this package.
+  Build-depends:       base,
+                       cco,
                        haskell98
   
   -- Modules not exported by this package.
