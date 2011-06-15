@@ -1,0 +1,27 @@
+optpragmas {
+{-# LANGUAGE ScopedTypeVariables #-}
+}
+
+MODULE {Parser.Base} {} {}
+
+imports
+{
+import Parser.Types
+import Debug.Trace
+}
+
+{
+-- some sweet Haskell code here
+}
+
+DATA Term
+  | Var id : {Id}
+  | Lam id : {Id} t : (Term)
+  | App t1 : (Term) t2 : (Term)
+  | Let id : {Id} t : (Term) in : (Term)
+
+ATTR Term
+[ | | cool : Int]
+
+SEM Term
+  | * lhs.cool = 42
