@@ -7,4 +7,19 @@ module Parser.ParseRules where
     import Parser.Base
 
     pTerm :: Parser Term
-    pTerm = Var <$> pMunch (const True)
+    pTerm =  (pVar 
+         <|> pLam)
+       --  <|> pApp
+       --  <|> pLet
+          <* pMaybe (pLF)
+
+    pVarName :: Parser String
+    pVarName = pToken "$" *> pMunch (\x -> elem x (['a'..'z']++['0'..'9']))
+
+    pVar :: Parser Term
+    pVar = Var <$> pVarName
+
+    pLam :: Parser Term
+    pLam = Lam <$ pToken "\\ " <*> pVarName <* pToken "->" <*> pTerm
+    pApp = undefined
+    pLet = undefined
