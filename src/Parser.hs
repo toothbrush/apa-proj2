@@ -12,10 +12,11 @@ import Text.ParserCombinators.UU.Utils
 import Text.ParserCombinators.UU.BasicInstances
 import CCO.Tree
 import System
+import System.IO
 
 main :: IO ()
 main = do
-  putStrLn "Parser for FUN language.\n"
+  hPutStrLn stderr "Parser for FUN language.\n"
   (fileName:_) <- getArgs
   fileContents <- readFile fileName
   let term = runParser fileName pTerm fileContents
