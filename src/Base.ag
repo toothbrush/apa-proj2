@@ -8,20 +8,18 @@ imports
 {
 import Parser.Types
 import Debug.Trace
+import Infer.Types
 }
+
+INCLUDE "src/Infer/Infer.ag"
 
 {
 -- some sweet Haskell code here
 }
 
 DATA Term
-  | Var id : {Id}
-  | Lam id : {Id} t : (Term)
+  | Var x : {Id}
+  | Lam x : {Id} t1 : (Term)
   | App t1 : (Term) t2 : (Term)
-  | Let id : {Id} t : (Term) in : (Term)
+  | Let x : {Id} t1 : (Term) t2 : (Term)
 
-ATTR Term
-[ | | cool : Int]
-
-SEM Term
-  | * lhs.cool = 42
