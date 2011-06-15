@@ -51,7 +51,9 @@ Executable parse
   Main-is:          Parser.hs
   hs-source-dirs:      src
   -- Packages needed in order to build this package.
-  Build-depends:       base
+  Build-depends:       base,
+                       uu-parsinglib,
+                       haskell98
   
   -- Modules not exported by this package.
   -- Other-modules:       
