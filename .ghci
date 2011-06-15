@@ -1,0 +1,4 @@
+:set -isrc
+:set -hide-package parsec-3.1.1
+:set -fno-warn-orphans
+:def R \_ -> return $ unlines [":! make ag", ":reload"]
