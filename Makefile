@@ -10,8 +10,8 @@ dist:
 install: ag
 	cabal install
 
-ag: src/Parser/Base.ag
-	uuagc -dcfws --self --genlinepragmas src/Parser/Base.ag
+ag: src/Base.ag
+	uuagc -dcfws --self --genlinepragmas src/Base.ag
 
 doc: ag
 	cabal configure
