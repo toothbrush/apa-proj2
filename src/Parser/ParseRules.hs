@@ -7,14 +7,13 @@ import Text.ParserCombinators.UU.BasicInstances
 import Parser.Base
 
 pTerm :: Parser Term
-pTerm =
-         pVar
+pTerm =  pVar
      <|> pLam
      <|> pApp
      <|> pLet
 
 pVarName :: Parser String
-pVarName = lexeme (pToken "$" *> pList (pLetter <|> pDigit))
+pVarName = lexeme (pSym '$' *> pList (pLetter <|> pDigit))
 
 pVar :: Parser Term
 pVar = Var <$> pVarName
@@ -26,5 +25,5 @@ pApp :: Parser Term
 pApp = App <$> pParens pTerm <*> pParens pTerm
 
 pLet :: Parser Term
-pLet = Let <$> (pSymbol "let" *> pVarName <* pSymbol "=")
-           <*> pTerm <*> (pSymbol "in" *> pTerm <* pSymbol "ni")
+pLet = Let <$> (pSymbol "let" *> pVarName <* pSymbol "=") <*> pTerm
+           <*> (pSymbol "in" *> pTerm <* pSymbol "ni")
