@@ -1,6 +1,7 @@
 default: ag
 	cabal configure
 	cabal build
+	chmod a+x test.sh
 
 dist:
 	cabal configure

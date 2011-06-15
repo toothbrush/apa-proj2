@@ -11,6 +11,7 @@ pTerm =  pVar
      <|> pLam
      <|> pApp
      <|> pLet
+     <|> pParens pTerm
 
 pVarName :: Parser String
 pVarName = lexeme (pSym '$' *> pList (pLetter <|> pDigit))

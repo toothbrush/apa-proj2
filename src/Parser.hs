@@ -13,14 +13,14 @@ import Text.ParserCombinators.UU.BasicInstances
 import CCO.Tree
 import System
 import System.IO
+import Control.Arrow (arr, (>>>))
+import CCO.Component (Component, component, printer, ioWrap)
 
 main :: IO ()
-main = do
-  hPutStrLn stderr "Parser for FUN language.\n"
-  (fileName:_) <- getArgs
-  fileContents <- readFile fileName
-  let term = runParser fileName pTerm fileContents
-  putStrLn (show$fromTree term)
+main = ioWrap $
+        (component $ return . runParser "stdin" pTerm) >>>
+        (arr fromTree :: Component Term ATerm) >>>
+        printer
 
 fileToTerm :: String -> Term
 fileToTerm fileName = Var "s"
