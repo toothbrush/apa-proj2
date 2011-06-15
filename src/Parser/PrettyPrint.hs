@@ -1,6 +1,6 @@
 module Parser.PrettyPrint where
 
-import Parser.Base
+import Base
 
 instance Show (Term) where
     show (Var s)     = "$"++s

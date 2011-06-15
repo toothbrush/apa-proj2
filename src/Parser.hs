@@ -3,7 +3,7 @@
 
 module Main where
 
-import Parser.Base
+import Base
 import Parser.ParseRules
 import Parser.PrettyPrint
 import Text.ParserCombinators.UU

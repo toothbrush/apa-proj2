@@ -2,7 +2,7 @@ optpragmas {
 {-# LANGUAGE ScopedTypeVariables #-}
 }
 
-MODULE {Parser.Base} {} {}
+MODULE {Base} {} {}
 
 imports
 {
