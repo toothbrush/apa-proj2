@@ -4,11 +4,13 @@
 module Main where
 
 import Base
+import TreeInstances
 import Parser.ParseRules
 import Parser.PrettyPrint
 import Text.ParserCombinators.UU
 import Text.ParserCombinators.UU.Utils
 import Text.ParserCombinators.UU.BasicInstances
+import CCO.Tree
 import System
 
 main :: IO ()
@@ -16,7 +18,8 @@ main = do
   putStrLn "Parser for FUN language.\n"
   (fileName:_) <- getArgs
   fileContents <- readFile fileName
-  run pTerm fileContents
+  let term = runParser fileName pTerm fileContents
+  putStrLn (show$fromTree term)
 
 fileToTerm :: String -> Term
 fileToTerm fileName = Var "s"
