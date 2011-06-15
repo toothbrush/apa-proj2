@@ -1,0 +1,111 @@
+imports
+{
+import CCO.Printing
+}
+
+-------------------------------------------------------------------------------
+-- Pretty printing
+-------------------------------------------------------------------------------
+
+attr Ty Tm
+  syn ppSL :: {Doc}  -- pretty printing (single-line mode)
+  syn ppML :: {Doc}  -- pretty printing (multiline mode)
+
+sem Ty
+  | TyVar  loc.ppSL = text @a
+  | Arr    loc.ppSL = ppInfixSL @lhs.prec ("->", 0) @ty1.ppSL @ty2.ppSL
+  | Forall loc.ppSL = ppBinderSL "forall " (text @a) @ty1.ppSL
+
+  | TyVar  lhs.ppML = @loc.ppSL
+  | Arr    lhs.ppML = @loc.ppSL >^<
+                      ppInfixML @lhs.prec ("->", 0) @ty1.ppML @ty2.ppML
+  | Forall lhs.ppML = @loc.ppSL >^<
+                      ppBinderML "forall " (text @a) @ty1.ppML
+
+sem Tm
+  | Var    loc.ppSL = text @x
+  | Lam    loc.ppSL = ppBinderSL "\\" (text @x >#< text ":" >#< @ty.ppSL)
+                        @t1.ppSL
+  | App    loc.ppSL = ppInfixSL @lhs.prec ("", 10) @t1.ppSL @t2.ppSL
+  | TyLam  loc.ppSL = ppBinderSL "/\\" (text @a) @t1.ppSL
+  | TyApp  loc.ppSL = ppInfixSL @lhs.prec ("", 10) @t1.ppSL (brackets @ty.ppSL)
+
+  | Var    lhs.ppML = @loc.ppSL
+  | Lam    lhs.ppML = @loc.ppSL >^<
+                      ppBinderML "\\" (text @x >#< text ":" >#< @ty.ppML)
+                        @t1.ppML
+  | App    lhs.ppML = @loc.ppSL >^<
+                      ppInfixML @lhs.prec ("", 10) @t1.ppML @t2.ppML
+  | TyLam  lhs.ppML = @loc.ppSL >^<
+                      ppBinderML "/\\" (text @a) @t1.ppML
+  | TyApp  lhs.ppML = @loc.ppSL >^<
+                      ppInfixML @lhs.prec ("", 10) @t1.ppML
+                        (lbracket >#< @ty.ppML >-< rbracket)
+
+-------------------------------------------------------------------------------
+-- Precedence levels
+-------------------------------------------------------------------------------
+
+{
+-- | Type of precedence levels.
+type Prec = Int
+}
+
+attr Ty Tm
+  inh prec :: {Prec}
+
+sem Ty
+  | Arr    ty1.prec = 1
+           ty2.prec = 0
+  | Forall ty1.prec = 0
+
+sem Tm
+  | Lam   ty.prec = 0
+          t1.prec = 0
+  | App   t1.prec = 10
+          t2.prec = 11
+  | TyLam t1.prec = 0
+  | TyApp t1.prec = 9
+          ty.prec = 0
+
+{
+-- | Pretty prints in single-line mode, given the precedence level of its
+-- immediate context, a term constructed from a binary operator of a specified
+-- precedence level.
+-- 
+-- A term is enclosed in parentheses if the precedence level of its operator 
+-- is less than the precedence level of the enclosing context.
+
+ppInfixSL :: Prec -> (String, Prec) -> Doc -> Doc -> Doc
+ppInfixSL ctx (op, prec) l r = modifier $ l >#< ppOp >#< r
+  where
+    modifier = if prec < ctx then parens else id
+    ppOp     = text op
+
+-- | Pretty prints in multiline mode, given the precedence level of its
+-- immediate context, a term constructed from a binary operator of a specified
+-- precedence level.
+-- 
+-- A term is enclosed in parentheses if the precedence level of its operator 
+-- is less than the precedence level of the enclosing context.
+
+ppInfixML :: Prec -> (String, Prec) -> Doc -> Doc -> Doc
+ppInfixML ctx (op, prec) l r = modifier $ l >#< ppOp >-< r
+  where
+    modifier doc = lparen >#< doc >-< rparen
+    ppOp         = text op
+}
+
+-------------------------------------------------------------------------------
+-- Binders
+-------------------------------------------------------------------------------
+
+{
+-- | Pretty prints in single-line mode, a construct involving a binder.
+ppBinderSL :: String -> Doc -> Doc -> Doc
+ppBinderSL binder arg body = text binder >|< arg >|< period >#< body
+
+-- | Pretty prints in multiline mode, a construct involving a binder.
+ppBinderML :: String -> Doc -> Doc -> Doc
+ppBinderML binder arg body = text binder >|< arg >|< period >-< indent 2 body
+}

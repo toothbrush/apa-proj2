@@ -1,0 +1,18 @@
+imports
+{
+import CCO.SourcePos
+import CCO.Types
+}
+
+-------------------------------------------------------------------------------
+-- Syntax
+-------------------------------------------------------------------------------
+
+data Tm
+  | Tm  pos :: {SourcePos}  t :: Tm_
+
+data Tm_
+  | Var  x :: {Var}
+  | Lam  x :: {Var}  t1 :: Tm
+  | App  t1 :: Tm  t2 :: Tm
+  | Let  x :: {Var}  t1 :: Tm  t2 :: Tm

@@ -1,0 +1,33 @@
+name:                  apa-proj2
+version:               0.1
+synopsis:              Utilities for a simple, implicitly typed functional
+                       language.
+license:               MIT
+license-file:          LICENSE
+category:              Compilers/Interpreters
+author:                Jurriën, Ruben, Paul
+maintainer:            paul@denknerd.org
+stability:             provisional
+homepage:              http://www.cs.uu.nl/wiki/Apa
+tested-with:           GHC == 6.8.2, GHC == 6.8.3, GHC == 6.10.1
+build-type:            Simple
+cabal-version:         >= 1.6
+
+executable parse-hm
+  main-is:             ParseHM.hs
+  build-depends:       base, cco >= 0.0.4
+  other-modules:       CCO.HM, CCO.HM.AG, CCO.HM.Base, CCO.HM.Lexer,
+                       CCO.HM.Parser
+  hs-source-dirs:      src
+
+executable pp-systemf
+  main-is:             PpSystemF.hs
+  build-depends:       base, cco >= 0.0.4
+  other-modules:       CCO.SystemF, CCO.SystemF.AG, CCO.SystemF.Base
+  hs-source-dirs:      src
+
+executable hm2systemf
+  main-is:             HM2SystemF.hs
+  build-depends:       base, cco >= 0.0.4, uuagc
+  other-modules:       CCO.HM2SystemF, CCO.HM.AG, CCO.HM.Base, CCO.Types
+  hs-source-dirs:      src

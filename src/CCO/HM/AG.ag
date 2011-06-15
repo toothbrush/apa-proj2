@@ -1,0 +1,23 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module      :  CCO.HM.AG
+-- Copyright   :  (c) 2008 Utrecht University
+-- License     :  All rights reserved
+--
+-- Maintainer  :  stefan@cs.uu.nl
+-- Stability   :  provisional
+-- Portability :  portable
+--
+-- Attribute grammar for a simple, implicitly typed functional language.
+--
+-------------------------------------------------------------------------------
+
+module {CCO.HM.AG} {} 
+{
+import CCO.Types
+import CCO.SystemF.AG (Ty (..))
+import qualified CCO.SystemF.AG as SF (Tm (..), Ty (..))
+}
+
+include "AG/Base.ag"
+include "AG/Infer.ag"

@@ -1,0 +1,25 @@
+imports
+{
+import CCO.SourcePos
+}
+
+-------------------------------------------------------------------------------
+-- Syntax
+-------------------------------------------------------------------------------
+
+{
+type TyVar = String    -- ^ Type of type variables. 
+type Var   = String    -- ^ Type of variables.
+}
+
+data Ty
+  | TyVar   a :: {TyVar}
+  | Arr     ty1 :: Ty  ty2 :: Ty
+  | Forall  a :: {TyVar}  ty1 :: Ty
+
+data Tm
+  | Var    x :: {Var}
+  | Lam    x :: {Var}  ty :: Ty  t1 :: Tm
+  | App    t1 :: Tm  t2 :: Tm
+  | TyLam  a :: {TyVar}  t1 :: Tm
+  | TyApp  t1 :: Tm  ty :: Ty

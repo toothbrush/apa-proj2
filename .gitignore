@@ -3,3 +3,5 @@ src/Parser/Base.hs
 .DS_Store
 src/Base.hs
 src/Infer/Typed.hs
+src/CCO/HM/AG.hs
+src/CCO/SystemF/AG.hs
