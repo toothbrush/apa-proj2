@@ -15,6 +15,6 @@ cabal-version:         >= 1.6
 
 executable parse-hm
   main-is:             Main.hs
-  build-depends:       base, cco >= 0.0.4
+  build-depends:       base, cco >= 0.0.4, containers >= 0.4
   other-modules:       CCO.HM, CCO.HM.AG, CCO.HM.Lexer, CCO.HM.Parser
   hs-source-dirs:      src

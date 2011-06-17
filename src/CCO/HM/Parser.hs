@@ -41,7 +41,7 @@ parser = C.parser lexer (pTm <* eof)
 
 -- | Parses a 'Tm'.
 pTm :: TokenParser Tm
-pTm = (\pos x t1 -> Lam x (TyVar "") t1) <$>
+pTm = (\pos x t1 -> Lam x t1) <$>
         sourcePos <* spec '\\' <*> var <* spec '.' <*> pTm <|>
       (\pos ts -> foldl1 (\t1 t2 -> App t1 t2) ts) <$>
         sourcePos <*> some
