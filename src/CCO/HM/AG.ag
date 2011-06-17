@@ -12,12 +12,14 @@
 --
 -------------------------------------------------------------------------------
 
-module {CCO.HM.AG} {} 
+MODULE {CCO.HM.AG} {} {}
+
+imports
 {
 import CCO.Types
 import CCO.SystemF.AG (Ty (..))
 import qualified CCO.SystemF.AG as SF (Tm (..), Ty (..))
 }
 
-include "AG/Base.ag"
-include "AG/Infer.ag"
+INCLUDE "AG/Base.ag"
+INCLUDE "AG/Infer.ag"

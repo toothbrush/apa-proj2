@@ -17,40 +17,45 @@ import Data.Maybe
 import Debug.Trace
 }
 
-attr Tm Tm_
-    -- The inferredType attribute will contain the type of the term.
-    syn inferredType :: {Ty}
+ATTR Tm Tm_
+  [-- The type environment should start empty, then grow as more lambdas
+    -- etc. are encountered.
+    typeEnvironment : {TyEnv}
+  | -- The counter is used to generate fresh variable names, which are unique.
+    counter : {Int}
+  | -- The inferredType attribute will contain the type of the term.
+    inferredType : {Ty}
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
-    syn substitution :: {TySubst}
-    -- The type environment should start empty, then grow as more lambdas
-    -- etc. are encountered.
-    inh typeEnvironment :: {TyEnv}
-    -- The counter is used to generate fresh variable names, which are unique.
-    chn counter :: {Int}
+    substitution : {TySubst}
+  ]
 
-attr Tm Tm_
+ATTR Tm Tm_
+  [ | |
     -- This attribute, on HM.Tm, returns a type-annotated SF.Tm term. 
-    syn annotated :: {SF.Tm}
+    annotated : {SF.Tm}
+  ]
 
-sem Tm
-    | Tm  loc.num :: uniqueref counter
-sem Tm_
-    | Var loc.num :: uniqueref counter
-    | Lam loc.num :: uniqueref counter
-    | App loc.num :: uniqueref counter
-    | Let loc.num :: uniqueref counter 
+SEM Tm
+    | Tm  loc.num : UNIQUEREF counter
+
+
+SEM Tm_
+    | Var loc.num : UNIQUEREF counter
+    | Lam loc.num : UNIQUEREF counter
+    | App loc.num : UNIQUEREF counter
+    | Let loc.num : UNIQUEREF counter
 
 -- The type environment is modified as specified in Algorithm W. Let's and lambda's 
 -- introduce new variables to the environment.
-sem Tm_
+SEM Tm_
     | Lam t1.typeEnvironment = (@x, freshVar @loc.num) : @lhs.typeEnvironment
     | App t2.typeEnvironment = applySubst @t1.substitution @lhs.typeEnvironment
     | Let t2.typeEnvironment = let newEnv = applySubst @t1.substitution @lhs.typeEnvironment
                                    (ty', coercion) = generalise newEnv @t1.inferredType
                                in  (@x, ty') : newEnv
 
-sem Tm_
+SEM Tm_
     | Var lhs.annotated = let (ty', coercion) = instantiate (getVar @x @lhs.typeEnvironment)
                               -- note that since we don't label variables in-place,
                               -- the ty' is unused. 
@@ -65,7 +70,7 @@ sem Tm_
                           in  SF.App (SF.Lam @x ty' @t2.annotated) (coercion @t1.annotated) 
 
 -- Calculates the substitution as defined in Algorithm W. 
-sem Tm_
+SEM Tm_
     | Var lhs.substitution   = Identity
     | Lam lhs.substitution   = @t1.substitution
     | App lhs.substitution   = let theta1 = @t1.substitution
@@ -79,7 +84,7 @@ sem Tm_
                                in  Dot theta2 theta1
 
 -- Does the type inference using helper functions defined here and in CCO.Types. 
-sem Tm_
+SEM Tm_
     | Var lhs.inferredType   = if @x `elem` domain @lhs.typeEnvironment
                                   then let (ty', coercion) = instantiate (getVar @x @lhs.typeEnvironment)
                                        in   ty' -- the coercion is used elsewhere. 
@@ -147,7 +152,7 @@ wrapForall :: [Var] -> Ty -> Ty
 wrapForall vs t = foldr Forall t vs
 
 -- | This gives us unique variable numbers, incrementing the seed each time.
--- Automatically invoked by AG system when the keyword 'uniqueref' is used next 
+-- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next 
 -- to an attribute.
 nextUnique :: Int -> (Int, Int)
 nextUnique u = (u+1, u)
