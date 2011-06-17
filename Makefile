@@ -4,7 +4,7 @@ CABAL-BUILD-FLAGS     :=
 all: haskell
 
 src/CCO/HM/AG.hs: src/CCO/HM/AG.ag src/CCO/HM/AG/Base.ag src/CCO/HM/AG/Infer.ag
-	uuagc -dcfws --self -P src/CCO/HM src/CCO/HM/AG.ag
+	uuagc -dcfws --self --genlinepragmas -P src/CCO/HM src/CCO/HM/AG.ag
 
 haskell: src/CCO/HM/AG.hs
 	chmod a+x test.sh

@@ -1,3 +1,6 @@
+optpragmas {
+{-# LANGUAGE TypeSynonymInstances #-}
+}
 -------------------------------------------------------------------------------
 -- 
 -- The type inferencer AG. 
@@ -17,7 +20,7 @@ import Data.Maybe
 import Debug.Trace
 }
 
-ATTR Tm Tm_
+ATTR Tm
   [-- The type environment should start empty, then grow as more lambdas
     -- etc. are encountered.
     typeEnvironment : {TyEnv}
@@ -30,17 +33,13 @@ ATTR Tm Tm_
     substitution : {TySubst}
   ]
 
-ATTR Tm Tm_
+ATTR Tm
   [ | |
-    -- This attribute, on HM.Tm, returns a type-annotated SF.Tm term. 
-    annotated : {SF.Tm}
+    -- This attribute, on HM.Tm, returns a type-annotated Tm term. 
+    annotated : {Tm}
   ]
 
 SEM Tm
-    | Tm  loc.num : UNIQUEREF counter
-
-
-SEM Tm_
     | Var loc.num : UNIQUEREF counter
     | Lam loc.num : UNIQUEREF counter
     | App loc.num : UNIQUEREF counter
@@ -48,29 +47,29 @@ SEM Tm_
 
 -- The type environment is modified as specified in Algorithm W. Let's and lambda's 
 -- introduce new variables to the environment.
-SEM Tm_
+SEM Tm
     | Lam t1.typeEnvironment = (@x, freshVar @loc.num) : @lhs.typeEnvironment
     | App t2.typeEnvironment = applySubst @t1.substitution @lhs.typeEnvironment
     | Let t2.typeEnvironment = let newEnv = applySubst @t1.substitution @lhs.typeEnvironment
                                    (ty', coercion) = generalise newEnv @t1.inferredType
                                in  (@x, ty') : newEnv
 
-SEM Tm_
+SEM Tm
     | Var lhs.annotated = let (ty', coercion) = instantiate (getVar @x @lhs.typeEnvironment)
                               -- note that since we don't label variables in-place,
                               -- the ty' is unused. 
-                          in  coercion (SF.Var @x)
-    | Lam lhs.annotated = SF.Lam @x 
+                          in  coercion (Var @x)
+    | Lam lhs.annotated = Lam @x 
                                 (applySubst @t1.substitution (freshVar @loc.num))
                                 (@t1.annotated)
-    | App lhs.annotated = SF.App @t1.annotated @t2.annotated
+    | App lhs.annotated = App @t1.annotated @t2.annotated
     | Let lhs.annotated = let tyX = applySubst @t1.substitution @t1.inferredType
                               (ty', coercion) =  generalise @lhs.typeEnvironment @t1.inferredType
                               ty = applySubst (Dot @t1.substitution @t2.substitution) (freshVar @loc.num)
-                          in  SF.App (SF.Lam @x ty' @t2.annotated) (coercion @t1.annotated) 
+                          in  App (Lam @x ty' @t2.annotated) (coercion @t1.annotated) 
 
 -- Calculates the substitution as defined in Algorithm W. 
-SEM Tm_
+SEM Tm
     | Var lhs.substitution   = Identity
     | Lam lhs.substitution   = @t1.substitution
     | App lhs.substitution   = let theta1 = @t1.substitution
@@ -84,7 +83,7 @@ SEM Tm_
                                in  Dot theta2 theta1
 
 -- Does the type inference using helper functions defined here and in CCO.Types. 
-SEM Tm_
+SEM Tm
     | Var lhs.inferredType   = if @x `elem` domain @lhs.typeEnvironment
                                   then let (ty', coercion) = instantiate (getVar @x @lhs.typeEnvironment)
                                        in   ty' -- the coercion is used elsewhere. 
@@ -112,20 +111,21 @@ freshVar i = TyVar $ 'v' : show i
 -- with fresh variables. A coercion function is also returned, 
 -- which should be used to show where in the original term
 -- type instantiations were applied. 
-instantiate :: Ty -> (Ty, SF.Tm -> SF.Tm)
-instantiate t = let (forallVars, ty') = grabForallVars t
-                    -- first get all "forall" bound variables,
-                    -- then replace these with fresh variables
-                    nvars = zipWith (\ a b -> TyVar (a ++ b)) forallVars (map (('_':).show) [0..])
-                    s = foldr (\(o,n) -> Dot (Sub o n)) Identity (zip forallVars nvars)
-                    coercion = \t -> foldl SF.TyApp t nvars
-                in  (applySubst s ty', coercion)
+instantiate :: Ty -> (Ty, Tm -> Tm)
+instantiate t =
+  let (forallVars, ty') = grabForallVars t
+      -- first get all "forall" bound variables,
+      -- then replace these with fresh variables
+      nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map (('_':).show) [0..])
+      s = foldr (\(o,n) -> Dot (Sub o n)) Identity (zip forallVars nvars)
+      coercion = \t -> foldl TyApp t nvars
+  in  (applySubst s ty', coercion)
 
 -- | Unrolls a type, and returns all the variables
--- which are in "forall". This is useful for instantiation, 
+-- which are in "forall". This is useful for instantiation,
 -- since these variables will need concrete values.
 grabForallVars :: Ty -> ([TyVar], Ty)
-grabForallVars t@(TyVar _)    = ([], t) 
+grabForallVars t@(TyVar _)    = ([], t)
 grabForallVars t@(Arr t1 t2)  = let (vars, ty) = grabForallVars t2 -- assuming rank 1, 
                                                                    -- we needn't look at t1, since
                                                                    -- forall can't occur there.
@@ -137,10 +137,10 @@ grabForallVars (Forall tv t1) = let (vars, ty) = grabForallVars t1
 -- a type T, and then makes the type into 
 -- "foreach [those variables] T."
 -- Also returns a coercion. This is to be applied to the term, 
--- resulting in an SF.Tm with type lambdas at the right spots.
-generalise :: TyEnv -> Ty -> (Ty, SF.Tm -> SF.Tm)
+-- resulting in an Tm with type lambdas at the right spots.
+generalise :: TyEnv -> Ty -> (Ty, Tm -> Tm)
 generalise env tau = let free = ftv tau \\ ftv env
-                         coercion = \t -> foldr SF.TyLam t free 
+                         coercion = \t -> foldr  TyLam t free
                      in  (wrapForall free tau, coercion)
 
 -- | Take a list of variables, and wrap them in a Forall 
@@ -167,4 +167,77 @@ getVar x env = case lookup x env of
 -- | This simple alias turns a type environment into the list
 -- of variables it contains information for. 
 domain = map fst
+
+
+-- | A Type environment maps variable names to types.
+type TyEnv = [(Var,Ty)]
+-- | TyVar and Var are just strings (variable names).
+
+-- | A type substitution. Used for substitution of type variables
+-- in signatures.
+data TySubst = Identity -- ^ Identity substitution, do nothing. 
+             | Sub TyVar Ty -- ^ Substitute a type variable with a type. 
+             | Dot TySubst TySubst -- ^ Chain substitutions together.
+             deriving Show
+
+-- | A class which is useful for defining functions such as 'applySubst' (which
+-- substitutes all occurences of a variable with a type, and 'ftv' which returns
+-- all the free type variables in the argument.
+class Types a where
+    applySubst :: TySubst -> a -> a
+    ftv        :: a -> [Var]
+
+instance Types Ty where
+    -- The free type variables are accumulated in the same way
+    -- as recommended in the course slides.
+    ftv (TyVar tv)                  = [tv]
+    ftv (Arr t1 t2)                 = nub (ftv t1 ++ ftv t2)
+    ftv (Forall tv ts)              = ftv ts \\ [tv]
+    -- The implementation of applySubst is exactly like presented in the
+    -- slides of this course. 
+    applySubst Identity t           = t --identity
+    applySubst (Dot s1 s2) t        = applySubst s1 (applySubst s2 t)
+    applySubst (Sub a t0) (TyVar t) = if a == t
+                                           then t0
+                                           else TyVar t --identity
+    applySubst s@(Sub a t0) (Arr t1 t2) = Arr
+                                              (applySubst s t1)
+                                              (applySubst s t2)
+    applySubst s@(Sub a t0) (Forall tv ts) = if a == tv
+                                                then Forall tv ts --identity
+                                                else Forall tv (applySubst s ts)
+
+instance Types TyEnv where
+    -- Simply extend the functions to support lists
+    -- of whatever they already support.
+    applySubst _ []         = []
+    applySubst s ((v,ts):r) = (v, applySubst s ts):applySubst s r
+    ftv []         = []
+    ftv ((v,ts):r) = nub $ ftv ts ++ ftv r
+
+
+-- | The unification algorithm. If none of the cases match, fail.
+unify :: Ty -> Ty -> TySubst
+unify t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
+                                    | tv1 `notElem` ftv t2 = Sub tv1 t2
+                                    | tv2 `notElem` ftv t1 = Sub tv2 t1
+                                    | otherwise = error "Cannot unify. Error."
+unify (TyVar tv1) t | tv1 `notElem` ftv t = Sub tv1 t
+                    | otherwise = error $ "Occurs check: " ++
+                                            show tv1 ++ " = " ++
+                                            show t
+                                            ++ "\nCannot create infinite type."
+unify t (TyVar tv2) | tv2 `notElem` ftv t = Sub tv2 t
+                    | otherwise = error $ "Occurs check: " ++ 
+                                            show tv2 ++ " = " ++
+                                            show t
+                                            ++ "\nCannot create infinite type."
+unify (Arr t11 t12) (Arr t21 t22) = let theta1 = unify t11 t21
+                                        theta2 = unify
+                                                    (applySubst theta1 t12)
+                                                    (applySubst theta1 t22)
+                                    in Dot theta2 theta1
+unify t1 t2 = error $ "Unification failure. \nt_1 = " ++ 
+                      show t1 ++ "\nt_2 = " ++ 
+                      show t2
 }

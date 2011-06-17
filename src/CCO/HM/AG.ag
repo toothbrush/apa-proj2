@@ -14,12 +14,5 @@
 
 MODULE {CCO.HM.AG} {} {}
 
-imports
-{
-import CCO.Types
-import CCO.SystemF.AG (Ty (..))
-import qualified CCO.SystemF.AG as SF (Tm (..), Ty (..))
-}
-
 INCLUDE "AG/Base.ag"
 INCLUDE "AG/Infer.ag"
