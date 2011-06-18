@@ -29,8 +29,8 @@ ATTR Tm
     typeEnvironment : {TyEnv}
   | -- The counter is used to generate fresh variable names, which are unique.
     counter : {Int}
-  | -- The inferredType attribute will contain the type of the term.
-    inferredType : {Ty}
+  | -- The algW attribute will contain the type of the term.
+    algW : {Ty}
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution : {TySubst}
@@ -48,38 +48,59 @@ SEM Tm
     | Lam t1.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
     | App t2.typeEnvironment = applySubst @t1.substitution @lhs.typeEnvironment
     | Let t2.typeEnvironment = let newEnv = applySubst @t1.substitution @lhs.typeEnvironment
-                                   ty' = generalise newEnv @t1.inferredType
+                                   ty' = generalise newEnv @t1.algW
                                in  DM.insert @x ty' newEnv
 
 -- Calculates the substitution as defined in Algorithm W. 
 SEM Tm
-    | Var lhs.substitution   = Identity
-    | Lam lhs.substitution   = @t1.substitution
-    | App lhs.substitution   = let theta1 = @t1.substitution
-                                   theta2 = @t2.substitution
-                                   theta3 = unify
-                                        (applySubst theta2 @t1.inferredType)
-                                        (Arr (@t2.inferredType) (freshVar @loc.num) emptyAnn) -- TODO Ann
-                               in  Dot theta3 (Dot theta2 theta1)
-    | Let lhs.substitution   = let theta1 = @t1.substitution
-                                   theta2 = @t2.substitution
-                               in  Dot theta2 theta1
+    | Var lhs.substitution = Identity
+    | Lam lhs.substitution = @t1.substitution
+    | App lhs.substitution = let theta1 = @t1.substitution
+                                 theta2 = @t2.substitution
+                                 theta3 = unify
+                                      (applySubst theta2 @t1.algW)
+                                      (Arr (@t2.algW) (freshVar @loc.num) emptyAnn) -- TODO Ann
+                             in  Dot theta3 (Dot theta2 theta1)
+    | Let lhs.substitution = let theta1 = @t1.substitution
+                                 theta2 = @t2.substitution
+                             in  Dot theta2 theta1
+    | If  lhs.substitution = let theta1 = @t.substitution
+                                 theta2 = @e.substitution
+                                 tau0   = @c.algW
+                                 tau1   = @t.algW
+                                 tau2   = @e.algW
+                                 theta3 = unify (applySubst theta2 (applySubst theta1 tau0))
+                                                Bool
+                                 theta4 = unify (applySubst theta3 tau2)
+                                                (applySubst theta3 (applySubst theta2 tau1))
+                             in Dot theta4 (Dot theta3 (Dot theta2 theta1))
 
 -- Does the type inference using helper functions defined here and in CCO.Types. 
 SEM Tm
-    | Var lhs.inferredType   = if @x `DM.member` @lhs.typeEnvironment
-                                  then instantiate @x (getVar @x @lhs.typeEnvironment)
-                                  else error ("Variable "++ @x ++" not found in environment (out of scope).")
-    | Lam lhs.inferredType   = let theta1 = @t1.substitution
-                                   alpha1 = freshVar @loc.num
-                                   tau2   = @t1.inferredType
-                               in  Arr (applySubst theta1 alpha1) tau2 emptyAnn -- TODO: Ann
-    | App lhs.inferredType   = let alpha1 = freshVar @loc.num
-                                   theta2 = @t2.substitution
-                                   theta3 = unify (applySubst theta2 @t1.inferredType) 
-                                                  (Arr (@t2.inferredType) alpha1 emptyAnn) -- TODO Ann
-                               in  applySubst theta3 alpha1
-    | Let lhs.inferredType   = @t2.inferredType
+    | Var lhs.algW = if @x `DM.member` @lhs.typeEnvironment
+                       then instantiate @x (getVar @x @lhs.typeEnvironment)
+                       else error ("Variable "++ @x ++" not found in environment (out of scope).")
+    | Lam lhs.algW = let theta1 = @t1.substitution
+                         alpha1 = freshVar @loc.num
+                         tau2   = @t1.algW
+                     in  Arr (applySubst theta1 alpha1) tau2 emptyAnn -- TODO: Ann
+    | App lhs.algW = let alpha1 = freshVar @loc.num
+                         theta2 = @t2.substitution
+                         theta3 = unify (applySubst theta2 @t1.algW)
+                                        (Arr (@t2.algW) alpha1 emptyAnn) -- TODO Ann
+                     in  applySubst theta3 alpha1
+    | Let lhs.algW = @t2.algW
+    | If  lhs.algW = let theta0 = @c.substitution
+                         theta1 = @t.substitution
+                         theta2 = @e.substitution
+                         tau0   = @c.algW
+                         tau1   = @t.algW
+                         tau2   = @e.algW
+                         theta3 = unify (applySubst theta2 (applySubst theta1 tau0))
+                                        Bool
+                         theta4 = unify (applySubst theta3 tau2)
+                                        (applySubst theta3 (applySubst theta2 tau1))
+                     in  applySubst theta4 (applySubst theta3 tau2)
 
 {
 emptyAnn :: SAnn

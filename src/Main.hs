@@ -27,7 +27,7 @@ instance Tree Tm where
 convertAndType = component (return . doConversion)
 
 doConversion :: Tm -> Ty
-doConversion t = let inferredType = inferredType_Syn_Tm (wrap_Tm (sem_Tm t) inherit)
+doConversion t = let inferredType = algW_Syn_Tm (wrap_Tm (sem_Tm t) inherit)
                      {- annotated    = annotated_Syn_Tm (wrap_Tm (sem_Tm t) inherit)-}
                      -- we must generalise one more time, to figure out which
                      -- TyLam's must be prepended. 

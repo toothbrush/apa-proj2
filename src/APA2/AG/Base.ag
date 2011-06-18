@@ -15,10 +15,11 @@ type AnnVar = String
 -------------------------------------------------------------------------------
 
 DATA Tm
-  | Var    x  : {Var}
-  | Lam    x  : {Var}   t1 : Tm
-  | App    t1 : Tm      t2 : Tm
-  | Let    x  : {Var}   t1 : Tm t2 : Tm
+  | Var x  : {Var}
+  | Lam x  : {Var} t1 : Tm
+  | App t1 : Tm    t2 : Tm
+  | Let x  : {Var} t1 : Tm t2 : Tm
+  | If  c  : Tm    t  : Tm e  : Tm
 
 DERIVING Tm: Show, Eq
 
