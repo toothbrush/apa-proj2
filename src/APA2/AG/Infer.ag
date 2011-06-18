@@ -59,7 +59,7 @@ SEM Tm
                                    theta2 = @t2.substitution
                                    theta3 = unify
                                         (applySubst theta2 @t1.inferredType)
-                                        (Arr (@t2.inferredType) (freshVar @loc.num) "") -- TODO Ann
+                                        (Arr (@t2.inferredType) (freshVar @loc.num) Empty) -- TODO Ann
                                in  Dot theta3 (Dot theta2 theta1)
     | Let lhs.substitution   = let theta1 = @t1.substitution
                                    theta2 = @t2.substitution
@@ -73,11 +73,11 @@ SEM Tm
     | Lam lhs.inferredType   = let theta1 = @t1.substitution
                                    alpha1 = freshVar @loc.num
                                    tau2   = @t1.inferredType
-                               in  Arr (applySubst theta1 alpha1) tau2 "" -- TODO: Ann
+                               in  Arr (applySubst theta1 alpha1) tau2 Empty -- TODO: Ann
     | App lhs.inferredType   = let alpha1 = freshVar @loc.num
                                    theta2 = @t2.substitution
                                    theta3 = unify (applySubst theta2 @t1.inferredType) 
-                                                  (Arr (@t2.inferredType) alpha1 "") -- TODO Ann
+                                                  (Arr (@t2.inferredType) alpha1 Empty) -- TODO Ann
                                in  applySubst theta3 alpha1
     | Let lhs.inferredType   = @t2.inferredType
 

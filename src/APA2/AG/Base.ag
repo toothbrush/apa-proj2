@@ -8,10 +8,9 @@ import CCO.SourcePos
 }
 
 {
-type TyVar = String
-type Var   = String
-type Annot = String
-type Point = Int
+type TyVar  = String
+type Var    = String
+type Point  = Int
 type AnnVar = String
 }
 -------------------------------------------------------------------------------
@@ -29,14 +28,14 @@ DERIVING Tm: Show, Eq
 
 DATA TyScheme
   | Ty     ty : Ty
-  | Forall a : {TyVar} ts : TyScheme
+  | Forall a  : {TyVar} ts : TyScheme
 
 DERIVING TyScheme: Show, Eq
 
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty ty2 : Ty ann : {Annot}
+  | Arr   ty1 : Ty ty2 : Ty ann : {SAnn}
   | Nat
   | Bool
 
