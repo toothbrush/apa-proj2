@@ -1,6 +1,1 @@
-\f. 
-    \x.
-        let id = \y.y 
-        in 
-            f (id x) (id x) 
-        ni
+\f x -> let id = \y -> y in f (id x) (id x) 

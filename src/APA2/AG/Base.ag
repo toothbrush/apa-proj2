@@ -14,22 +14,23 @@ type AnnVar = String
 -- Syntax
 -------------------------------------------------------------------------------
 
-DATA Tm
-  | Var x  : {Var}
-  | Lam x  : {Var} t1 : Tm
-  | App t1 : Tm    t2 : Tm
-  | Let x  : {Var} t1 : Tm t2 : Tm
-  | If  c  : Tm    t  : Tm e  : Tm
+-- Language definition for Mini Haskell
+DATA MH
+  | VBool  v  : {Bool}
+  | VInt   v  : {Integer}
+  | Var    x  : {Var}
+  | Lambda x  : {Var} e : MH
+  | App    e1 : MH  e2 : MH
+  | Let    x  : {Var} e1 : MH e2 : MH
+  | If     c  : MH  e1 : MH e2 : MH
 
-DERIVING Tm: Show, Eq
-
+DERIVING Expr: Show, Eq
 
 DATA TyScheme
   | Ty     ty : Ty
   | Forall a  : {TyVar} ts : TyScheme
 
 DERIVING TyScheme: Show, Eq
-
 
 DATA Ty
   | TyVar a   : {TyVar}

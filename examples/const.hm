@@ -1,1 +1,1 @@
-let const = \ x . \ y . x in const ni
+let const = \x y -> x in const
