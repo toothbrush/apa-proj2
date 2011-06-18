@@ -127,15 +127,11 @@ nextUnique u = (u+1, u)
 
 -- | Look up a variable's type in the given environment.
 getVar :: Var -> TyEnv -> TyScheme
-getVar x env = case DM.lookup x env of
-                 Just scheme -> scheme
-                 _ -> error ("This shouldn't happen. " ++ x ++
-                             " wasn't found in the environment.")
-
--- | This simple alias turns a type environment into the list
--- of variables it contains information for. 
-domain = DM.keys
-
+getVar x env =
+  case DM.lookup x env of
+    Just scheme -> scheme
+    _           -> error ("This shouldn't happen. " ++ x ++
+                          " wasn't found in the environment.")
 
 -- | A Type environment maps variable names to types.
 type TyEnv = Map Var TyScheme
