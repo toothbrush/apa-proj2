@@ -1,8 +1,8 @@
 module Main where
 
 import CCO.Component    (printer, ioWrap, component)
-import CCO.HM           (parser)
-import CCO.HM.AG
+import APA2.HM           (parser)
+import APA2.AG
 import Control.Arrow    (arr, (>>>))
 import CCO.Tree                   (Tree (fromTree, toTree))
 import qualified CCO.Tree as T    (ATerm (App))

@@ -12,7 +12,7 @@
 --
 -------------------------------------------------------------------------------
 
-module CCO.HM (
+module APA2.HM (
     -- * Syntax
     Var                         -- = String
   , Tm (Var, Lam, App, Let)    -- instances: Tree
@@ -21,5 +21,5 @@ module CCO.HM (
   , parser                      -- :: Component String Tm
 ) where
 
-import CCO.HM.AG
-import CCO.HM.Parser    (parser)
+import APA2.AG
+import APA2.Parser    (parser)

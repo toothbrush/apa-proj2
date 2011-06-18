@@ -12,7 +12,7 @@
 --
 -------------------------------------------------------------------------------
 
-module CCO.HM.Lexer (
+module APA2.Lexer (
     -- * Tokens
     Token      -- abstract, instance: Symbol
 
@@ -25,7 +25,7 @@ module CCO.HM.Lexer (
   , spec       -- :: Char -> Parser Token Char
 ) where
 
-import CCO.HM.AG    (Var)
+import APA2.AG    (Var)
 import CCO.Lexing hiding (satisfy)
 import CCO.Parsing    (Symbol (describe), Parser, satisfy, (<!>))
 import Control.Applicative

@@ -12,13 +12,13 @@
 --
 -------------------------------------------------------------------------------
 
-module CCO.HM.Parser (
+module APA2.Parser (
     -- * Parser
     parser    -- :: Component String Tm
 ) where
 
-import CCO.HM.AG
-import CCO.HM.Lexer                    (Token, lexer, keyword, var, spec)
+import APA2.AG
+import APA2.Lexer                    (Token, lexer, keyword, var, spec)
 import CCO.Component                   (Component)
 import qualified CCO.Component as C    (parser)
 import CCO.Parsing
