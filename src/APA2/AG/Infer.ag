@@ -117,15 +117,7 @@ grabForallVars (Forall tv t1)  =  let (vars, ty) = grabForallVars t1
 -- resulting in an Tm with type lambdas at the right spots.
 generalise :: TyEnv -> Ty -> TyScheme
 generalise env tau = let free = ftv tau DS.\\ ftv env -- Set ftv
-                     in  wrapForall free tau
-
--- | Take a list of variables, and wrap them in a Forall 
--- clause. That is, imagine the list of variables [a,b,c] is
--- input along with a certain type T, the output is:
--- forall a,b,c.T.
--- Which is again a type. 
-wrapForall :: Set TyVar -> Ty -> TyScheme
-wrapForall vs t = DS.fold Forall (Ty t) vs
+                     in  DS.fold Forall (Ty tau) free
 
 -- | This gives us unique variable numbers, incrementing the seed each time.
 -- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next 

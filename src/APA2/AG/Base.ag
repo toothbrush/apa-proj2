@@ -1,7 +1,3 @@
-optpragmas {
-{-# LANGUAGE StandaloneDeriving #-}
-}
-
 imports
 {
 import CCO.SourcePos
