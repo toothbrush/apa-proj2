@@ -1,6 +1,7 @@
 imports
 {
 import CCO.SourcePos
+import Data.Set (Set)
 }
 
 {
@@ -37,11 +38,8 @@ DATA Ty
 
 DERIVING Ty: Show, Eq
 
-
 DATA SAnn
-  | Singleton p : {Point}
-  | Union s1 : SAnn  s2 : SAnn
-  | Empty
+  | AnnSet ns  : {Set Point}
   | AnnVar var : {AnnVar}
 
 DERIVING SAnn: Show, Eq
