@@ -17,6 +17,7 @@ inferTypes tm =
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
 
+-- | Not sure what to do with something like, let loop = loop
 translate :: H.Exp -> MH
 translate = hExpr
   where
