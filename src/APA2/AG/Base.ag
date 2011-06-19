@@ -19,12 +19,14 @@ DATA MH
   | VBool  v  : {Bool}
   | VInt   v  : {Integer}
   | Var    x  : {Var}
-  | Lambda x  : {Var} e : MH
-  | App    e1 : MH  e2 : MH
-  | Let    x  : {Var} e1 : MH e2 : MH
-  | If     c  : MH  e1 : MH e2 : MH
+  | Lambda x  : {Var}     e  : MH
+  | App    e1 : MH        e2 : MH
+  | Let    x  : {Var}     e1 : MH e2 : MH
+  | If     c  : MH        e1 : MH e2 : MH
+  | Cons   e1 : MH        e2 : MH
+  | Nil
 
-DERIVING Expr: Show, Eq
+DERIVING MH: Show, Eq
 
 DATA TyScheme
   | Ty     ty : Ty
@@ -34,7 +36,8 @@ DERIVING TyScheme: Show, Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty ty2 : Ty ann : {SAnn}
+  | Arr   ty1 : Ty      ty2 : Ty     ann : {SAnn}
+  | List  ty  : Ty      ann : {SAnn}
   | Nat
   | Bool
 

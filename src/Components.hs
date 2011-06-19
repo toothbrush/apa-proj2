@@ -12,7 +12,7 @@ inferTypes tm =
   in algW_Syn_MH (wrap_MH (sem_MH tm) inheritAttr)
 
 parseProgram :: String -> MH 
-parseProgram = translate . fromParseResult . parseExp 
+parseProgram = translate . fromParseResult . parseExp
 
 translate = hExpr
   where
@@ -31,6 +31,9 @@ translate = hExpr
   hExpr (H.Lambda _ pt e) = toLambda pt (hExpr e)
 
   hExpr (H.Paren e) = hExpr e
+
+  hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) (H.List [])) = Cons (hExpr e) Nil
+  hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) e') = Cons (hExpr e) (hExpr e')
 
   hPat (H.PVar n) = hName n
   
