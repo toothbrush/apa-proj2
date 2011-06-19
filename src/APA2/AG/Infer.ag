@@ -48,12 +48,12 @@ SEM MH
   | Lambda e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
   | App e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
   | Let e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-                                 ty' = generalise newEnv @e1.algW
+                                 ty'    = generalise newEnv @e1.algW
                              in  DM.insert @x ty' newEnv
 
 -- Calculates the substitution as defined in Algorithm W. 
 SEM MH
-  | VBool VInt Var lhs.substitution = Identity
+  | VBool VInt Var Nil lhs.substitution = Identity
   | Lambda lhs.substitution = @e.substitution
   | App lhs.substitution = let theta1 = @e1.substitution
                                theta2 = @e2.substitution
@@ -79,6 +79,7 @@ SEM MH
 SEM MH
   | VBool lhs.algW = Bool
   | VInt  lhs.algW = Nat
+  | Nil   lhs.algW = List undefined emptyAnn
   | Var lhs.algW = if @x `DM.member` @lhs.typeEnvironment
                      then instantiate @x (getVar @x @lhs.typeEnvironment)
                      else error ("Variable "++ @x ++" not found in environment (out of scope).")
