@@ -37,70 +37,72 @@ ATTR MH
   ]
 
 SEM MH
-    | Var loc.num : UNIQUEREF counter
-    | Lambda loc.num : UNIQUEREF counter
-    | App loc.num : UNIQUEREF counter
-    | Let loc.num : UNIQUEREF counter
+  | Var loc.num : UNIQUEREF counter
+  | Lambda loc.num : UNIQUEREF counter
+  | App loc.num : UNIQUEREF counter
+  | Let loc.num : UNIQUEREF counter
 
 -- The type environment is modified as specified in Algorithm W. Let's and lambda's 
 -- introduce new variables to the environment.
 SEM MH
-    | Lambda e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
-    | App e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
-    | Let e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
+  | Lambda e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
+  | App e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
+  | Let e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
                                    ty' = generalise newEnv @e1.algW
                                in  DM.insert @x ty' newEnv
 
 -- Calculates the substitution as defined in Algorithm W. 
 SEM MH
-    | Var lhs.substitution = Identity
-    | Lambda lhs.substitution = @e.substitution
-    | App lhs.substitution = let theta1 = @e1.substitution
-                                 theta2 = @e2.substitution
-                                 theta3 = unify
-                                      (applySubst theta2 @e1.algW)
-                                      (Arr (@e2.algW) (freshVar @loc.num) emptyAnn) -- TODO Ann
-                             in  Dot theta3 (Dot theta2 theta1)
-    | Let lhs.substitution = let theta1 = @e1.substitution
-                                 theta2 = @e2.substitution
-                             in  Dot theta2 theta1
-    | If  lhs.substitution = let theta1 = @e1.substitution
-                                 theta2 = @e2.substitution
-                                 tau0   = @c.algW
-                                 tau1   = @e1.algW
-                                 tau2   = @e2.algW
-                                 theta3 = unify (applySubst theta2 (applySubst theta1 tau0))
-                                                Bool
-                                 theta4 = unify (applySubst theta3 tau2)
-                                                (applySubst theta3 (applySubst theta2 tau1))
-                             in Dot theta4 (Dot theta3 (Dot theta2 theta1))
+  | VBool VInt Var lhs.substitution = Identity
+  | Lambda lhs.substitution = @e.substitution
+  | App lhs.substitution = let theta1 = @e1.substitution
+                               theta2 = @e2.substitution
+                               theta3 = unify
+                                    (applySubst theta2 @e1.algW)
+                                    (Arr (@e2.algW) (freshVar @loc.num) emptyAnn) -- TODO Ann
+                           in  Dot theta3 (Dot theta2 theta1)
+  | Let lhs.substitution = let theta1 = @e1.substitution
+                               theta2 = @e2.substitution
+                           in  Dot theta2 theta1
+  | If  lhs.substitution = let theta1 = @e1.substitution
+                               theta2 = @e2.substitution
+                               tau0   = @c.algW
+                               tau1   = @e1.algW
+                               tau2   = @e2.algW
+                               theta3 = unify (applySubst theta2 (applySubst theta1 tau0))
+                                              Bool
+                               theta4 = unify (applySubst theta3 tau2)
+                                              (applySubst theta3 (applySubst theta2 tau1))
+                           in Dot theta4 (Dot theta3 (Dot theta2 theta1))
 
 -- Does the type inference using helper functions defined here and in CCO.Types. 
 SEM MH
-    | Var lhs.algW = if @x `DM.member` @lhs.typeEnvironment
-                       then instantiate @x (getVar @x @lhs.typeEnvironment)
-                       else error ("Variable "++ @x ++" not found in environment (out of scope).")
-    | Lambda lhs.algW = let theta1 = @e.substitution
-                            alpha1 = freshVar @loc.num
-                            tau2   = @e.algW
-                        in  Arr (applySubst theta1 alpha1) tau2 emptyAnn -- TODO: Ann
-    | App lhs.algW = let alpha1 = freshVar @loc.num
-                         theta2 = @e2.substitution
-                         theta3 = unify (applySubst theta2 @e1.algW)
-                                        (Arr (@e2.algW) alpha1 emptyAnn) -- TODO Ann
-                     in  applySubst theta3 alpha1
-    | Let lhs.algW = @e2.algW
-    | If  lhs.algW = let theta0 = @c.substitution
-                         theta1 = @e1.substitution
-                         theta2 = @e2.substitution
-                         tau0   = @c.algW
-                         tau1   = @e1.algW
-                         tau2   = @e2.algW
-                         theta3 = unify (applySubst theta2 (applySubst theta1 tau0))
-                                        Bool
-                         theta4 = unify (applySubst theta3 tau2)
-                                        (applySubst theta3 (applySubst theta2 tau1))
-                     in  applySubst theta4 (applySubst theta3 tau2)
+  | VBool lhs.algW = Bool
+  | VInt  lhs.algW = Nat
+  | Var lhs.algW = if @x `DM.member` @lhs.typeEnvironment
+                     then instantiate @x (getVar @x @lhs.typeEnvironment)
+                     else error ("Variable "++ @x ++" not found in environment (out of scope).")
+  | Lambda lhs.algW = let theta1 = @e.substitution
+                          alpha1 = freshVar @loc.num
+                          tau2   = @e.algW
+                      in  Arr (applySubst theta1 alpha1) tau2 emptyAnn -- TODO: Ann
+  | App lhs.algW = let alpha1 = freshVar @loc.num
+                       theta2 = @e2.substitution
+                       theta3 = unify (applySubst theta2 @e1.algW)
+                                      (Arr (@e2.algW) alpha1 emptyAnn) -- TODO Ann
+                   in  applySubst theta3 alpha1
+  | Let lhs.algW = @e2.algW
+  | If  lhs.algW = let theta0 = @c.substitution
+                       theta1 = @e1.substitution
+                       theta2 = @e2.substitution
+                       tau0   = @c.algW
+                       tau1   = @e1.algW
+                       tau2   = @e2.algW
+                       theta3 = unify (applySubst theta2 (applySubst theta1 tau0))
+                                      Bool
+                       theta4 = unify (applySubst theta3 tau2)
+                                      (applySubst theta3 (applySubst theta2 tau1))
+                   in  applySubst theta4 (applySubst theta3 tau2)
 
 {
 emptyAnn :: SAnn
