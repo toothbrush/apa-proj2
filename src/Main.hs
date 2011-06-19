@@ -1,8 +1,8 @@
 module Main where
+
 import Components
 
-main = 
-  do
-    input <- getContents
-    putStrLn $ ( (show . inferTypes . parseProgram) input )
-
+main :: IO ()
+main = do
+  input <- getContents
+  print $ (inferTypes . parseProgram) input
