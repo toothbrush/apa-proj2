@@ -43,8 +43,21 @@ SEM MH
   | VInt  lhs.algW = Nat
           lhs.substitution = Identity
 
-  | Nil   lhs.algW = List undefined emptyAnn
+  | Nil   loc.num : UNIQUEREF counter
+          
+          lhs.algW = List (TyVar $ show @loc.num) emptyAnn
+
           lhs.substitution = Identity
+
+  | Cons  lhs.algW = let tau1   = @e1.algW
+                         theta1 = @e1.substitution
+                         tau2   = @e2.algW
+                         theta2 = @e2.substitution
+                         theta3 = unify tau2 (applySubst theta2 (List tau1 emptyAnn))
+                         theta  = theta3 `dot` theta2 `dot` theta1
+                     in applySubst theta (List tau1 emptyAnn)
+          
+          e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
       
   | Var loc.num : UNIQUEREF counter
 
@@ -184,6 +197,9 @@ data TySubst = Identity -- ^ Identity substitution, do nothing.
              | Dot TySubst TySubst -- ^ Chain substitutions together.
              deriving Show
 
+dot :: TySubst -> TySubst -> TySubst
+dot = Dot
+
 -- | A class which is useful for defining functions such as 'applySubst' (which
 -- substitutes all occurences of a variable with a type, and 'ftv' which returns
 -- all the free type variables in the argument.
@@ -196,7 +212,7 @@ instance Types TyScheme where
   applySubst s@(Sub a t0) (Forall tv ts) | a == tv   = Forall tv ts
                                          | otherwise = Forall tv (applySubst s ts)
   applySubst (Dot s1 s2) t  = applySubst s1 (applySubst s2 t)
-  applySubst sub ty@(Ty t)  = Ty $ applySubst sub t
+  applySubst sub (Ty t)  = Ty $ applySubst sub t
 
   ftv (Forall v s)  = ftv s DS.\\ DS.singleton v
   ftv (Ty t)        = ftv t
@@ -206,13 +222,23 @@ instance Types Ty where
     -- as recommended in the course slides.
     ftv (TyVar tv)                  = DS.singleton tv
     ftv (Arr t1 t2 ann)             = ftv t1 `DS.union` ftv t2
+    ftv Nat                         = DS.empty
+    ftv Bool                        = DS.empty
+    ftv (List t1 _)                 = ftv t1
     -- The implementation of applySubst is exactly like presented in the
     -- slides of this course.
-    applySubst Identity t           = t --identity
+    applySubst Identity t           = t
     applySubst (Dot s1 s2) t        = applySubst s1 (applySubst s2 t)
+
     applySubst (Sub a t0) (TyVar t) | a == t    = t0
                                     | otherwise = TyVar t
-    applySubst s@(Sub a t0) (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) ann
+
+    applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) ann
+
+    applySubst s (List t ann) = List (applySubst s t) ann
+
+    applySubst s Nat  = Nat
+    applySubst s Bool = Bool
 
 instance Types TyEnv where
     -- Simply extend the functions to support lists
@@ -223,26 +249,37 @@ instance Types TyEnv where
 
 -- | The unification algorithm. If none of the cases match, fail.
 unify :: Ty -> Ty -> TySubst
+
+unify Nat Nat = Identity
+
+unify Bool Bool = Identity
+
+unify (List t _) (List t' _) = unify t t'
+                                   
 unify t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
                                     | tv1 `DS.notMember` ftv t2 = Sub tv1 t2
                                     | tv2 `DS.notMember` ftv t1 = Sub tv2 t1
                                     | otherwise = error "Cannot unify. Error."
+
 unify (TyVar tv1) t | tv1 `DS.notMember` ftv t = Sub tv1 t
                     | otherwise = error $ "Occurs check: " ++
                                             show tv1 ++ " = " ++
                                             show t
                                             ++ "\nCannot create infinite type."
+
 unify t (TyVar tv2) | tv2 `DS.notMember` ftv t = Sub tv2 t
                     | otherwise = error $ "Occurs check: " ++ 
                                             show tv2 ++ " = " ++
                                             show t
                                             ++ "\nCannot create infinite type."
+
 unify (Arr t11 t12 an1) (Arr t21 t22 an2) =
   let theta1 = unify t11 t21
       theta2 = unify
                   (applySubst theta1 t12)
                   (applySubst theta1 t22)
   in Dot theta2 theta1
+
 unify t1 t2 = error $ "Unification failure. \nt_1 = " ++ 
                       show t1 ++ "\nt_2 = " ++ 
                       show t2
