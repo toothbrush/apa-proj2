@@ -74,8 +74,8 @@ translate = hExpr
 
     letOrLam l@(H.Lambda _ pt _) =
       case filter (\(H.PVar n) -> hName n == f) pt of
-        []        -> l
-        otherwise -> emptyExp
+        []  -> l
+        _   -> emptyExp
 
     letOrLam l = l
 
