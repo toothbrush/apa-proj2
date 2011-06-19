@@ -30,38 +30,38 @@ ATTR MH
   | -- The counter is used to generate fresh variable names, which are unique.
     counter : {Int}
   | -- The algW attribute will contain the type of the term.
-    algW : {Ty}
+    ty : {Ty}
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution : {TySubst}
   ]
 
 SEM MH
-  | VBool lhs.algW = Bool
+  | VBool lhs.ty = Bool
           lhs.substitution = Identity
 
-  | VInt  lhs.algW = Nat
+  | VInt  lhs.ty = Nat
           lhs.substitution = Identity
 
   | Nil   loc.num : UNIQUEREF counter
           
-          lhs.algW = List (TyVar $ show @loc.num) emptyAnn
+          lhs.ty = List (TyVar $ show @loc.num) emptyAnn
 
           lhs.substitution = Identity
 
-  | Cons  lhs.algW = let tau1   = @e1.algW
-                         theta1 = @e1.substitution
-                         tau2   = @e2.algW
-                         theta2 = @e2.substitution
-                         theta3 = unify tau2 (applySubst theta2 (List tau1 emptyAnn))
-                         theta  = theta3 `dot` theta2 `dot` theta1
-                     in applySubst theta (List tau1 emptyAnn)
+  | Cons  lhs.ty = let tau1   = @e1.ty
+                       theta1 = @e1.substitution
+                       tau2   = @e2.ty
+                       theta2 = @e2.substitution
+                       theta3 = unify tau2 (applySubst theta2 (List tau1 emptyAnn))
+                       theta  = theta3 `dot` theta2 `dot` theta1
+                   in applySubst theta (List tau1 emptyAnn)
           
           e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
       
   | Var loc.num : UNIQUEREF counter
 
-        lhs.algW = if @x `DM.member` @lhs.typeEnvironment
+        lhs.ty = if @x `DM.member` @lhs.typeEnvironment
                      then instantiate @x (getVar @x @lhs.typeEnvironment)
                      else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
@@ -71,10 +71,10 @@ SEM MH
 
            lhs.substitution = @e.substitution
 
-           lhs.algW = let theta1 = @e.substitution
-                          alpha1 = freshVar @loc.num
-                          tau2   = @e.algW
-                      in  Arr (applySubst theta1 alpha1) tau2 emptyAnn -- TODO: Ann
+           lhs.ty = let theta1 = @e.substitution
+                        alpha1 = freshVar @loc.num
+                        tau2   = @e.ty
+                    in Arr (applySubst theta1 alpha1) tau2 emptyAnn -- TODO: Ann
         
            e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
 
@@ -82,15 +82,15 @@ SEM MH
 
         lhs.substitution = let theta1 = @e1.substitution
                                theta2 = @e2.substitution
-                               theta3 = unify (applySubst theta2 @e1.algW)
-                                              (Arr (@e2.algW) (freshVar @loc.num) emptyAnn) -- TODO Ann
+                               theta3 = unify (applySubst theta2 @e1.ty)
+                                              (Arr (@e2.ty) (freshVar @loc.num) emptyAnn) -- TODO Ann
                            in  theta3 `dot` theta2 `dot` theta1
 
-        lhs.algW = let alpha1 = freshVar @loc.num
-                       theta2 = @e2.substitution
-                       theta3 = unify (applySubst theta2 @e1.algW)
-                                      (Arr (@e2.algW) alpha1 emptyAnn) -- TODO Ann
-                   in  applySubst theta3 alpha1
+        lhs.ty = let alpha1 = freshVar @loc.num
+                     theta2 = @e2.substitution
+                     theta3 = unify (applySubst theta2 @e1.ty)
+                                    (Arr (@e2.ty) alpha1 emptyAnn) -- TODO Ann
+                 in  applySubst theta3 alpha1
 
         e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
@@ -100,30 +100,29 @@ SEM MH
                                theta2 = @e2.substitution
                            in  theta2 `dot` theta1
 
-        lhs.algW = @e2.algW
+        lhs.ty = @e2.ty
               
         e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-                                 ty'    = generalise newEnv @e1.algW
+                                 ty'    = generalise newEnv @e1.ty
                              in  DM.insert @x ty' newEnv
 
-
-  | If  lhs.algW = let theta0 = @c.substitution
-                       theta1 = @e1.substitution
-                       theta2 = @e2.substitution
-                       tau0   = @c.algW
-                       tau1   = @e1.algW
-                       tau2   = @e2.algW
-                       theta3 = unify (applySubst (theta2 `dot` theta1) tau0)
-                                      Bool
-                       theta4 = unify (applySubst theta3 tau2)
-                                      (applySubst (theta3 `dot` theta2) tau1)
-                   in  applySubst (theta4 `dot` theta3) tau2
+  | If  lhs.ty = let theta0 = @c.substitution
+                     theta1 = @e1.substitution
+                     theta2 = @e2.substitution
+                     tau0   = @c.ty
+                     tau1   = @e1.ty
+                     tau2   = @e2.ty
+                     theta3 = unify (applySubst (theta2 `dot` theta1) tau0)
+                                    Bool
+                     theta4 = unify (applySubst theta3 tau2)
+                                    (applySubst (theta3 `dot` theta2) tau1)
+                 in  applySubst (theta4 `dot` theta3) tau2
 
         lhs.substitution = let theta1 = @e1.substitution
                                theta2 = @e2.substitution
-                               tau0   = @c.algW
-                               tau1   = @e1.algW
-                               tau2   = @e2.algW
+                               tau0   = @c.ty
+                               tau1   = @e1.ty
+                               tau2   = @e2.ty
                                theta3 = unify (applySubst (theta2 `dot` theta1) tau0)
                                               Bool
                                theta4 = unify (applySubst theta3 tau2)
