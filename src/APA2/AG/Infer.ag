@@ -14,11 +14,8 @@ optpragmas {
 
 imports
 {
-import            Data.List
-import            Data.Maybe
 import            Data.Map (Map)
 import qualified  Data.Map as DM
-import            Data.Set (Set)
 import qualified  Data.Set as DS
 }
 
@@ -121,29 +118,23 @@ SEM MH
                                  ty'    = generalise newEnv @e1.ty
                              in  DM.insert @x ty' newEnv
 
-  | If  lhs.ty = let theta0 = @c.substitution
-                     theta1 = @e1.substitution
-                     theta2 = @e2.substitution
-                     tau0   = @c.ty
-                     tau1   = @e1.ty
-                     tau2   = @e2.ty
-                     theta3 = unify (applySubst (theta2 `dot` theta1) tau0) Bool
-                     theta4 = unify (applySubst theta3 tau2)
-                                    (applySubst (theta3 `dot` theta2) tau1)
-                 in  applySubst (theta4 `dot` theta3) tau2
+  | If loc.theta0 = @c.substitution
+       loc.theta1 = @e1.substitution
+       loc.theta2 = @e2.substitution
+       loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @loc.tau0) Bool
+       loc.theta4 = unify (applySubst @loc.theta3 @loc.tau2) 
+                          (applySubst (@loc.theta3 `dot` @loc.theta2) @loc.tau1)
+       loc.theta = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
-        lhs.constraints = emptyConstraint
+       loc.tau0 = @c.ty
+       loc.tau1 = @e1.ty
+       loc.tau2 = @e2.ty
+      
+       lhs.ty = applySubst @loc.theta @loc.tau2
 
-        lhs.substitution = let theta1 = @e1.substitution
-                               theta2 = @e2.substitution
-                               tau0   = @c.ty
-                               tau1   = @e1.ty
-                               tau2   = @e2.ty
-                               theta3 = unify (applySubst (theta2 `dot` theta1) tau0)
-                                              Bool
-                               theta4 = unify (applySubst theta3 tau2)
-                                              (applySubst (theta3 `dot` theta2) tau1)
-                           in theta4 `dot` theta3 `dot` theta2 `dot` theta1
+       lhs.constraints = emptyConstraint
+
+       lhs.substitution = @loc.theta
 
 {
 emptyAnn :: SAnn
@@ -165,7 +156,7 @@ instantiate tv ts =
   let (forallVars, ty') = grabForallVars ts
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
-      nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map (('_':).show) [0..])
+      nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map show [0..])
       s = foldr (\(o,n) -> Dot (Sub o n)) Identity (zip forallVars nvars)
   in  applySubst s ty'
 
