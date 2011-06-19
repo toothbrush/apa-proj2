@@ -16,5 +16,4 @@ cabal-version:         >= 1.6
 executable cfa
   main-is:             Main.hs
   build-depends:       base, cco >= 0.0.4, containers >= 0.4, haskell-src-exts
-  other-modules:       APA2.HM, APA2.AG
   hs-source-dirs:      src

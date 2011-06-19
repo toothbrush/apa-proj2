@@ -82,10 +82,9 @@ SEM MH
 
         lhs.substitution = let theta1 = @e1.substitution
                                theta2 = @e2.substitution
-                               theta3 = unify
-                                    (applySubst theta2 @e1.algW)
-                                    (Arr (@e2.algW) (freshVar @loc.num) emptyAnn) -- TODO Ann
-                           in  Dot theta3 (Dot theta2 theta1)
+                               theta3 = unify (applySubst theta2 @e1.algW)
+                                              (Arr (@e2.algW) (freshVar @loc.num) emptyAnn) -- TODO Ann
+                           in  theta3 `dot` theta2 `dot` theta1
 
         lhs.algW = let alpha1 = freshVar @loc.num
                        theta2 = @e2.substitution
@@ -99,7 +98,7 @@ SEM MH
         
         lhs.substitution = let theta1 = @e1.substitution
                                theta2 = @e2.substitution
-                           in  Dot theta2 theta1
+                           in  theta2 `dot` theta1
 
         lhs.algW = @e2.algW
               
@@ -114,22 +113,22 @@ SEM MH
                        tau0   = @c.algW
                        tau1   = @e1.algW
                        tau2   = @e2.algW
-                       theta3 = unify (applySubst theta2 (applySubst theta1 tau0))
+                       theta3 = unify (applySubst (theta2 `dot` theta1) tau0)
                                       Bool
                        theta4 = unify (applySubst theta3 tau2)
-                                      (applySubst theta3 (applySubst theta2 tau1))
-                   in  applySubst theta4 (applySubst theta3 tau2)
+                                      (applySubst (theta3 `dot` theta2) tau1)
+                   in  applySubst (theta4 `dot` theta3) tau2
 
         lhs.substitution = let theta1 = @e1.substitution
                                theta2 = @e2.substitution
                                tau0   = @c.algW
                                tau1   = @e1.algW
                                tau2   = @e2.algW
-                               theta3 = unify (applySubst theta2 (applySubst theta1 tau0))
+                               theta3 = unify (applySubst (theta2 `dot` theta1) tau0)
                                               Bool
                                theta4 = unify (applySubst theta3 tau2)
-                                              (applySubst theta3 (applySubst theta2 tau1))
-                           in Dot theta4 (Dot theta3 (Dot theta2 theta1))
+                                              (applySubst (theta3 `dot` theta2) tau1)
+                           in theta4 `dot` theta3 `dot` theta2 `dot` theta1
 
 {
 emptyAnn :: SAnn
