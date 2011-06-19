@@ -17,7 +17,6 @@ inferTypes tm =
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
 
--- | Not sure what to do with something like, let loop = loop
 translate :: H.Exp -> MH
 translate = hExpr
   where
@@ -29,7 +28,13 @@ translate = hExpr
 
   hExpr (H.App e e') = App (hExpr e) (hExpr e')
 
-  hExpr (H.Let (H.BDecls (d:_)) e) = hDecl d (hExpr e)
+  hExpr (H.Let (H.BDecls ((H.FunBind ((H.Match _ (H.Ident x) pts _ (H.UnGuardedRhs e) _) : _)) : _)) e')
+    | isRecursiveLet x e  = LetRec x (hExpr e) (toLambda (hExpr e') pts)
+    | otherwise           = Let x (hExpr e) (toLambda (hExpr e') pts)
+
+  hExpr (H.Let (H.BDecls ((H.PatBind _ (H.PVar (H.Ident x)) Nothing (H.UnGuardedRhs e) _) : _)) e')
+    | isRecursiveLet x e = LetRec x (hExpr e) (hExpr e')
+    | otherwise          = Let x (hExpr e) (hExpr e')
 
   hExpr (H.If c e e') = If (hExpr c) (hExpr e) (hExpr e')
 
@@ -41,16 +46,6 @@ translate = hExpr
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) e') = Cons (hExpr e) (hExpr e')
 
   hPat (H.PVar n) = hName n
-
-  hDecl (H.PatBind _ (H.PVar (H.Ident x)) Nothing (H.UnGuardedRhs e) _) = Let x (hExpr e)
-
-  hDecl (H.FunBind (m:_)) = hMatch m
-
-  hMatch (H.Match _ n pts _ (H.UnGuardedRhs e) _)
-    | isRecursiveLet f e  = mkRec LetRec
-    | otherwise           = mkRec Let
-    where  f       = hName n
-           mkRec r = r f (toLambda (hExpr e) pts)
 
   hQName (H.UnQual (H.Ident x)) = x
 
@@ -68,10 +63,12 @@ translate = hExpr
   removeShadowingExpressions :: String -> H.Exp -> H.Exp
   removeShadowingExpressions f = everywhere' (mkT letOrLam)
     where
-    letOrLam l@(H.Let (H.BDecls (d:_)) _)
-      | x == f     = emptyExp
-      | otherwise  = l
-      where Let x _ _ = hDecl d undefined
+    cond x f l
+      | x == f    = emptyExp
+      | otherwise = l
+
+    letOrLam l@(H.Let (H.BDecls ((H.FunBind ((H.Match _ (H.Ident x) _ _ _ _) :_ )) : _)) _) = cond x f l
+    letOrLam l@(H.Let (H.BDecls ((H.PatBind _ (H.PVar (H.Ident x)) _ _ _) : _)) _)          = cond x f l
 
     letOrLam l@(H.Lambda _ pt _) =
       case [f | H.PVar n <- pt, hName n == f] of
