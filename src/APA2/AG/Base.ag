@@ -22,6 +22,7 @@ DATA MH
   | Lambda x  : {Var}     e  : MH
   | App    e1 : MH        e2 : MH
   | Let    x  : {Var}     e1 : MH e2 : MH
+  | LetRec x  : {Var}     e1 : MH e2 : MH
   | If     c  : MH        e1 : MH e2 : MH
   | Cons   e1 : MH        e2 : MH
   | Nil

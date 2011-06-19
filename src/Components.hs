@@ -3,6 +3,9 @@ import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
 import qualified Data.Map as DM
 import APA2.AG
+import Data.Generics.Schemes
+import Data.Generics.Aliases
+import Debug.Trace
 
 inferTypes :: MH -> Ty
 inferTypes tm =
@@ -39,13 +42,42 @@ translate = hExpr
   hPat (H.PVar n) = hName n
 
   hDecl (H.PatBind _ (H.PVar (H.Ident x)) Nothing (H.UnGuardedRhs e) _) = Let x (hExpr e)
+
   hDecl (H.FunBind (m:_)) = hMatch m
 
-  hMatch (H.Match _ n pts nothing (H.UnGuardedRhs e) _) = Let (hName n) (toLambda (hExpr e) pts)
+  hMatch (H.Match _ n pts nothing (H.UnGuardedRhs e) _) = 
+    let f = hName n
+    in if isRecursiveLet f e
+        then LetRec f (toLambda (hExpr e) pts)
+        else Let f (toLambda (hExpr e) pts)
 
   hQName (H.UnQual (H.Ident x)) = x
 
   hName (H.Ident x) = x
-
+    
   toLambda = foldr (\(H.PVar n) -> Lambda $ hName n)
 
+  isRecursiveLet :: String -> H.Exp -> Bool
+  isRecursiveLet f e = 
+    case listify cond (removeShadowingExpressions f e) of
+      []        -> False
+      otherwise -> True
+    where
+    cond (H.Ident x) | x == f    = True
+                     | otherwise = False
+
+  removeShadowingExpressions :: String -> H.Exp -> H.Exp
+  removeShadowingExpressions f = everywhere' (mkT letOrLam)
+    where
+    letOrLam l@(H.Let (H.BDecls (d:_)) _) = 
+      let Let x _ _ = hDecl d undefined
+      in if x == f then emptyExp else l 
+
+    letOrLam l@(H.Lambda _ pt _) = 
+      case filter (\(H.PVar n) -> hName n == f) pt of
+        []        -> l
+        otherwise -> emptyExp
+
+    letOrLam l = l
+
+  emptyExp = H.Var (H.UnQual $ H.Ident "$%")
