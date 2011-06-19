@@ -46,7 +46,7 @@ translate = hExpr
 
   hDecl (H.FunBind (m:_)) = hMatch m
 
-  hMatch (H.Match _ n pts nothing (H.UnGuardedRhs e) _)
+  hMatch (H.Match _ n pts _ (H.UnGuardedRhs e) _)
     | isRecursiveLet f e  = mkRec LetRec
     | otherwise           = mkRec Let
     where  f       = hName n
@@ -63,6 +63,7 @@ translate = hExpr
     (not . null) $ listify cond (removeShadowingExpressions f e)
     where
       cond (H.Ident x) = x == f
+      cond _           = False
 
   removeShadowingExpressions :: String -> H.Exp -> H.Exp
   removeShadowingExpressions f = everywhere' (mkT letOrLam)
@@ -73,7 +74,7 @@ translate = hExpr
       where Let x _ _ = hDecl d undefined
 
     letOrLam l@(H.Lambda _ pt _) =
-      case filter (\(H.PVar n) -> hName n == f) pt of
+      case [f | H.PVar n <- pt, hName n == f] of
         []  -> l
         _   -> emptyExp
 
