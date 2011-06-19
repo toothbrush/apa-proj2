@@ -20,7 +20,6 @@ import            Data.Map (Map)
 import qualified  Data.Map as DM
 import            Data.Set (Set)
 import qualified  Data.Set as DS
-import Debug.Trace
 }
 
 ATTR MH
@@ -34,20 +33,25 @@ ATTR MH
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution : {TySubst}
+    constraints  : {Constraints}
   ]
 
 SEM MH
   | VBool lhs.ty = Bool
           lhs.substitution = Identity
+          lhs.constraints = emptyConstraint
 
   | VInt  lhs.ty = Nat
           lhs.substitution = Identity
+          lhs.constraints = emptyConstraint
 
   | Nil   loc.num : UNIQUEREF counter
           
           lhs.ty = List (TyVar $ show @loc.num) emptyAnn
 
           lhs.substitution = Identity
+
+          lhs.constraints = emptyConstraint
 
   | Cons  lhs.ty = let tau1   = @e1.ty
                        theta1 = @e1.substitution
@@ -57,6 +61,8 @@ SEM MH
                        theta  = theta3 `dot` theta2 `dot` theta1
                    in applySubst theta (List tau1 emptyAnn)
           
+          lhs.constraints = emptyConstraint
+
           e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
       
   | Var loc.num : UNIQUEREF counter
@@ -65,9 +71,12 @@ SEM MH
                      then instantiate @x (getVar @x @lhs.typeEnvironment)
                      else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
+        lhs.constraints = emptyConstraint
+
         lhs.substitution = Identity
 
   | Lambda loc.num : UNIQUEREF counter
+           loc.pi  : UNIQUEREF counter
 
            lhs.substitution = @e.substitution
 
@@ -75,7 +84,9 @@ SEM MH
                         alpha1 = freshVar @loc.num
                         tau2   = @e.ty
                     in Arr (applySubst theta1 alpha1) tau2 emptyAnn -- TODO: Ann
-        
+
+           lhs.constraints = emptyConstraint
+
            e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
 
   | App loc.num : UNIQUEREF counter
@@ -92,6 +103,8 @@ SEM MH
                                     (Arr (@e2.ty) alpha1 emptyAnn) -- TODO Ann
                  in  applySubst theta3 alpha1
 
+        lhs.constraints = emptyConstraint
+
         e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
   | Let loc.num : UNIQUEREF counter
@@ -101,7 +114,9 @@ SEM MH
                            in  theta2 `dot` theta1
 
         lhs.ty = @e2.ty
-              
+
+        lhs.constraints = emptyConstraint
+
         e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
                                  ty'    = generalise newEnv @e1.ty
                              in  DM.insert @x ty' newEnv
@@ -112,11 +127,12 @@ SEM MH
                      tau0   = @c.ty
                      tau1   = @e1.ty
                      tau2   = @e2.ty
-                     theta3 = unify (applySubst (theta2 `dot` theta1) tau0)
-                                    Bool
+                     theta3 = unify (applySubst (theta2 `dot` theta1) tau0) Bool
                      theta4 = unify (applySubst theta3 tau2)
                                     (applySubst (theta3 `dot` theta2) tau1)
                  in  applySubst (theta4 `dot` theta3) tau2
+
+        lhs.constraints = emptyConstraint
 
         lhs.substitution = let theta1 = @e1.substitution
                                theta2 = @e2.substitution
@@ -194,6 +210,13 @@ data TySubst = Identity -- ^ Identity substitution, do nothing.
              | Sub TyVar Ty -- ^ Substitute a type variable with a type. 
              | Dot TySubst TySubst -- ^ Chain substitutions together.
              deriving Show
+
+type Constraints = DS.Set Constraint
+data Constraint = Constraint AnnVar Point
+  deriving Show
+
+emptyConstraint :: Set Constraint
+emptyConstraint = DS.singleton (Constraint "nothing" 0)
 
 dot :: TySubst -> TySubst -> TySubst
 dot = Dot
@@ -273,9 +296,7 @@ unify t (TyVar tv2) | tv2 `DS.notMember` ftv t = Sub tv2 t
 
 unify (Arr t11 t12 an1) (Arr t21 t22 an2) =
   let theta1 = unify t11 t21
-      theta2 = unify
-                  (applySubst theta1 t12)
-                  (applySubst theta1 t22)
+      theta2 = unify (applySubst theta1 t12) (applySubst theta1 t22)
   in Dot theta2 theta1
 
 unify t1 t2 = error $ "Unification failure. \nt_1 = " ++ 

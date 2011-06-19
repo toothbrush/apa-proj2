@@ -12,24 +12,28 @@ initialInheritedAttributes =
          , counter_Inh_MH = 0
          }
 
-w :: MH -> (TySubst, Ty)
+w :: MH -> (Ty, TySubst, Constraints)
 w tm =
-  (substitution_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
-  ,ty_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
+  (ty_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
+  ,substitution_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
+  ,constraints_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
   )
 
 inferTypes :: MH -> Ty
-inferTypes = snd . w
+inferTypes tm = let (ty,_,_) = w tm
+                in ty
 
 debugInference :: MH -> IO ()
 debugInference tm =
   do
-    let (subst, ty) = w tm
+    let (subst, ty, constraints) = w tm
     putStrLn ("Program: " ++ show tm)
     putStrLn "TySubst:"
     putStrLn (show subst)
     putStrLn "Ty:"
     putStrLn (show ty)
+    putStrLn "Constraints:"
+    putStrLn (show constraints)
 
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
