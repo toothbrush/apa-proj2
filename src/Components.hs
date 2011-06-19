@@ -46,35 +46,33 @@ translate = hExpr
 
   hDecl (H.FunBind (m:_)) = hMatch m
 
-  hMatch (H.Match _ n pts nothing (H.UnGuardedRhs e) _) = 
-    let f = hName n
-    in if isRecursiveLet f e
-        then LetRec f (toLambda (hExpr e) pts)
-        else Let f (toLambda (hExpr e) pts)
+  hMatch (H.Match _ n pts nothing (H.UnGuardedRhs e) _)
+    | isRecursiveLet f e  = mkRec LetRec
+    | otherwise           = mkRec Let
+    where  f       = hName n
+           mkRec r = r f (toLambda (hExpr e) pts)
 
   hQName (H.UnQual (H.Ident x)) = x
 
   hName (H.Ident x) = x
-    
+
   toLambda = foldr (\(H.PVar n) -> Lambda $ hName n)
 
   isRecursiveLet :: String -> H.Exp -> Bool
-  isRecursiveLet f e = 
-    case listify cond (removeShadowingExpressions f e) of
-      []        -> False
-      otherwise -> True
+  isRecursiveLet f e =
+    (not . null) $ listify cond (removeShadowingExpressions f e)
     where
-    cond (H.Ident x) | x == f    = True
-                     | otherwise = False
+      cond (H.Ident x) = x == f
 
   removeShadowingExpressions :: String -> H.Exp -> H.Exp
   removeShadowingExpressions f = everywhere' (mkT letOrLam)
     where
-    letOrLam l@(H.Let (H.BDecls (d:_)) _) = 
-      let Let x _ _ = hDecl d undefined
-      in if x == f then emptyExp else l 
+    letOrLam l@(H.Let (H.BDecls (d:_)) _)
+      | x == f     = emptyExp
+      | otherwise  = l
+      where Let x _ _ = hDecl d undefined
 
-    letOrLam l@(H.Lambda _ pt _) = 
+    letOrLam l@(H.Lambda _ pt _) =
       case filter (\(H.PVar n) -> hName n == f) pt of
         []        -> l
         otherwise -> emptyExp
