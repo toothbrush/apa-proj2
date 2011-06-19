@@ -17,3 +17,4 @@ executable cfa
   main-is:             Main.hs
   build-depends:       base, cco >= 0.0.4, containers >= 0.4, syb >= 0.3, haskell-src-exts
   hs-source-dirs:      src
+  Ghc-Options:         -Wall -fwarn-tabs
