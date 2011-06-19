@@ -48,8 +48,8 @@ SEM MH
   | Lambda e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
   | App e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
   | Let e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-                                   ty' = generalise newEnv @e1.algW
-                               in  DM.insert @x ty' newEnv
+                                 ty'    = generalise newEnv @e1.algW
+                             in  DM.insert @x ty' newEnv
 
 -- Calculates the substitution as defined in Algorithm W. 
 SEM MH
