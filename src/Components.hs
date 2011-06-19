@@ -7,12 +7,29 @@ import Data.Generics.Schemes
 import Data.Generics.Aliases
 import Debug.Trace
 
+initialInheritedAttributes = 
+  Inh_MH { typeEnvironment_Inh_MH = DM.empty
+         , counter_Inh_MH = 0
+         }
+
+w :: MH -> (TySubst, Ty)
+w tm =
+  (substitution_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
+  ,algW_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
+  )
+
 inferTypes :: MH -> Ty
-inferTypes tm =
-  let inheritAttr = Inh_MH { typeEnvironment_Inh_MH = DM.empty
-                           , counter_Inh_MH = 0
-                           }
-  in algW_Syn_MH (wrap_MH (sem_MH tm) inheritAttr)
+inferTypes = snd . w
+
+debugInference :: MH -> IO ()
+debugInference tm =
+  do
+    let (subst, ty) = w tm
+    putStrLn ("Program: " ++ show tm)
+    putStrLn "TySubst:"
+    putStrLn (show subst)
+    putStrLn "Ty:"
+    putStrLn (show ty)
 
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
@@ -29,8 +46,8 @@ translate = hExpr
   hExpr (H.App e e') = App (hExpr e) (hExpr e')
 
   hExpr (H.Let (H.BDecls ((H.FunBind ((H.Match _ (H.Ident x) pts _ (H.UnGuardedRhs e) _) : _)) : _)) e')
-    | isRecursiveLet x e  = LetRec x (hExpr e) (toLambda (hExpr e') pts)
-    | otherwise           = Let x (hExpr e) (toLambda (hExpr e') pts)
+    | isRecursiveLet x e  = LetRec x (toLambda (hExpr e) pts) (hExpr e')
+    | otherwise           = Let x (toLambda (hExpr e) pts) (hExpr e')
 
   hExpr (H.Let (H.BDecls ((H.PatBind _ (H.PVar (H.Ident x)) Nothing (H.UnGuardedRhs e) _) : _)) e')
     | isRecursiveLet x e = LetRec x (hExpr e) (hExpr e')
