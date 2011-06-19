@@ -1,6 +1,5 @@
 imports
 {
-import CCO.SourcePos
 import Data.Set (Set)
 }
 
