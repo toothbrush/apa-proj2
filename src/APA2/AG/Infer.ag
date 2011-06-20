@@ -315,24 +315,25 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
 {-          else  maxFixPt' f iota' setF wtl result amop jop-}
 
 
-absWl constraints bottom = iterAbsWl worklist analysis infl
-  where worklist  = constraints
-        analysis  = DM.fromList [(x, bottom)   | Constraint x _ <- constraints]
-        infl'     = DM.fromList [(x, DS.empty) | Constraint x _ <- constraints]
-        infl      = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')
-                    in  DM.fromList [ (x, cs) | cxt@(Constraint x t) <- constraints
-                                    , cs <- [ inflx' x' `DS.union` DS.singleton cxt
-                                            | x' <- fv t]]
-        fv t      = undefined -- Get the free variables from t
+absWl constraints bottom join atMost = iterAbsWl worklist analysis infl join atMost
+  where worklist = constraints
+        analysis = DM.fromList [(x, bottom)   | Constraint x _ <- constraints]
+        infl'    = DM.fromList [(x, DS.empty) | Constraint x _ <- constraints]
+        infl     = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')
+                   in  DM.fromList [ (x, cs)
+                                   | cxt@(Constraint x t) <- constraints
+                                   , cs <- [ inflx' x' `DS.union` DS.singleton cxt
+                                           | x' <- fv t]]
+        fv t     = undefined -- Get the free variables from t
 
-iterAbsWl []                  analysis _    = analysis
-iterAbsWl (Constraint x t:xs) analysis infl
-  | (analysis x) `notAtmost` new = iterAbsWl newWl newAna infl
-  | otherwise                    = iterAbsWl xs newAna infl
+iterAbsWl []                    analysis _      _    atMost = analysis
+iterAbsWl (Constraint x t:wltl) analysis inflow join atMost
+  | not $ atMost (anaLU x) new = iterAbsWl newWl analysis' inflow join atMost
+  | otherwise                  = iterAbsWl wltl  analysis  inflow join atMost
   where new           = eval t analysis
         eval      t a = undefined
-        notAtmost a n = undefined
-        newAna        = undefined
-        newWl         = undefined
+        analysis'     = analysis `join` new
+        newWl         = wltl ++ (DM.fold (\c xs -> DS.toList c ++ xs) [] inflow) -- TODO: Double check
+        anaLU x       = DM.fromJust $ DM.lookup x analysis
 
 }
