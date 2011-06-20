@@ -104,21 +104,21 @@ SEM MH
 
            e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
 
-  | App loc.num  : UNIQUEREF counter
-        loc.beta : UNIQUEREF counter
+  | App loc.alpha : UNIQUEREF counter
+        loc.beta  : UNIQUEREF counter
 
         loc.beta' = annVar @loc.beta
 
-        loc.alpha  = freshVar @loc.num
+        loc.alpha'  = freshVar @loc.alpha
         loc.theta1 = @e1.substitution
         loc.theta2 = @e2.substitution
         loc.theta3 = unify (applySubst @loc.theta2 @e1.ty)
-                           (Arr (@e2.ty) @loc.alpha @loc.beta')
+                           (Arr @e2.ty @loc.alpha' @loc.beta')
         loc.theta = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
         lhs.substitution = @loc.theta
 
-        lhs.ty = applySubst @loc.theta3 @loc.alpha
+        lhs.ty = applySubst @loc.theta3 @loc.alpha'
 
         lhs.constraints = applySubst (@loc.theta3 `dot` @loc.theta2) @e1.constraints `DS.union`
                           applySubst @loc.theta3 @e2.constraints
@@ -140,6 +140,48 @@ SEM MH
         e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
                                  ty'    = generalise newEnv @e1.ty
                              in  DM.insert @x ty' newEnv
+
+-- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
+-- but is can be passed into a function..
+  | LetRec 
+      loc.alpha1 : UNIQUEREF counter
+      loc.alpha2 : UNIQUEREF counter
+      loc.ppoint : UNIQUEREF counter
+      loc.beta   : UNIQUEREF counter
+
+      loc.alpha1' = freshVar @loc.alpha1
+      loc.alpha2' = freshVar @loc.alpha2
+      loc.beta'   = annVar @loc.beta
+      loc.pi      = annPoint @loc.ppoint
+
+      loc.theta0 = @e1.substitution
+      loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alpha2')
+      loc.theta  = @loc.theta1 `dot` @loc.theta0
+
+      lhs.ty = @e2.ty
+      
+      lhs.substitution = @loc.theta
+
+      lhs.constraints = (applySubst @loc.theta1 @e1.constraints) `DS.union`
+                        (DS.singleton $ (applySubst @loc.theta @loc.beta') <: @loc.pi)
+
+      e1.typeEnvironment = 
+        case @x of
+          Just x  -> DM.insert @f (Ty $ Arr @loc.alpha1' @loc.alpha2' @loc.beta') (
+                      DM.insert x (Ty $ @loc.alpha1') @lhs.typeEnvironment
+                     )
+          -- A recursive let binding without arguments, e.g. let loop = loop in loop
+          Nothing -> DM.insert @f (Ty $ @loc.alpha2') @lhs.typeEnvironment
+
+      e2.typeEnvironment = 
+        let newEnv = applySubst @loc.theta0 @lhs.typeEnvironment
+        in case @x of
+            Just x  -> let ty = Arr (applySubst @loc.theta @alpha1')
+                                    (applySubst @loc.theta1 @e1.ty)
+                                    (applySubst @loc.theta @loc.beta')
+                           ty' = generalise newEnv ty
+                       in DM.insert @f ty' newEnv
+            Nothing -> DM.insert @f (Ty $ @loc.alpha2') newEnv
 
   | If loc.theta0 = @c.substitution
        loc.theta1 = @e1.substitution
