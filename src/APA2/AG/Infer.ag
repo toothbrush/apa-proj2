@@ -344,7 +344,6 @@ absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost ev
                                   | cxt@(Constraint x t) <- constr
                                   , cs <- [ inflx' x' `DS.union` DS.singleton cxt
                                           | x' <- fv t]]
-        fv t    = undefined -- Get the free variables from t
 
 iterAbsWl []                    ana _      _    atMost eval = ana
 iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
