@@ -19,7 +19,7 @@ ATTR MH
     ty : {Ty}
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
-    substitution : {TySubst}
+    substitution : {SimpleSubstitution}
     constraints  : {Constraints}
   ]
 
@@ -34,7 +34,7 @@ SEM MH
 
   | Nil   loc.num : UNIQUEREF counter
 
-          lhs.ty = List (TyVar $ show @loc.num) emptyAnn
+          lhs.ty = List (TyVar $ show @loc.num) (AnnVar "g")
 
           lhs.substitution = Identity
 
@@ -44,9 +44,9 @@ SEM MH
                        theta1 = @e1.substitution
                        tau2   = @e2.ty
                        theta2 = @e2.substitution
-                       theta3 = unify tau2 (applySubst theta2 (List tau1 emptyAnn))
+                       theta3 = unify tau2 (applySubst theta2 (List tau1 (AnnVar "g")))
                        theta  = theta3 `dot` theta2 `dot` theta1
-                   in applySubst theta (List tau1 emptyAnn)
+                   in applySubst theta (List tau1 (AnnVar "g"))
 
           lhs.constraints = emptyConstraint
 
@@ -64,45 +64,54 @@ SEM MH
 
   | Lambda loc.num     : UNIQUEREF counter
            loc.ppoint  : UNIQUEREF counter
+           loc.beta    : UNIQUEREF counter
+
+           loc.beta' = annVar @loc.beta
+           loc.pi    = annPoint @loc.ppoint
 
            lhs.substitution = @e.substitution
 
            lhs.ty = let theta1 = @e.substitution
                         alpha1 = freshVar @loc.num
                         tau2   = @e.ty
-                    in Arr (applySubst theta1 alpha1) tau2 emptyAnn -- TODO: Ann
+                    in Arr (applySubst theta1 alpha1) tau2 @loc.beta'
 
-           lhs.constraints = emptyConstraint
+           lhs.constraints = @e.constraints `DS.union` (DS.singleton $ @loc.beta' <: @loc.pi)
 
            e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
 
-  | App loc.num : UNIQUEREF counter
+  | App loc.num  : UNIQUEREF counter
+        loc.beta : UNIQUEREF counter
 
-        lhs.substitution = let theta1 = @e1.substitution
-                               theta2 = @e2.substitution
-                               theta3 = unify (applySubst theta2 @e1.ty)
-                                              (Arr (@e2.ty) (freshVar @loc.num) emptyAnn) -- TODO Ann
-                           in  theta3 `dot` theta2 `dot` theta1
+        loc.beta' = annVar @loc.beta
 
-        lhs.ty = let alpha1 = freshVar @loc.num
-                     theta2 = @e2.substitution
-                     theta3 = unify (applySubst theta2 @e1.ty)
-                                    (Arr (@e2.ty) alpha1 emptyAnn) -- TODO Ann
-                 in  applySubst theta3 alpha1
+        loc.alpha  = freshVar @loc.num
+        loc.theta1 = @e1.substitution
+        loc.theta2 = @e2.substitution
+        loc.theta3 = unify (applySubst @loc.theta2 @e1.ty)
+                           (Arr (@e2.ty) @loc.alpha @loc.beta')
+        loc.theta = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
-        lhs.constraints = emptyConstraint
+        lhs.substitution = @loc.theta
+
+        lhs.ty = applySubst @loc.theta3 @loc.alpha
+
+        lhs.constraints = applySubst (@loc.theta3 `dot` @loc.theta2) @e1.constraints `DS.union`
+                          applySubst @loc.theta3 @e2.constraints
 
         e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
   | Let loc.num : UNIQUEREF counter
 
-        lhs.substitution = let theta1 = @e1.substitution
-                               theta2 = @e2.substitution
-                           in  theta2 `dot` theta1
+        loc.theta1 = @e1.substitution
+        loc.theta2 = @e2.substitution
+        loc.theta  = @loc.theta2 `dot` @loc.theta1
+
+        lhs.substitution = @loc.theta
 
         lhs.ty = @e2.ty
 
-        lhs.constraints = emptyConstraint
+        lhs.constraints = (applySubst @loc.theta2 @e1.constraints) `DS.union` @e2.constraints
 
         e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
                                  ty'    = generalise newEnv @e1.ty
@@ -122,14 +131,15 @@ SEM MH
 
        lhs.ty = applySubst @loc.theta @loc.tau2
 
-       lhs.constraints = emptyConstraint
+       lhs.constraints = 
+        let c0 = applySubst (@loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1) @c.constraints
+            c1 = applySubst (@loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2) @e1.constraints
+            c2 = applySubst (@loc.theta4 `dot` @loc.theta3) @e1.constraints
+        in c0 `DS.union` c1 `DS.union` c2
 
        lhs.substitution = @loc.theta
 
 {
-emptyAnn :: SAnn
-emptyAnn = AnnSet DS.empty
-
 -- | Turn a number (the counter's current value) into a type variable. 
 -- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
 --       This seems reasonable, given the scope of the assignment, a workaround
@@ -147,7 +157,7 @@ instantiate ts =
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
       nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map show ([0..] :: [Int]))
-      s = foldr (\(o,n) -> Dot (Sub o n)) Identity (zip forallVars nvars)
+      s = foldr (\(o,n) -> Dot (TySub o n)) Identity (zip forallVars nvars)
   in  applySubst s ty'
 
 -- | Unrolls a type, and returns all the variables
@@ -164,7 +174,7 @@ grabForallVars (Forall tv t1)  =  let (vars, ty) = grabForallVars t1
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in an Tm with type lambdas at the right spots.
 generalise :: TyEnv -> Ty -> TyScheme
-generalise env tau = let free = ftv tau DS.\\ ftv env -- Set ftv
+generalise env tau = let free = fv tau DS.\\ fv env
                      in  DS.fold Forall (Ty tau) free
 
 -- | This gives us unique variable numbers, incrementing the seed each time.
@@ -181,106 +191,147 @@ getVar x env =
     _           -> error ("This shouldn't happen. " ++ x ++
                           " wasn't found in the environment.")
 
--- | A Type environment maps variable names to types.
-type TyEnv = Map Var TyScheme
--- | TyVar and Var are just strings (variable names).
+annVar :: Int -> SAnn
+annVar = AnnVar . ("b" ++) . show 
 
--- | A type substitution. Used for substitution of type variables
--- in signatures.
-data TySubst = Identity -- ^ Identity substitution, do nothing. 
-             | Sub TyVar Ty -- ^ Substitute a type variable with a type. 
-             | Dot TySubst TySubst -- ^ Chain substitutions together.
-             deriving Show
-
-type Constraints = DS.Set Constraint
-data Constraint = Constraint AnnVar Point
-  deriving Show
+annPoint :: Int -> SAnn
+annPoint = AnnPoint
 
 emptyConstraint :: Set Constraint
-emptyConstraint = DS.singleton (Constraint "nothing" 0)
+emptyConstraint = DS.empty
 
-dot :: TySubst -> TySubst -> TySubst
+(<:) :: SAnn -> SAnn -> Constraint
+var@(AnnVar _) <: p@(AnnPoint _) = Constraint var p
+_ <: _ = error "invalid constraint"
+
+dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
 dot = Dot
 
--- | A class which is useful for defining functions such as 'applySubst' (which
--- substitutes all occurences of a variable with a type, and 'ftv' which returns
--- all the free type variables in the argument.
-class Types a where
-    applySubst :: TySubst -> a -> a
-    ftv        :: a -> Set Var
-
-instance Types TyScheme where
-  applySubst Identity t = t
-  applySubst s@(Sub a _) (Forall tv ts) | a == tv   = Forall tv ts
-                                        | otherwise = Forall tv (applySubst s ts)
-  applySubst (Dot s1 s2) t  = applySubst s1 (applySubst s2 t)
-  applySubst sub (Ty t)  = Ty $ applySubst sub t
-
-  ftv (Forall v s)  = ftv s DS.\\ DS.singleton v
-  ftv (Ty t)        = ftv t
-
-instance Types Ty where
-    -- The free type variables are accumulated in the same way
-    -- as recommended in the course slides.
-    ftv (TyVar tv)                  = DS.singleton tv
-    ftv (Arr t1 t2 ann)             = ftv t1 `DS.union` ftv t2
-    ftv Nat                         = DS.empty
-    ftv Bool                        = DS.empty
-    ftv (List t1 _)                 = ftv t1
-    -- The implementation of applySubst is exactly like presented in the
-    -- slides of this course.
-    applySubst Identity t           = t
-    applySubst (Dot s1 s2) t        = applySubst s1 (applySubst s2 t)
-
-    applySubst (Sub a t0) (TyVar t) | a == t    = t0
-                                    | otherwise = TyVar t
-
-    applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) ann
-
-    applySubst s (List t ann) = List (applySubst s t) ann
-
-    applySubst _ Nat  = Nat
-    applySubst _ Bool = Bool
-
-instance Types TyEnv where
-    -- Simply extend the functions to support lists
-    -- of whatever they already support.
-    applySubst s  = DM.map (applySubst s)
-    ftv           = DM.fold (\el acc -> ftv el `DS.union` acc) DS.empty
-
+dotApply :: Substitutable t => SimpleSubstitution -> t -> t
+dotApply (Dot s1 s2) t = applySubst s1 (applySubst s2 t)
+dotApply _           _ = error "not allowed"
 
 -- | The unification algorithm. If none of the cases match, fail.
-unify :: Ty -> Ty -> TySubst
+unify :: Ty -> Ty -> SimpleSubstitution
 
-unify Nat Nat = Identity
-
+unify Nat Nat   = Identity
 unify Bool Bool = Identity
 
 unify (List t _) (List t' _) = unify t t'
 
 unify t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
-                                    | tv1 `DS.notMember` ftv t2 = Sub tv1 t2
-                                    | tv2 `DS.notMember` ftv t1 = Sub tv2 t1
+                                    | tv1 `DS.notMember` fv t2 = TySub tv1 t2
+                                    | tv2 `DS.notMember` fv t1 = TySub tv2 t1
                                     | otherwise = error "Cannot unify. Error."
 
-unify (TyVar tv1) t | tv1 `DS.notMember` ftv t = Sub tv1 t
+unify (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
                     | otherwise = error $ "Occurs check: " ++
                                             show tv1 ++ " = " ++
                                             show t
                                             ++ "\nCannot create infinite type."
 
-unify t (TyVar tv2) | tv2 `DS.notMember` ftv t = Sub tv2 t
+unify t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
                     | otherwise = error $ "Occurs check: " ++
                                             show tv2 ++ " = " ++
                                             show t
                                             ++ "\nCannot create infinite type."
 
 unify (Arr t11 t12 an1) (Arr t21 t22 an2) =
-  let theta1 = unify t11 t21
-      theta2 = unify (applySubst theta1 t12) (applySubst theta1 t22)
-  in theta2 `dot` theta1
+  let theta0 = AnnSub an2 an1
+      theta1 = unify (applySubst theta0 t11) (applySubst theta0 t21)
+      theta2 = unify (applySubst (theta1 `dot` theta0) t12) (applySubst (theta1 `dot` theta0) t22)
+  in theta2 `dot` theta1 `dot` theta0
 
 unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
+
+-- | A Type environment maps variable names to types.
+type TyEnv = Map Var TyScheme
+
+type Constraints = DS.Set Constraint
+
+data Constraint = Constraint SAnn SAnn
+  deriving (Show,Ord,Eq)
+
+data SimpleSubstitution = Identity
+                        | TySub TyVar Ty
+                        | AnnSub SAnn SAnn
+                        | Dot SimpleSubstitution SimpleSubstitution
+
+class FreeVariables a where
+    fv :: a -> Set String
+
+class Substitutable subject where
+  applySubst :: SimpleSubstitution -> subject -> subject
+
+
+instance Show SimpleSubstitution where
+  show Identity = ""
+  show (TySub v t) = v ++ " |-> " ++ show t
+  show (AnnSub a a') = show a ++ " |-> " ++ show a'
+  show (Dot s s') = show s ++ ", " ++ show s'
+
+instance Substitutable TyScheme where
+  applySubst Identity     t = t
+  applySubst (AnnSub _ _) t = t
+  applySubst d@(Dot _ _)  t = dotApply d t
+
+  applySubst s@(TySub a _) (Forall tv ts) | a == tv   = Forall tv ts
+                                          | otherwise = Forall tv (applySubst s ts)
+  applySubst sub (Ty t) = Ty $ applySubst sub t
+  
+instance Substitutable Ty where
+  applySubst Identity     t = t
+  applySubst (AnnSub _ _) t = t
+  applySubst d@(Dot _ _)  t = dotApply d t
+
+  applySubst (TySub a t0) (TyVar t) 
+    | a == t    = t0
+    | otherwise = TyVar t
+
+  applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) (applySubst s ann)
+
+  applySubst s (List t ann) = List (applySubst s t) (applySubst s ann)
+
+  applySubst _ Nat  = Nat
+  applySubst _ Bool = Bool
+  
+instance Substitutable TyEnv where
+  applySubst s = DM.map (applySubst s)
+
+instance Substitutable Constraints where
+  applySubst s = DS.map (applySubst s)
+
+instance Substitutable Constraint where
+  applySubst Identity    subj = subj
+  applySubst d@(Dot _ _) subj = dotApply d subj
+
+  applySubst s (Constraint b pi) = Constraint (applySubst s b) (applySubst s pi)
+
+instance Substitutable SAnn where
+  applySubst Identity    a = a
+  applySubst d@(Dot _ _) a = dotApply d a
+
+  applySubst (AnnSub (AnnVar b) (AnnVar b')) a@(AnnVar b'') 
+    | b == b''  = AnnVar b'
+    | otherwise = a
+
+  applySubst _ a = a
+
+instance FreeVariables TyScheme where
+  fv (Forall v s)  = fv s DS.\\ DS.singleton v
+  fv (Ty t)        = fv t
+
+instance FreeVariables Ty where
+  fv (TyVar tv)                  = DS.singleton tv
+  fv (Arr t1 t2 ann)             = fv t1 `DS.union` fv t2
+  fv Nat                         = DS.empty
+  fv Bool                        = DS.empty
+  fv (List t1 _)                 = fv t1
+  
+instance FreeVariables TyEnv where
+  fv = DM.fold (\el acc -> fv el `DS.union` acc) DS.empty
+
+
 }

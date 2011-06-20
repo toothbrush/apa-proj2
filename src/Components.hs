@@ -12,7 +12,7 @@ initialInheritedAttributes =
          , counter_Inh_MH = 0
          }
 
-w :: MH -> (Ty, TySubst, Constraints)
+w :: MH -> (Ty, SimpleSubstitution  , Constraints)
 w tm =
   (ty_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
   ,substitution_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
@@ -26,7 +26,7 @@ inferTypes tm = let (ty,_,_) = w tm
 debugInference :: MH -> IO ()
 debugInference tm =
   do
-    let (subst, ty, constraints) = w tm
+    let (ty, subst, constraints) = w tm
     putStrLn ("Program: " ++ show tm)
     putStrLn "TySubst:"
     putStrLn (show subst)
