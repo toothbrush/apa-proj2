@@ -18,7 +18,7 @@ DATA MH
   | VBool  v  : {Bool}
   | VInt   v  : {Integer}
   | Var    x  : {Var}
-  | Op     op : String    e1 : MH         e2 : MH
+  | Op     op : String    e1 : MH e2 : MH
   | Lambda x  : {Var}     e  : MH
   | App    e1 : MH        e2 : MH
   | Let    x  : {Var}     e1 : MH e2 : MH
@@ -31,7 +31,8 @@ DERIVING MH: Show, Eq
 
 DATA TyScheme
   | Ty     ty : Ty
-  | Forall a  : {TyVar} ts : TyScheme
+  | Forall a : {TyVar} ts : TyScheme
+  | AnnSig a : {SAnn}  ts : TyScheme
 
 DERIVING TyScheme: Show, Eq
 

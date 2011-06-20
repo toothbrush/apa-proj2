@@ -291,6 +291,9 @@ data SimpleSubstitution = Identity
 class FreeVariables a where
     fv :: a -> Set String
 
+class FreeAnnVars a where
+  fav :: a -> Set SAnn
+
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
 
@@ -350,35 +353,50 @@ instance Substitutable SAnn where
   applySubst _ a = a
 
 instance FreeVariables TyScheme where
-  fv (Forall v s)  = fv s DS.\\ DS.singleton v
-  fv (Ty t)        = fv t
+  fv (Forall v s) = fv s DS.\\ DS.singleton v
+  fv (AnnSig _ s) = fv s
+  fv (Ty t)       = fv t
 
 instance FreeVariables Ty where
-  fv (TyVar tv)                  = DS.singleton tv
-  fv (Arr t1 t2 ann)             = fv t1 `DS.union` fv t2
-  fv Nat                         = DS.empty
-  fv Bool                        = DS.empty
-  fv (List t1 _)                 = fv t1
-  
+  fv (TyVar tv)      = DS.singleton tv
+  fv (Arr t1 t2 ann) = fv t1 `DS.union` fv t2
+  fv (List t1 _)     = fv t1
+  fv _               = DS.empty
+
 instance FreeVariables TyEnv where
   fv = DM.fold (\el acc -> fv el `DS.union` acc) DS.empty
 
-{- absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost eval-}
-{-   where workLst = constr-}
-{-         ana     = DM.fromList [(x, bottom)   | Constraint x _ <- constr]-}
-{-         infl'   = DM.fromList [(x, DS.empty) | Constraint x _ <- constr]-}
-{-         infl    = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')-}
-{-                   in  DM.fromList [ (x, cs)-}
-{-                                   | cxt@(Constraint x t) <- constr-}
-{-                                   , cs <- [ inflx' x' `DS.union` DS.singleton cxt-}
-{-                                           | x' <- DS.toList $ fv t]]-}
+-- TODO: All annot variables are free with this setup. We need to bind them somehow.
+instance FreeAnnVars Ty where
+  fav (Arr ty1 ty2 ann) = fav ty1 `DS.union` fav ty2 `DS.union` fav ann
+  fav (List ty ann)     = fav ty `DS.union` fav ann
+  fav _                 = DS.empty
 
-{- iterAbsWl []                    ana _      _    atMost eval = ana-}
-{- iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval-}
-{-   | not $ atMost (anaLU x) new = iterAbsWl newWl ana' inflow join atMost eval-}
-{-   | otherwise                  = iterAbsWl wltl  ana  inflow join atMost eval-}
-{-   where new     = eval t ana-}
-{-         ana'    = ana `join` new-}
-{-         newWl   = wltl ++ (DM.fold (\c xs -> DS.toList c ++ xs) [] inflow) -- TODO: Double check-}
-{-         anaLU x = DM.fromJust $ DM.lookup x ana-}
+instance FreeAnnVars TyScheme where
+  fav (Ty _)       = DS.empty
+  fav (Forall _ s) = fav s
+  fav (AnnSig t s) = fav s DS.\\ DS.singleton t
+
+instance FreeAnnVars SAnn where
+  fav (AnnPoint _) = DS.empty
+  fav ann          = DS.singleton ann
+
+absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost eval
+  where workLst = constr
+        ana     = DM.fromList [(x, bottom)   | Constraint x _ <- constr]
+        infl'   = DM.fromList [(x, DS.empty) | Constraint x _ <- constr]
+        infl    = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')
+                  in  DM.fromList [ (x, cs)
+                                  | cxt@(Constraint x t) <- constr
+                                  , cs <- [ inflx' x' `DS.union` DS.singleton cxt
+                                          | x' <- DS.toList $ fav t]] -- TODO: I don't think mkAnnSet t is right...
+
+iterAbsWl []                    ana _      _    atMost eval = ana
+iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
+  | not $ atMost (anaLU x) new = iterAbsWl newWl ana' inflow join atMost eval
+  | otherwise                  = iterAbsWl wltl  ana  inflow join atMost eval
+  where new     = eval t ana
+        ana'    = ana `join` new
+        newWl   = wltl ++ (DM.fold (\c xs -> DS.toList c ++ xs) [] inflow) -- TODO: Double check
+        anaLU x = DM.fromJust $ DM.lookup x ana
 }
