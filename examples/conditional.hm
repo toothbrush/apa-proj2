@@ -1,0 +1,6 @@
+let  foo = True
+     bar = 1
+     baz = 0
+in   if foo
+       then bar
+       else baz
