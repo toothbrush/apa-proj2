@@ -366,7 +366,6 @@ instance FreeVariables Ty where
 instance FreeVariables TyEnv where
   fv = DM.fold (\el acc -> fv el `DS.union` acc) DS.empty
 
--- TODO: All annot variables are free with this setup. We need to bind them somehow.
 instance FreeAnnVars Ty where
   fav (Arr ty1 ty2 ann) = fav ty1 `DS.union` fav ty2 `DS.union` fav ann
   fav (List ty ann)     = fav ty `DS.union` fav ann
