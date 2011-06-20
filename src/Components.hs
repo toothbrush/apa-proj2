@@ -33,7 +33,7 @@ debugInference tm =
   do
     let (ty, subst, constraints) = w tm
     putStrLn ("Program: " ++ show tm)
-    putStrLn "TySubst:"
+    putStrLn "Substitution:"
     print subst
     putStrLn "Ty:"
     print ty
@@ -70,6 +70,8 @@ translate = hExpr
 
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) (H.List [])) = Cons (hExpr e) Nil
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) e') = Cons (hExpr e) (hExpr e')
+
+  hExpr (H.InfixApp e (H.QVarOp (H.UnQual (H.Symbol op))) e') = Op op (hExpr e) (hExpr e') 
 
   hExpr e = notSupported e
 
@@ -110,3 +112,4 @@ translate = hExpr
   notSupported e = error ("Expression not supported: " ++ show e)
 
   emptyExp = H.Var (H.UnQual $ H.Ident "$%")
+

@@ -54,6 +54,28 @@ SEM MH
 
           e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
+  | Op    loc.alpha1 : UNIQUEREF counter
+          loc.alpha2 : UNIQUEREF counter
+
+          loc.alpha1' = freshVar @loc.alpha1
+          loc.alpha2' = freshVar @loc.alpha2
+
+          loc.(ty,ty',r) = operatorType @op
+
+          loc.theta1 = @e1.substitution
+          loc.theta2 = @e2.substitution
+          loc.theta3 = unify (applySubst @loc.theta2 @e1.ty) @loc.ty
+          loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) @loc.ty'
+          
+          lhs.ty = @loc.r
+
+          lhs.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
+
+          lhs.constraints = applySubst (@loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2) @e1.constraints `DS.union`
+                            applySubst (@loc.theta4 `dot` @loc.theta3) @e2.constraints
+          
+          e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
+
   | Var loc.num : UNIQUEREF counter
 
         lhs.ty = if @x `DM.member` @lhs.typeEnvironment
@@ -142,6 +164,11 @@ SEM MH
        lhs.substitution = @loc.theta
 
 {
+-- | These operators are pretty dull
+operatorType :: String -> (Ty,Ty,Ty)
+operatorType op | op `elem` ["-","+","*"] = (Nat,Nat,Nat)
+                | op `elem` ["==","<",">","<=",">="] = (Nat,Nat,Bool)
+
 -- | Turn a number (the counter's current value) into a type variable. 
 -- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
 --       This seems reasonable, given the scope of the assignment, a workaround
@@ -272,7 +299,8 @@ instance Show SimpleSubstitution where
   show Identity = ""
   show (TySub v t) = v ++ " |-> " ++ show t
   show (AnnSub a a') = show a ++ " |-> " ++ show a'
-  show (Dot s s') = show s ++ ", " ++ show s'
+  show (Dot s Identity) = show s
+  show (Dot s s')       = show s ++ "\n" ++ show s'
 
 instance Substitutable TyScheme where
   applySubst Identity     t = t
