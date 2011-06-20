@@ -286,6 +286,8 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
 
+absWl :: [Constraint] -> a -> (Map AnnVar a -> t -> Map AnnVar a)
+      -> (a -> t -> Bool) -> (Point -> Map AnnVar a -> t) -> Map AnnVar a
 absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost eval
   where workLst = constr
         ana     = DM.fromList [(x, bottom)   | Constraint x _ <- constr]
@@ -297,6 +299,9 @@ absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost ev
                                           | x' <- fv t]]
         fv t    = undefined -- Get the free variables from t
 
+iterAbsWl :: [Constraint] -> Map AnnVar a -> Map k (Set Constraint)
+          -> (Map AnnVar a -> t -> Map AnnVar a) -> (a -> t -> Bool)
+          -> (Point -> Map AnnVar a -> t) -> Map AnnVar a
 iterAbsWl []                    ana _      _    atMost eval = ana
 iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
   | not $ atMost (anaLU x) new = iterAbsWl newWl ana' inflow join atMost eval
