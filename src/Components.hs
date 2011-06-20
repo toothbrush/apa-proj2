@@ -23,6 +23,11 @@ inferTypes :: MH -> Ty
 inferTypes tm = let (ty,_,_) = w tm
                 in ty
 
+debugFile :: FilePath -> IO ()
+debugFile fl = do
+  cnts <- readFile fl
+  debugInference . parseProgram $ cnts
+
 debugInference :: MH -> IO ()
 debugInference tm =
   do
@@ -102,6 +107,6 @@ translate = hExpr
 
     letOrLam l = l
 
-  notSupported e = error ("not supported" ++ show e)
+  notSupported e = error ("Expression not supported: " ++ show e)
 
   emptyExp = H.Var (H.UnQual $ H.Ident "$%")

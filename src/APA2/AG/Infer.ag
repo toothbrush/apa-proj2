@@ -112,7 +112,7 @@ SEM MH
        loc.theta1 = @e1.substitution
        loc.theta2 = @e2.substitution
        loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @loc.tau0) Bool
-       loc.theta4 = unify (applySubst @loc.theta3 @loc.tau2) 
+       loc.theta4 = unify (applySubst @loc.theta3 @loc.tau2)
                           (applySubst (@loc.theta3 `dot` @loc.theta2) @loc.tau1)
        loc.theta = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
