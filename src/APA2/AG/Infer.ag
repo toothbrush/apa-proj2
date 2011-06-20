@@ -309,7 +309,7 @@ instance Substitutable TyScheme where
   applySubst Identity     t = t
   applySubst (AnnSub _ _) t = t
   applySubst d@(Dot _ _)  t = dotApply d t
-
+  applySubst s             (AnnSig _ t) = applySubst s t
   applySubst s@(TySub a _) (Forall tv ts) | a == tv   = Forall tv ts
                                           | otherwise = Forall tv (applySubst s ts)
   applySubst sub (Ty t) = Ty $ applySubst sub t
