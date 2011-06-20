@@ -93,7 +93,7 @@ translate = hExpr
       | otherwise = l
 
     letOrLam l@(H.Let (H.BDecls (H.FunBind (H.Match _ (H.Ident x) _ _ _ _ :_ ) : _)) _) = cond x l
-    letOrLam l@(H.Let (H.BDecls (H.PatBind _ (H.PVar (H.Ident x)) _ _ _ : _)) _)          = cond x l
+    letOrLam l@(H.Let (H.BDecls (H.PatBind _ (H.PVar (H.Ident x)) _ _ _ : _)) _)        = cond x l
 
     letOrLam l@(H.Lambda _ pt _) =
       case [f | H.PVar n <- pt, hName n == f] of
