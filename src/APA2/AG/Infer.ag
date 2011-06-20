@@ -335,9 +335,6 @@ instance FreeVariables Ty where
 instance FreeVariables TyEnv where
   fv = DM.fold (\el acc -> fv el `DS.union` acc) DS.empty
 
-{-
-absWl :: [Constraint] -> a -> (Map AnnVar a -> t -> Map AnnVar a)
-      -> (a -> t -> Bool) -> (Point -> Map AnnVar a -> t) -> Map AnnVar a
 absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost eval
   where workLst = constr
         ana     = DM.fromList [(x, bottom)   | Constraint x _ <- constr]
@@ -349,9 +346,6 @@ absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost ev
                                           | x' <- fv t]]
         fv t    = undefined -- Get the free variables from t
 
-iterAbsWl :: [Constraint] -> Map AnnVar a -> Map k (Set Constraint)
-          -> (Map AnnVar a -> t -> Map AnnVar a) -> (a -> t -> Bool)
-          -> (Point -> Map AnnVar a -> t) -> Map AnnVar a
 iterAbsWl []                    ana _      _    atMost eval = ana
 iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
   | not $ atMost (anaLU x) new = iterAbsWl newWl ana' inflow join atMost eval
@@ -360,5 +354,4 @@ iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
         ana'    = ana `join` new
         newWl   = wltl ++ (DM.fold (\c xs -> DS.toList c ++ xs) [] inflow) -- TODO: Double check
         anaLU x = DM.fromJust $ DM.lookup x ana
--}
 }
