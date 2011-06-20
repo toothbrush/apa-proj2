@@ -315,25 +315,24 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
 {-          else  maxFixPt' f iota' setF wtl result amop jop-}
 
 
-absWl constraints bottom join atMost = iterAbsWl worklist analysis infl join atMost
-  where worklist = constraints
-        analysis = DM.fromList [(x, bottom)   | Constraint x _ <- constraints]
-        infl'    = DM.fromList [(x, DS.empty) | Constraint x _ <- constraints]
-        infl     = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')
-                   in  DM.fromList [ (x, cs)
-                                   | cxt@(Constraint x t) <- constraints
-                                   , cs <- [ inflx' x' `DS.union` DS.singleton cxt
-                                           | x' <- fv t]]
-        fv t     = undefined -- Get the free variables from t
+absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost eval
+  where workLst = constr
+        ana     = DM.fromList [(x, bottom)   | Constraint x _ <- constr]
+        infl'   = DM.fromList [(x, DS.empty) | Constraint x _ <- constr]
+        infl    = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')
+                  in  DM.fromList [ (x, cs)
+                                  | cxt@(Constraint x t) <- constr
+                                  , cs <- [ inflx' x' `DS.union` DS.singleton cxt
+                                          | x' <- fv t]]
+        fv t    = undefined -- Get the free variables from t
 
-iterAbsWl []                    analysis _      _    atMost = analysis
-iterAbsWl (Constraint x t:wltl) analysis inflow join atMost
-  | not $ atMost (anaLU x) new = iterAbsWl newWl analysis' inflow join atMost
-  | otherwise                  = iterAbsWl wltl  analysis  inflow join atMost
-  where new           = eval t analysis
-        eval      t a = undefined
-        analysis'     = analysis `join` new
-        newWl         = wltl ++ (DM.fold (\c xs -> DS.toList c ++ xs) [] inflow) -- TODO: Double check
-        anaLU x       = DM.fromJust $ DM.lookup x analysis
+iterAbsWl []                    ana _      _    atMost eval = ana
+iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
+  | not $ atMost (anaLU x) new = iterAbsWl newWl ana' inflow join atMost eval
+  | otherwise                  = iterAbsWl wltl  ana  inflow join atMost eval
+  where new     = eval t ana
+        ana'    = ana `join` new
+        newWl   = wltl ++ (DM.fold (\c xs -> DS.toList c ++ xs) [] inflow) -- TODO: Double check
+        anaLU x = DM.fromJust $ DM.lookup x ana
 
 }
