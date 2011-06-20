@@ -380,11 +380,10 @@ instance FreeAnnVars SAnn where
   fav (AnnPoint _) = DS.empty
   fav ann          = DS.singleton ann
 
-absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost eval
-  where workLst = constr
-        ana     = DM.fromList [(x, bottom)   | Constraint x _ <- constr]
-        infl'   = DM.fromList [(x, DS.empty) | Constraint x _ <- constr]
-        infl    = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')
+absWl constr bottom join atMost eval = iterAbsWl constr (mkMap bottom) infl
+                                                 join atMost eval
+  where mkMap s = DM.fromList [(x, s) | Constraint x _ <- constr]
+        infl    = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
                   in  DM.fromList [ (x, cs)
                                   | cxt@(Constraint x t) <- constr
                                   , cs <- [ inflx' x' `DS.union` DS.singleton cxt
