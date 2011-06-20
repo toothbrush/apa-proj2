@@ -23,17 +23,22 @@ inferTypes :: MH -> Ty
 inferTypes tm = let (ty,_,_) = w tm
                 in ty
 
+debugFile :: FilePath -> IO ()
+debugFile fl = do
+  cnts <- readFile fl
+  debugInference . parseProgram $ cnts
+
 debugInference :: MH -> IO ()
 debugInference tm =
   do
     let (ty, subst, constraints) = w tm
     putStrLn ("Program: " ++ show tm)
     putStrLn "TySubst:"
-    putStrLn (show subst)
+    print subst
     putStrLn "Ty:"
-    putStrLn (show ty)
+    print ty
     putStrLn "Constraints:"
-    putStrLn (show constraints)
+    print constraints
 
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
@@ -49,11 +54,11 @@ translate = hExpr
 
   hExpr (H.App e e') = App (hExpr e) (hExpr e')
 
-  hExpr (H.Let (H.BDecls ((H.FunBind ((H.Match _ (H.Ident x) pts _ (H.UnGuardedRhs e) _) : _)) : _)) e')
+  hExpr (H.Let (H.BDecls (H.FunBind (H.Match _ (H.Ident x) pts _ (H.UnGuardedRhs e) _ : _) : _)) e')
     | isRecursiveLet x e  = LetRec x (toLambda (hExpr e) pts) (hExpr e')
     | otherwise           = Let x (toLambda (hExpr e) pts) (hExpr e')
 
-  hExpr (H.Let (H.BDecls ((H.PatBind _ (H.PVar (H.Ident x)) Nothing (H.UnGuardedRhs e) _) : _)) e')
+  hExpr (H.Let (H.BDecls (H.PatBind _ (H.PVar (H.Ident x)) Nothing (H.UnGuardedRhs e) _ : _)) e')
     | isRecursiveLet x e = LetRec x (hExpr e) (hExpr e')
     | otherwise          = Let x (hExpr e) (hExpr e')
 
@@ -92,8 +97,8 @@ translate = hExpr
       | x == f    = emptyExp
       | otherwise = l
 
-    letOrLam l@(H.Let (H.BDecls ((H.FunBind ((H.Match _ (H.Ident x) _ _ _ _) :_ )) : _)) _) = cond x l
-    letOrLam l@(H.Let (H.BDecls ((H.PatBind _ (H.PVar (H.Ident x)) _ _ _) : _)) _)          = cond x l
+    letOrLam l@(H.Let (H.BDecls (H.FunBind (H.Match _ (H.Ident x) _ _ _ _ :_ ) : _)) _) = cond x l
+    letOrLam l@(H.Let (H.BDecls (H.PatBind _ (H.PVar (H.Ident x)) _ _ _ : _)) _)        = cond x l
 
     letOrLam l@(H.Lambda _ pt _) =
       case [f | H.PVar n <- pt, hName n == f] of
@@ -102,6 +107,6 @@ translate = hExpr
 
     letOrLam l = l
 
-  notSupported e = error ("not supported" ++ show e)
+  notSupported e = error ("Expression not supported: " ++ show e)
 
   emptyExp = H.Var (H.UnQual $ H.Ident "$%")

@@ -6,6 +6,8 @@ imports
 {
 import            Data.Map (Map)
 import qualified  Data.Map as DM
+import qualified  Data.Maybe as DM
+import            Data.Set (Set)
 import qualified  Data.Set as DS
 }
 
@@ -121,7 +123,7 @@ SEM MH
        loc.theta1 = @e1.substitution
        loc.theta2 = @e2.substitution
        loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @loc.tau0) Bool
-       loc.theta4 = unify (applySubst @loc.theta3 @loc.tau2) 
+       loc.theta4 = unify (applySubst @loc.theta3 @loc.tau2)
                           (applySubst (@loc.theta3 `dot` @loc.theta2) @loc.tau1)
        loc.theta = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
@@ -333,5 +335,30 @@ instance FreeVariables Ty where
 instance FreeVariables TyEnv where
   fv = DM.fold (\el acc -> fv el `DS.union` acc) DS.empty
 
+{-
+absWl :: [Constraint] -> a -> (Map AnnVar a -> t -> Map AnnVar a)
+      -> (a -> t -> Bool) -> (Point -> Map AnnVar a -> t) -> Map AnnVar a
+absWl constr bottom join atMost eval = iterAbsWl workLst ana infl join atMost eval
+  where workLst = constr
+        ana     = DM.fromList [(x, bottom)   | Constraint x _ <- constr]
+        infl'   = DM.fromList [(x, DS.empty) | Constraint x _ <- constr]
+        infl    = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')
+                  in  DM.fromList [ (x, cs)
+                                  | cxt@(Constraint x t) <- constr
+                                  , cs <- [ inflx' x' `DS.union` DS.singleton cxt
+                                          | x' <- fv t]]
+        fv t    = undefined -- Get the free variables from t
 
+iterAbsWl :: [Constraint] -> Map AnnVar a -> Map k (Set Constraint)
+          -> (Map AnnVar a -> t -> Map AnnVar a) -> (a -> t -> Bool)
+          -> (Point -> Map AnnVar a -> t) -> Map AnnVar a
+iterAbsWl []                    ana _      _    atMost eval = ana
+iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
+  | not $ atMost (anaLU x) new = iterAbsWl newWl ana' inflow join atMost eval
+  | otherwise                  = iterAbsWl wltl  ana  inflow join atMost eval
+  where new     = eval t ana
+        ana'    = ana `join` new
+        newWl   = wltl ++ (DM.fold (\c xs -> DS.toList c ++ xs) [] inflow) -- TODO: Double check
+        anaLU x = DM.fromJust $ DM.lookup x ana
+-}
 }
