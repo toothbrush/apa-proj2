@@ -1,16 +1,6 @@
 optpragmas {
 {-# LANGUAGE TypeSynonymInstances #-}
 }
--------------------------------------------------------------------------------
--- 
--- The type inferencer AG. 
---
--- This is where the functions reside which are needed to
--- convert an HM term (implicitly typed) into a System F term,
--- which is explicitly typed. 
---
--- Author : Paul van der Walt <paul@denknerd.nl>
--------------------------------------------------------------------------------
 
 imports
 {
@@ -43,7 +33,7 @@ SEM MH
           lhs.constraints = emptyConstraint
 
   | Nil   loc.num : UNIQUEREF counter
-          
+
           lhs.ty = List (TyVar $ show @loc.num) emptyAnn
 
           lhs.substitution = Identity
@@ -57,23 +47,23 @@ SEM MH
                        theta3 = unify tau2 (applySubst theta2 (List tau1 emptyAnn))
                        theta  = theta3 `dot` theta2 `dot` theta1
                    in applySubst theta (List tau1 emptyAnn)
-          
+
           lhs.constraints = emptyConstraint
 
           e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
-      
+
   | Var loc.num : UNIQUEREF counter
 
         lhs.ty = if @x `DM.member` @lhs.typeEnvironment
-                     then instantiate @x (getVar @x @lhs.typeEnvironment)
+                     then instantiate $ getVar @x @lhs.typeEnvironment
                      else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
         lhs.constraints = emptyConstraint
 
         lhs.substitution = Identity
 
-  | Lambda loc.num : UNIQUEREF counter
-           loc.pi  : UNIQUEREF counter
+  | Lambda loc.num     : UNIQUEREF counter
+           loc.ppoint  : UNIQUEREF counter
 
            lhs.substitution = @e.substitution
 
@@ -105,7 +95,7 @@ SEM MH
         e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
   | Let loc.num : UNIQUEREF counter
-        
+
         lhs.substitution = let theta1 = @e1.substitution
                                theta2 = @e2.substitution
                            in  theta2 `dot` theta1
@@ -129,7 +119,7 @@ SEM MH
        loc.tau0 = @c.ty
        loc.tau1 = @e1.ty
        loc.tau2 = @e2.ty
-      
+
        lhs.ty = applySubst @loc.theta @loc.tau2
 
        lhs.constraints = emptyConstraint
@@ -151,12 +141,12 @@ freshVar i = TyVar $ 'v' : show i
 -- with fresh variables. A coercion function is also returned, 
 -- which should be used to show where in the original term
 -- type instantiations were applied.
-instantiate :: Var -> TyScheme -> Ty
-instantiate tv ts =
+instantiate :: TyScheme -> Ty
+instantiate ts =
   let (forallVars, ty') = grabForallVars ts
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
-      nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map show [0..])
+      nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map show ([0..] :: [Int]))
       s = foldr (\(o,n) -> Dot (Sub o n)) Identity (zip forallVars nvars)
   in  applySubst s ty'
 
@@ -221,8 +211,8 @@ class Types a where
 
 instance Types TyScheme where
   applySubst Identity t = t
-  applySubst s@(Sub a t0) (Forall tv ts) | a == tv   = Forall tv ts
-                                         | otherwise = Forall tv (applySubst s ts)
+  applySubst s@(Sub a _) (Forall tv ts) | a == tv   = Forall tv ts
+                                        | otherwise = Forall tv (applySubst s ts)
   applySubst (Dot s1 s2) t  = applySubst s1 (applySubst s2 t)
   applySubst sub (Ty t)  = Ty $ applySubst sub t
 
@@ -249,8 +239,8 @@ instance Types Ty where
 
     applySubst s (List t ann) = List (applySubst s t) ann
 
-    applySubst s Nat  = Nat
-    applySubst s Bool = Bool
+    applySubst _ Nat  = Nat
+    applySubst _ Bool = Bool
 
 instance Types TyEnv where
     -- Simply extend the functions to support lists
@@ -267,7 +257,7 @@ unify Nat Nat = Identity
 unify Bool Bool = Identity
 
 unify (List t _) (List t' _) = unify t t'
-                                   
+
 unify t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
                                     | tv1 `DS.notMember` ftv t2 = Sub tv1 t2
                                     | tv2 `DS.notMember` ftv t1 = Sub tv2 t1
@@ -280,7 +270,7 @@ unify (TyVar tv1) t | tv1 `DS.notMember` ftv t = Sub tv1 t
                                             ++ "\nCannot create infinite type."
 
 unify t (TyVar tv2) | tv2 `DS.notMember` ftv t = Sub tv2 t
-                    | otherwise = error $ "Occurs check: " ++ 
+                    | otherwise = error $ "Occurs check: " ++
                                             show tv2 ++ " = " ++
                                             show t
                                             ++ "\nCannot create infinite type."
@@ -288,9 +278,9 @@ unify t (TyVar tv2) | tv2 `DS.notMember` ftv t = Sub tv2 t
 unify (Arr t11 t12 an1) (Arr t21 t22 an2) =
   let theta1 = unify t11 t21
       theta2 = unify (applySubst theta1 t12) (applySubst theta1 t22)
-  in Dot theta2 theta1
+  in theta2 `dot` theta1
 
-unify t1 t2 = error $ "Unification failure. \nt_1 = " ++ 
-                      show t1 ++ "\nt_2 = " ++ 
+unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
+                      show t1 ++ "\nt_2 = " ++
                       show t2
 }
