@@ -6,6 +6,8 @@ imports
 {
 import            Data.Map (Map)
 import qualified  Data.Map as DM
+import qualified  Data.Maybe as DM
+import            Data.Set (Set)
 import qualified  Data.Set as DS
 }
 
@@ -194,7 +196,7 @@ data TySubst = Identity -- ^ Identity substitution, do nothing.
 
 type Constraints = DS.Set Constraint
 data Constraint = Constraint AnnVar Point
-  deriving Show
+  deriving (Eq, Ord, Show)
 
 emptyConstraint :: Set Constraint
 emptyConstraint = DS.singleton (Constraint "nothing" 0)
@@ -283,4 +285,54 @@ unify (Arr t11 t12 an1) (Arr t21 t22 an2) =
 unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
+
+
+{- | Abstract implementation of the maximal fix point algorithm.-}
+{- maxFixPt :: (Analyzable n t, Analysis s a t, Ord t) => s -> n -> [FlowThing]-}
+{-          -> Map PPLbls (Set a)-}
+{- maxFixPt ana rt setF = maxFixPt' tf iota' setF setF imap amop jop-}
+{-   where  iota'  = iota ana-}
+{-          tf     = transfer ana (lblMap rt)-}
+{-          amop   = atMostOp (demand ana)-}
+{-          jop    = joinOp (demand ana)-}
+{-          dir    = direction ana-}
+{-          imap   = DM.fromList [(l, iota') | l <- DS.toList $ extremalE dir rt]-}
+
+
+{- | Maximal fixpoint function, recursive case.-}
+{- maxFixPt' :: (PPLbls -> TransferFn a) -> Set a -> [FlowThing] -> [FlowThing]-}
+{-           -> Map PPLbls (Set a) -> AtMostOp a -> JoinOp a -> Map PPLbls (Set a)-}
+{- maxFixPt' _  _      _     []                     result _     _    = result-}
+{- maxFixPt' f  iota'  setF  ((F _ (l, l') _):wtl)  result amop  jop  =-}
+{-   let  lblLU x = fromMaybe DS.empty (DM.lookup x result)-}
+{-        flal    = f l $ lblLU l-}
+{-        al'     = lblLU l'-}
+{-   in   if not $ flal `amop` al'-}
+{-          then  let  result'  = DM.insert l' (al' `jop` flal) result-}
+{-                     neww     = [F Intra (x, l'') s  | (F Intra (x, l'') s) <- setF-}
+{-                                                     , x == l'] ++ wtl-}
+{-                in   maxFixPt' f iota' setF neww result' amop jop-}
+{-          else  maxFixPt' f iota' setF wtl result amop jop-}
+
+
+absWl constraints bottom = iterAbsWl worklist analysis infl
+  where worklist  = constraints
+        analysis  = DM.fromList [(x, bottom)   | Constraint x _ <- constraints]
+        infl'     = DM.fromList [(x, DS.empty) | Constraint x _ <- constraints]
+        infl      = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k infl')
+                    in  DM.fromList [ (x, cs) | cxt@(Constraint x t) <- constraints
+                                    , cs <- [ inflx' x' `DS.union` DS.singleton cxt
+                                            | x' <- fv t]]
+        fv t      = undefined -- Get the free variables from t
+
+iterAbsWl []                  analysis _    = analysis
+iterAbsWl (Constraint x t:xs) analysis infl
+  | (analysis x) `notAtmost` new = iterAbsWl newWl newAna infl
+  | otherwise                    = iterAbsWl xs newAna infl
+  where new           = eval t analysis
+        eval      t a = undefined
+        notAtmost a n = undefined
+        newAna        = undefined
+        newWl         = undefined
+
 }

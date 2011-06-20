@@ -3,6 +3,8 @@ CABAL-BUILD-FLAGS     :=
 
 all: haskell
 
+ag: src/APA2/AG.hs
+
 src/APA2/AG.hs: src/APA2/AG.ag src/APA2/AG/Base.ag src/APA2/AG/Infer.ag
 	uuagc -dcfws --self --genlinepragmas -P src/APA2 src/APA2/AG.ag
 
