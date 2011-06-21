@@ -382,12 +382,12 @@ instance FreeAnnVars SAnn where
 
 absWl constr bottom join atMost eval = iterAbsWl constr (mkMap bottom) infl
                                                  join atMost eval
-  where mkMap s = DM.fromList [(x, s) | Constraint x _ <- constr]
-        infl    = let inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-                  in  DM.fromList [ (x, cs)
-                                  | cxt@(Constraint x t) <- constr
-                                  , cs <- [ inflx' x' `DS.union` DS.singleton cxt
-                                          | x' <- DS.toList $ fav t]] -- TODO: I don't think mkAnnSet t is right...
+  where mkMap  s = DM.fromList [(x, s) | Constraint x _ <- constr]
+        inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
+        infl     = DM.fromList [ (x, cs)
+                               | cxt@(Constraint x t) <- constr
+                               , cs <- [ inflx' x' `DS.union` DS.singleton cxt
+                                       | x' <- DS.toList $ fav t]] -- TODO: I don't think mkAnnSet t is right...
 
 iterAbsWl []                    ana _      _    atMost eval = ana
 iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
