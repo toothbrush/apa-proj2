@@ -422,21 +422,24 @@ instance FreeAnnVars SAnn where
   fav (AnnPoint _) = DS.empty
   fav ann          = DS.singleton ann
 
-absWl constr bottom join atMost eval = iterAbsWl constr (mkMap bottom) infl
-                                                 join atMost eval
-  where mkMap  s = DM.fromList [(x, s) | Constraint x _ <- constr]
+
+-- TODO: Add type signatures once the dust starts settling down
+
+absWl cstr bott join amst evl = iterAbsWl infl join amst evl cstr (mkMap bott)
+  where mkMap  s = DM.fromList [(x, s) | Constraint x _ <- cstr]
         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
         infl     = DM.fromList [ (x, cs)
-                               | cxt@(Constraint x t) <- constr
+                               | cxt@(Constraint x t) <- cstr
                                , cs <- [ inflx' x' `DS.union` DS.singleton cxt
-                                       | x' <- DS.toList $ fav t]] -- TODO: I don't think mkAnnSet t is right...
+                                       | x' <- DS.toList $ fav t]]
 
-iterAbsWl []                    ana _      _    atMost eval = ana
-iterAbsWl (Constraint x t:wltl) ana inflow join atMost eval
-  | not $ atMost (anaLU x) new = iterAbsWl newWl ana' inflow join atMost eval
-  | otherwise                  = iterAbsWl wltl  ana  inflow join atMost eval
-  where new     = eval t ana
-        ana'    = ana `join` new
-        newWl   = wltl ++ (DM.fold (\c xs -> DS.toList c ++ xs) [] inflow) -- TODO: Double check
-        anaLU x = DM.fromJust $ DM.lookup x ana
+iterAbsWl _      _    atMost eval []                    ana = ana
+iterAbsWl inflow join atMost eval (Constraint x t:wltl) ana
+  | not $ anaLU x `atMost` new = iter newWl ana'
+  | otherwise                  = iter wltl  ana
+  where new   = eval t ana
+        ana'  = ana `join` new
+        newWl = wltl ++ DM.fold ((++) . DS.toList) [] inflow -- TODO: Double check
+        anaLU = DM.fromJust . flip DM.lookup ana
+        iter  = iterAbsWl inflow join atMost eval
 }
