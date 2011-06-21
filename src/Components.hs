@@ -54,13 +54,16 @@ translate = hExpr
 
   hExpr (H.App e e') = App (hExpr e) (hExpr e')
 
-  hExpr (H.Let (H.BDecls (H.FunBind (H.Match _ (H.Ident x) pts _ (H.UnGuardedRhs e) _ : _) : _)) e')
-    | isRecursiveLet x e  = LetRec x (toLambda (hExpr e) pts) (hExpr e')
-    | otherwise           = Let x (toLambda (hExpr e) pts) (hExpr e')
+  hExpr (H.Let (H.BDecls (H.FunBind (H.Match _ (H.Ident f) pts _ (H.UnGuardedRhs e) _ : _) : _)) e')
+    | isRecursiveLet f e  = let (Lambda x b) = toLambda (hExpr e) pts
+                            in LetRec f (Just x) b (hExpr e')
+    | otherwise           = Let f (toLambda (hExpr e) pts) (hExpr e')
 
-  hExpr (H.Let (H.BDecls (H.PatBind _ (H.PVar (H.Ident x)) Nothing (H.UnGuardedRhs e) _ : _)) e')
-    | isRecursiveLet x e = LetRec x (hExpr e) (hExpr e')
-    | otherwise          = Let x (hExpr e) (hExpr e')
+  hExpr (H.Let (H.BDecls (H.PatBind _ (H.PVar (H.Ident f)) Nothing (H.UnGuardedRhs e) _ : _)) e')
+    | isRecursiveLet f e = case hExpr e of
+                            (Lambda x b) -> LetRec f (Just x) b (hExpr e')
+                            b            -> LetRec f Nothing b (hExpr e')
+    | otherwise          = Let f (hExpr e) (hExpr e')
 
   hExpr (H.If c e e') = If (hExpr c) (hExpr e) (hExpr e')
 

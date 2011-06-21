@@ -18,12 +18,12 @@ DATA MH
   | VBool  v  : {Bool}
   | VInt   v  : {Integer}
   | Var    x  : {Var}
-  | Op     op : String    e1 : MH e2 : MH
+  | Op     op : String    e1 : MH               e2 : MH
   | Lambda x  : {Var}     e  : MH
   | App    e1 : MH        e2 : MH
-  | Let    x  : {Var}     e1 : MH e2 : MH
-  | LetRec x  : {Var}     e1 : MH e2 : MH
-  | If     c  : MH        e1 : MH e2 : MH
+  | Let    x  : {Var}     e1 : MH               e2 : MH
+  | LetRec f  : {Var}     x  : {Maybe String}   e1 : MH e2 : MH
+  | If     c  : MH        e1 : MH               e2 : MH
   | Cons   e1 : MH        e2 : MH
   | Nil
 
