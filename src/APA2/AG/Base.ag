@@ -46,16 +46,16 @@ DATA Ty
 DERIVING Ty: Eq
 
 DATA SAnn
-  | AnnPoint p   : {Point}
-  | AnnVar   var : {AnnVar}
+  | AnnSet  p   : {Set Point}
+  | AnnVar  var : {AnnVar}
 
 DERIVING SAnn: Show, Eq, Ord
 
 {
 instance Show Ty where
-  show (TyVar a) = a
-  show (Arr t t' (AnnVar v)) = show t ++ "--"++ v ++ "-->" ++ show t'
-  show Nat = "Nat"
-  show Bool = "Bool"
-  show (List t an) = "List^" ++ show an ++ " " ++ show t
+  show (TyVar a)    = a
+  show (Arr t t' a) = show t ++ "--"++ show a ++ "-->" ++ show t'
+  show Nat          = "Nat"
+  show Bool         = "Bool"
+  show (List t an)  = "List^" ++ show an ++ " " ++ show t
 }

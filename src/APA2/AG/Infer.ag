@@ -266,13 +266,13 @@ annVar :: Int -> SAnn
 annVar = AnnVar . ("b" ++) . show 
 
 annPoint :: Int -> SAnn
-annPoint = AnnPoint
+annPoint = AnnSet . DS.singleton
 
 emptyConstraint :: Set Constraint
 emptyConstraint = DS.empty
 
 (<:) :: SAnn -> SAnn -> Constraint
-var@(AnnVar _) <: p@(AnnPoint _) = Constraint var p
+var@(AnnVar _) <: p@(AnnSet _) = Constraint var p
 _ <: _ = error "invalid constraint"
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
@@ -323,7 +323,7 @@ type TyEnv = Map Var TyScheme
 type Constraints = DS.Set Constraint
 
 data Constraint = Constraint SAnn SAnn
-  deriving (Show,Ord,Eq)
+                deriving (Show,Ord,Eq)
 
 data SimpleSubstitution = Identity
                         | TySub TyVar Ty
@@ -419,8 +419,8 @@ instance FreeAnnVars TyScheme where
   fav (AnnSig t s) = fav s DS.\\ DS.singleton t
 
 instance FreeAnnVars SAnn where
-  fav (AnnPoint _) = DS.empty
-  fav ann          = DS.singleton ann
+  fav (AnnSet _) = DS.empty
+  fav ann        = DS.singleton ann
 
 
 -- TODO: Add type signatures once the dust starts settling down
