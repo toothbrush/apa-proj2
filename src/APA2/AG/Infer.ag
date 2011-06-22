@@ -7,7 +7,6 @@ imports
 import            Data.Map (Map)
 import qualified  Data.Map as DM
 import qualified  Data.Maybe as DM
-import            Data.Set (Set)
 import qualified  Data.Set as DS
 }
 
@@ -199,9 +198,11 @@ SEM MH
        lhs.ty = applySubst @loc.theta @loc.tau2
 
        lhs.constraints = 
-        let c0 = applySubst (@loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1) @c.constraints
-            c1 = applySubst (@loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2) @e1.constraints
-            c2 = applySubst (@loc.theta4 `dot` @loc.theta3) @e1.constraints
+        let th43  = @loc.theta4 `dot` @loc.theta3
+            th432 = th43 `dot` @loc.theta2
+            c0 = applySubst (th432 `dot` @loc.theta1) @c.constraints
+            c1 = applySubst th432 @e1.constraints
+            c2 = applySubst th43 @e1.constraints
         in UnionConstr c0 (UnionConstr c1 c2)
 
        lhs.substitution = @loc.theta
@@ -322,7 +323,7 @@ type TyEnv = Map Var TyScheme
 
 
 class FreeVariables a where
-    fv :: a -> Set String
+  fv :: a -> Set String
 
 class FreeAnnVars a where
   fav :: a -> Set SAnn
@@ -361,7 +362,9 @@ instance Substitutable TyEnv where
 instance Substitutable Constraint where
   applySubst Identity    subj = subj
   applySubst d@(Dot _ _) subj = dotApply d subj
-  applySubst s (SingleConstr b pi) = SingleConstr (applySubst s b) (applySubst s pi)
+  applySubst s (SingleConstr b p)  = SingleConstr (applySubst s b) (applySubst s p)
+  applySubst s (UnionConstr c1 c2) = UnionConstr (applySubst s c1) (applySubst s c2)
+  applySubst _ c = c
 
 instance Substitutable SAnn where
   applySubst Identity    a = a
@@ -399,7 +402,7 @@ instance FreeAnnVars TyScheme where
 
 instance FreeAnnVars SAnn where
   fav EmptyAnn         = DS.empty
-  fav (SingleAnn p)    = DS.empty
+  fav (SingleAnn _)    = DS.empty
   fav (AnnUnion a1 a2) = fav a1 `DS.union` fav a2
   fav av@(AnnVar _)    = DS.singleton av
 
