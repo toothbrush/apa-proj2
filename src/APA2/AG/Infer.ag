@@ -231,7 +231,7 @@ instantiate ts =
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
       nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map show ([0..] :: [Int]))
-      s = foldr (\(o,n) -> Dot (TySub o n)) Identity (zip forallVars nvars)
+      s     = foldr (\(o,n) -> Dot (TySub o n)) Identity (zip forallVars nvars)
   in  applySubst s ty'
 
 -- | Unrolls a type, and returns all the variables
@@ -247,7 +247,7 @@ grabForallVars _               = undefined
 -- a type T, and then makes the type into 
 -- "foreach [those variables] T."
 -- Also returns a coercion. This is to be applied to the term, 
--- resulting in an Tm with type lambdas at the right spots.
+-- resulting in a Tm with type lambdas at the right spots.
 generalise :: TyEnv -> Ty -> TyScheme
 generalise env tau = let free = fv tau DS.\\ fv env
                      in  DS.fold Forall (Ty tau) free
