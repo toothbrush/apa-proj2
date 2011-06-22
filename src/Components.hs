@@ -12,7 +12,7 @@ initialInheritedAttributes =
          , counter_Inh_MH = 0
          }
 
-w :: MH -> (Ty, SimpleSubstitution  , Constraints)
+w :: MH -> (Ty, SimpleSubstitution, Constraint)
 w tm =
   (ty_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
   ,substitution_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)

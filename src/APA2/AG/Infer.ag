@@ -22,17 +22,17 @@ ATTR MH
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution : {SimpleSubstitution}
-    constraints  : {Constraints}
+    constraints  : {Constraint}
   ]
 
 SEM MH
   | VBool lhs.ty = Bool
           lhs.substitution = Identity
-          lhs.constraints = emptyConstraint
+          lhs.constraints = EmptyConstr
 
   | VInt  lhs.ty = Nat
           lhs.substitution = Identity
-          lhs.constraints = emptyConstraint
+          lhs.constraints = EmptyConstr
 
   | Nil   loc.num : UNIQUEREF counter
 
@@ -40,7 +40,7 @@ SEM MH
 
           lhs.substitution = Identity
 
-          lhs.constraints = emptyConstraint
+          lhs.constraints = EmptyConstr
 
   | Cons  lhs.ty = let tau1   = @e1.ty
                        theta1 = @e1.substitution
@@ -50,7 +50,7 @@ SEM MH
                        theta  = theta3 `dot` theta2 `dot` theta1
                    in applySubst theta (List tau1 (AnnVar "g"))
 
-          lhs.constraints = emptyConstraint
+          lhs.constraints = EmptyConstr
 
           e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
@@ -66,14 +66,15 @@ SEM MH
           loc.theta2 = @e2.substitution
           loc.theta3 = unify (applySubst @loc.theta2 @e1.ty) @loc.ty
           loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) @loc.ty'
-          
+
           lhs.ty = @loc.r
 
           lhs.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
-          lhs.constraints = applySubst (@loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2) @e1.constraints `DS.union`
-                            applySubst (@loc.theta4 `dot` @loc.theta3) @e2.constraints
-          
+          lhs.constraints = let th43 = @loc.theta4 `dot` @loc.theta3
+                            in  UnionConstr (applySubst (th43 `dot` @loc.theta2) @e1.constraints)
+                                            (applySubst th43 @e2.constraints)
+
           e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
 
   | Var loc.num : UNIQUEREF counter
@@ -82,7 +83,7 @@ SEM MH
                      then instantiate $ getVar @x @lhs.typeEnvironment
                      else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
-        lhs.constraints = emptyConstraint
+        lhs.constraints = EmptyConstr
 
         lhs.substitution = Identity
 
@@ -100,7 +101,7 @@ SEM MH
                         tau2   = @e.ty
                     in Arr (applySubst theta1 alpha1) tau2 @loc.beta'
 
-           lhs.constraints = @e.constraints `DS.union` (DS.singleton $ @loc.beta' <: @loc.pi)
+           lhs.constraints = UnionConstr @e.constraints (@loc.beta' <: @loc.pi)
 
            e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
 
@@ -120,8 +121,8 @@ SEM MH
 
         lhs.ty = applySubst @loc.theta3 @loc.alpha'
 
-        lhs.constraints = applySubst (@loc.theta3 `dot` @loc.theta2) @e1.constraints `DS.union`
-                          applySubst @loc.theta3 @e2.constraints
+        lhs.constraints = UnionConstr (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.constraints)
+                                      (applySubst @loc.theta3 @e2.constraints)
 
         e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
@@ -135,7 +136,7 @@ SEM MH
 
         lhs.ty = @e2.ty
 
-        lhs.constraints = (applySubst @loc.theta2 @e1.constraints) `DS.union` @e2.constraints
+        lhs.constraints = UnionConstr (applySubst @loc.theta2 @e1.constraints) @e2.constraints
 
         e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
                                  ty'    = generalise newEnv @e1.ty
@@ -159,13 +160,13 @@ SEM MH
       loc.theta  = @loc.theta1 `dot` @loc.theta0
 
       lhs.ty = @e2.ty
-      
+
       lhs.substitution = @loc.theta
 
-      lhs.constraints = (applySubst @loc.theta1 @e1.constraints) `DS.union`
-                        (DS.singleton $ (applySubst @loc.theta @loc.beta') <: @loc.pi)
+      lhs.constraints = UnionConstr (applySubst @loc.theta1 @e1.constraints)
+                                    (applySubst @loc.theta @loc.beta' <: @loc.pi)
 
-      e1.typeEnvironment = 
+      e1.typeEnvironment =
         case @x of
           Just x  -> DM.insert @f (Ty $ Arr @loc.alpha1' @loc.alpha2' @loc.beta') (
                       DM.insert x (Ty $ @loc.alpha1') @lhs.typeEnvironment
@@ -173,7 +174,7 @@ SEM MH
           -- A recursive let binding without arguments, e.g. let loop = loop in loop
           Nothing -> DM.insert @f (Ty $ @loc.alpha2') @lhs.typeEnvironment
 
-      e2.typeEnvironment = 
+      e2.typeEnvironment =
         let newEnv = applySubst @loc.theta0 @lhs.typeEnvironment
         in case @x of
             Just x  -> let ty = Arr (applySubst @loc.theta @alpha1')
@@ -201,7 +202,7 @@ SEM MH
         let c0 = applySubst (@loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1) @c.constraints
             c1 = applySubst (@loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2) @e1.constraints
             c2 = applySubst (@loc.theta4 `dot` @loc.theta3) @e1.constraints
-        in c0 `DS.union` c1 `DS.union` c2
+        in UnionConstr c0 (UnionConstr c1 c2)
 
        lhs.substitution = @loc.theta
 
@@ -266,14 +267,11 @@ annVar :: Int -> SAnn
 annVar = AnnVar . ("b" ++) . show 
 
 annPoint :: Int -> SAnn
-annPoint = AnnSet . DS.singleton
-
-emptyConstraint :: Set Constraint
-emptyConstraint = DS.empty
+annPoint = SingleAnn
 
 (<:) :: SAnn -> SAnn -> Constraint
-var@(AnnVar _) <: p@(AnnSet _) = Constraint var p
-_ <: _ = error "invalid constraint"
+var@(AnnVar _) <: p = SingleConstr var p
+_              <: _ = error "invalid constraint"
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
 dot = Dot
@@ -320,15 +318,6 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
 -- | A Type environment maps variable names to types.
 type TyEnv = Map Var TyScheme
 
-type Constraints = DS.Set Constraint
-
-data Constraint = Constraint SAnn SAnn
-                deriving (Show,Ord,Eq)
-
-data SimpleSubstitution = Identity
-                        | TySub TyVar Ty
-                        | AnnSub SAnn SAnn
-                        | Dot SimpleSubstitution SimpleSubstitution
 
 class FreeVariables a where
     fv :: a -> Set String
@@ -339,14 +328,6 @@ class FreeAnnVars a where
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
 
-
-instance Show SimpleSubstitution where
-  show Identity = ""
-  show (TySub v t) = v ++ " |-> " ++ show t
-  show (AnnSub a a') = show a ++ " |-> " ++ show a'
-  show (Dot s Identity) = show s
-  show (Dot s s')       = show s ++ "\n" ++ show s'
-
 instance Substitutable TyScheme where
   applySubst Identity     t = t
   applySubst (AnnSub _ _) t = t
@@ -355,7 +336,7 @@ instance Substitutable TyScheme where
   applySubst s@(TySub a _) (Forall tv ts) | a == tv   = Forall tv ts
                                           | otherwise = Forall tv (applySubst s ts)
   applySubst sub (Ty t) = Ty $ applySubst sub t
-  
+
 instance Substitutable Ty where
   applySubst Identity     t = t
   applySubst (AnnSub _ _) t = t
@@ -371,18 +352,15 @@ instance Substitutable Ty where
 
   applySubst _ Nat  = Nat
   applySubst _ Bool = Bool
-  
+
 instance Substitutable TyEnv where
   applySubst s = DM.map (applySubst s)
-
-instance Substitutable Constraints where
-  applySubst s = DS.map (applySubst s)
 
 instance Substitutable Constraint where
   applySubst Identity    subj = subj
   applySubst d@(Dot _ _) subj = dotApply d subj
 
-  applySubst s (Constraint b pi) = Constraint (applySubst s b) (applySubst s pi)
+  applySubst s (SingleConstr b pi) = SingleConstr (applySubst s b) (applySubst s pi)
 
 instance Substitutable SAnn where
   applySubst Identity    a = a
@@ -419,22 +397,24 @@ instance FreeAnnVars TyScheme where
   fav (AnnSig t s) = fav s DS.\\ DS.singleton t
 
 instance FreeAnnVars SAnn where
-  fav (AnnSet _) = DS.empty
-  fav ann        = DS.singleton ann
+  fav EmptyAnn         = DS.empty
+  fav (SingleAnn p)    = DS.empty
+  fav (AnnUnion a1 a2) = fav a1 `DS.union` fav a2
+  fav av@(AnnVar _)    = DS.singleton av
 
 
 -- TODO: Add type signatures once the dust starts settling down
 
 absWl cstr bott join amst evl = iterAbsWl infl join amst evl cstr (mkMap bott)
-  where mkMap  s = DM.fromList [(x, s) | Constraint x _ <- cstr]
+  where mkMap  s = DM.fromList [(x, s) | SingleConstr x _ <- cstr]
         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
         infl     = DM.fromList [ (x, cs)
-                               | cxt@(Constraint x t) <- cstr
+                               | cxt@(SingleConstr x t) <- cstr
                                , cs <- [ inflx' x' `DS.union` DS.singleton cxt
                                        | x' <- DS.toList $ fav t]]
 
 iterAbsWl _      _    atMost eval []                    ana = ana
-iterAbsWl inflow join atMost eval (Constraint x t:wltl) ana
+iterAbsWl inflow join atMost eval (SingleConstr x t:wltl) ana
   | not $ anaLU x `atMost` new = iter newWl ana'
   | otherwise                  = iter wltl  ana
   where new   = eval t ana

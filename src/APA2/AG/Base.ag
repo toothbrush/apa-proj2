@@ -45,11 +45,29 @@ DATA Ty
 
 DERIVING Ty: Eq
 
+-- | We need to make the set operations explicit, since it is also possible to
+-- have something like β∪{h}
 DATA SAnn
-  | AnnSet  p   : {Set Point}
   | AnnVar  var : {AnnVar}
+  | EmptyAnn
+  | SingleAnn p : {Point}
+  | AnnUnion a1 : SAnn a2 : SAnn
 
 DERIVING SAnn: Show, Eq, Ord
+
+DATA Constraint
+  | EmptyConstr
+  | SingleConstr a1 : SAnn a2 : SAnn
+  | UnionConstr c1 : Constraint c2 : Constraint
+
+DERIVING Constraint: Show, Eq, Ord
+
+
+DATA SimpleSubstitution
+  | Identity
+  | TySub  tv : {TyVar} t  : Ty
+  | AnnSub a1 : SAnn    a2 : SAnn
+  | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
 {
 instance Show Ty where
@@ -58,4 +76,12 @@ instance Show Ty where
   show Nat          = "Nat"
   show Bool         = "Bool"
   show (List t an)  = "List^" ++ show an ++ " " ++ show t
+
+instance Show SimpleSubstitution where
+  show Identity      = ""
+  show (TySub v t)   = v ++ " |-> " ++ show t
+  show (AnnSub a a') = show a ++ " |-> " ++ show a'
+  show (Dot s Identity) = show s
+  show (Dot s s')       = show s ++ "\n" ++ show s'
+
 }
