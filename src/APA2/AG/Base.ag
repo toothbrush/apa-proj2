@@ -55,10 +55,15 @@ DATA SAnn
 
 DERIVING SAnn: Show, Eq, Ord
 
+DATA ConstrPair
+  | ConstrPair a1 : SAnn a2 : SAnn
+
+DERIVING ConstrPair: Show, Eq, Ord
+
 DATA Constraint
   | EmptyConstr
-  | SingleConstr a1 : SAnn a2 : SAnn
-  | UnionConstr c1 : Constraint c2 : Constraint
+  | SingleConstr ConstrPair
+  | UnionConstr  c1 : Constraint c2 : Constraint
 
 DERIVING Constraint: Show, Eq, Ord
 

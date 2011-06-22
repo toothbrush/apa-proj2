@@ -7,6 +7,8 @@ imports
 import            Data.Map (Map)
 import qualified  Data.Map as DM
 import qualified  Data.Maybe as DM
+import            Data.MultiSet (MultiSet)
+import qualified  Data.MultiSet as DMS
 import qualified  Data.Set as DS
 }
 
@@ -406,23 +408,40 @@ instance FreeAnnVars SAnn where
   fav (AnnUnion a1 a2) = fav a1 `DS.union` fav a2
   fav av@(AnnVar _)    = DS.singleton av
 
-
 -- TODO: Add type signatures once the dust has settled
-absWl cstr bott join amst evl = iterAbsWl infl join amst evl cstr (mkMap bott)
-  where mkMap  s = DM.fromList [(x, s) | SingleConstr x _ <- cstr]
+-- cstr :: Set Constraint
+absWl cstr bott join amst evl = iterAbsWl infl join amst evl (DMS.fromSet cstr)
+                                          (mkMap bott)
+  where mkMap  s = let f (ConstrPair x _) xs = DM.insert (x, s) xs
+                   in  DS.fold f DM.empty cstr
         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-        infl     = DM.fromList [ (x, cs)
-                               | cxt@(SingleConstr x t) <- cstr
-                               , cs <- [ inflx' x' `DS.union` DS.singleton cxt
-                                       | x' <- DS.toList $ fav t]]
+        infl     = DM.fromList $ DS.fold (\x xs -> x : xs)
+                               [ (x, cs)
+                               | cxt <- cstr
+                               , cs <- DS.toList (foo cxt)]
+                                {- [ inflx' x' `DM.union` DM.singleton cxt-}
+                                {-        | x' <- DS.toList $ fav t]]-}
 
-iterAbsWl _      _    _      _    []                      ana = ana
-iterAbsWl inflow join atMost eval (SingleConstr x t:wltl) ana
+foo cxt@(ConstrPair x t) = DS.fold (\x' m -> inflx' x' `DS.union` DS.singleton cxt `DS.union` m) DS.empty (fav t)
+
+iterAbsWl inflow join atMost eval wlst ana
+  | DMS.null wlst              = ana
   | not $ anaLU x `atMost` new = iter newWl ana'
   | otherwise                  = iter wltl  ana
   where new   = eval t ana
         ana'  = ana `join` new
-        newWl = wltl ++ DM.fold ((++) . DS.toList) [] inflow -- TODO: Double check
+        newWl = wltl `DMS.union` inflow
         anaLU = DM.fromJust . flip DM.lookup ana
         iter  = iterAbsWl inflow join atMost eval
+        wltl  = DMS.deleteAll cp wlst
+        cp@(ConstrPair x t) = DMS.findMin wlst
 }
+
+ATTR Constraint ConstrPair SAnn
+  [||copy : SELF]
+
+ATTR Constraint
+  [||mkSet USE {`DS.union`} {DS.empty} : {Set ConstrPair}]
+
+SEM Constraint
+  | SingleConstr lhs.mkSet = DS.singleton @pr.copy
