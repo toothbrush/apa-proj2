@@ -13,11 +13,12 @@ initialInheritedAttributes =
          }
 
 w :: MH -> (Ty, SimpleSubstitution, Constraint)
-w tm =
-  (ty_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
-  ,substitution_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
-  ,constraints_Syn_MH (wrap_MH (sem_MH tm) initialInheritedAttributes)
-  )
+w tm = let wrappedDS = (wrap_MH (sem_MH tm) initialInheritedAttributes)
+       in
+         ( ty_Syn_MH           wrappedDS
+         , substitution_Syn_MH wrappedDS
+         , constraints_Syn_MH  wrappedDS
+         )
 
 inferTypes :: MH -> Ty
 inferTypes tm = let (ty,_,_) = w tm
