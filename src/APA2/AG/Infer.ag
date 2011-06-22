@@ -416,7 +416,7 @@ absWl cstr bott join amst evl = iterAbsWl infl join amst evl cstr (mkMap bott)
                                , cs <- [ inflx' x' `DS.union` DS.singleton cxt
                                        | x' <- DS.toList $ fav t]]
 
-iterAbsWl _      _    atMost eval []                      ana = ana
+iterAbsWl _      _    _      _    []                      ana = ana
 iterAbsWl inflow join atMost eval (SingleConstr x t:wltl) ana
   | not $ anaLU x `atMost` new = iter newWl ana'
   | otherwise                  = iter wltl  ana
