@@ -176,7 +176,7 @@ SEM MH
       e2.typeEnvironment = 
         let newEnv = applySubst @loc.theta0 @lhs.typeEnvironment
         in case @x of
-            Just x  -> let ty = Arr (applySubst @loc.theta @alpha1')
+            Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
                            ty' = generalise newEnv ty
@@ -210,6 +210,7 @@ SEM MH
 operatorType :: String -> (Ty,Ty,Ty)
 operatorType op | op `elem` ["-","+","*"] = (Nat,Nat,Nat)
                 | op `elem` ["==","<",">","<=",">="] = (Nat,Nat,Bool)
+                | otherwise = undefined -- kill a warning
 
 -- | Turn a number (the counter's current value) into a type variable. 
 -- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
@@ -235,9 +236,10 @@ instantiate ts =
 -- which are in "forall". This is useful for instantiation,
 -- since these variables will need concrete values.
 grabForallVars :: TyScheme -> ([TyVar], Ty)
-grabForallVars (Ty t)          =  ([], t)
-grabForallVars (Forall tv t1)  =  let (vars, ty) = grabForallVars t1
-                                  in  (tv:vars, ty)
+grabForallVars (Ty t)          = ([], t)
+grabForallVars (Forall tv t1)  = let (vars, ty) = grabForallVars t1
+                                 in  (tv:vars, ty)
+grabForallVars _               = undefined
 
 -- | Generalise function. Finds all unbound type variables in
 -- a type T, and then makes the type into 
@@ -382,7 +384,7 @@ instance Substitutable Constraint where
   applySubst Identity    subj = subj
   applySubst d@(Dot _ _) subj = dotApply d subj
 
-  applySubst s (Constraint b pi) = Constraint (applySubst s b) (applySubst s pi)
+  applySubst s (Constraint b pi') = Constraint (applySubst s b) (applySubst s pi')
 
 instance Substitutable SAnn where
   applySubst Identity    a = a
@@ -401,7 +403,7 @@ instance FreeVariables TyScheme where
 
 instance FreeVariables Ty where
   fv (TyVar tv)      = DS.singleton tv
-  fv (Arr t1 t2 ann) = fv t1 `DS.union` fv t2
+  fv (Arr t1 t2  _ ) = fv t1 `DS.union` fv t2
   fv (List t1 _)     = fv t1
   fv _               = DS.empty
 
@@ -423,8 +425,7 @@ instance FreeAnnVars SAnn where
   fav ann        = DS.singleton ann
 
 
--- TODO: Add type signatures once the dust starts settling down
-
+-- TODO: Add type signatures once the dust has settled
 absWl cstr bott join amst evl = iterAbsWl infl join amst evl cstr (mkMap bott)
   where mkMap  s = DM.fromList [(x, s) | Constraint x _ <- cstr]
         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
@@ -433,7 +434,7 @@ absWl cstr bott join amst evl = iterAbsWl infl join amst evl cstr (mkMap bott)
                                , cs <- [ inflx' x' `DS.union` DS.singleton cxt
                                        | x' <- DS.toList $ fav t]]
 
-iterAbsWl _      _    atMost eval []                    ana = ana
+iterAbsWl _      _      _      _  []                    ana = ana
 iterAbsWl inflow join atMost eval (Constraint x t:wltl) ana
   | not $ anaLU x `atMost` new = iter newWl ana'
   | otherwise                  = iter wltl  ana
