@@ -16,6 +16,9 @@ haskell: src/APA2/AG.hs
 documentation: latex-doc/main.tex
 	pdflatex -output-directory=latex-doc latex-doc/main.tex 
 
+lint:
+	hlint src/*.hs
+
 clean : 
 	-rm src/APA2/AG.hs
 	-rm latex-doc/main.pdf
