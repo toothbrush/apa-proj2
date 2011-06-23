@@ -7,6 +7,7 @@ imports
 import Debug.Trace
 import            Data.Map (Map)
 import qualified  Data.Map as DM
+import qualified  Data.Map as Map
 import qualified  Data.Maybe as DM
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
@@ -335,16 +336,6 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
 
--- | A Type environment maps variable names to types.
-type TyEnv = Map Var TyScheme
-
-
-class FreeVariables a where
-  fv :: a -> Set TyVar   -- alias String
-
-class FreeAnnVars a where
-  fav :: a -> Set AnnVar -- alias String
-
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
 
@@ -393,35 +384,62 @@ instance Substitutable SAnn where
 
   applySubst _ a = a
 
+
+class FreeVariables a where
+  fv :: a -> Set TyVar -- alias String
+
+class FreeAnnVars a where
+  fav :: a -> Set AnnVar -- alias String
+
 instance FreeVariables TyScheme where
-  fv (Forall v s) = fv s DS.\\ DS.singleton v
-  fv (AnnSig _ s) = fv s
-  fv (Ty t)       = fv t
+  fv x = fv_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
 
 instance FreeVariables Ty where
-  fv (TyVar tv)      = DS.singleton tv
-  fv (Arr t1 t2  _ ) = fv t1 `DS.union` fv t2
-  fv (List t1 _)     = fv t1
-  fv _               = DS.empty
+  fv x = fv_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
 
 instance FreeVariables TyEnv where
+-- TODO: Move to AG once uuagc bugs are fixed
   fv = DM.fold (\el acc -> fv el `DS.union` acc) DS.empty
 
 instance FreeAnnVars Ty where
-  fav (Arr ty1 ty2 ann) = fav ty1 `DS.union` fav ty2 `DS.union` fav ann
-  fav (List ty ann)     = fav ty `DS.union` fav ann
-  fav _                 = DS.empty
+  fav x = fav_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
 
 instance FreeAnnVars TyScheme where
-  fav (Ty _)       = DS.empty
-  fav (Forall _ s) = fav s
-  fav (AnnSig t s) = fav s DS.\\ DS.singleton t
+  fav x = fav_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
 
 instance FreeAnnVars SAnn where
-  fav EmptyAnn         = DS.empty
-  fav (SingleAnn _)    = DS.empty
-  fav (AnnUnion a1 a2) = fav a1 `DS.union` fav a2
-  fav (AnnVar av)      = DS.singleton av
+  fav x = fav_Syn_SAnn (wrap_SAnn (sem_SAnn x) Inh_SAnn)
+
+type TyEnv = Map Var TyScheme
+}
+
+ATTR TyScheme Ty -- TyEnv
+  [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
+  ]
+
+ATTR TyScheme Ty SAnn
+  [|| fav USE {`DS.union`} {DS.empty} : {Set AnnVar} -- alias String
+  ]
+
+SEM TyScheme
+  | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a
+  | Forall lhs.fv  = @ts.fv  DS.\\ DS.singleton @a
+
+SEM Ty
+  | TyVar lhs.fv = DS.singleton @a
+
+SEM SAnn
+  | AnnVar lhs.fav = DS.singleton @var
+
+
+
+
+{- SEM TyEnv-}
+{-   | Entry lhs.fv = @val.fv `DS.union` @tl.fv-}
+{-   | Nil   lhs.fv = DS.empty-}
+
+{
+
 
 -- TODO: Add type signatures once the dust has settled
 -- TODO: Double-check correctness of implementation
