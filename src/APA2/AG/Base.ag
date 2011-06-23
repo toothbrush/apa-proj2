@@ -32,14 +32,14 @@ DERIVING MH: Show, Eq
 DATA TyScheme
   | Ty     ty : Ty
   | Forall a : {TyVar} ts : TyScheme
-  | AnnSig a : {SAnn}  ts : TyScheme
+  | AnnSig a : {SAnn}  ts : TyScheme --TODO a should probably be : {AnnVar}
 
 DERIVING TyScheme: Show, Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
   | Arr   ty1 : Ty      ty2 : Ty     ann : {SAnn}
-  | List  ty  : Ty      ann : {SAnn}
+  | List  ty  : Ty      ann : {SAnn} -- builtin List is an addition
   | Nat
   | Bool
 
@@ -66,7 +66,7 @@ DERIVING Constraint: Show, Eq, Ord
 DATA SimpleSubstitution
   | Identity
   | TySub  tv : {TyVar} t  : Ty
-  | AnnSub a1 : SAnn    a2 : SAnn
+  | AnnSub a1 : SAnn    a2 : SAnn -- annotation substitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
 {
