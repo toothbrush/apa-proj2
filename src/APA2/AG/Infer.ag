@@ -243,13 +243,14 @@ instantiate ts =
       applySubst finalSub ty'
 
 -- | These operators are pretty dull
-operatorType :: String -> (Ty,Ty,Ty)
-operatorType op | op `elem` ["-","+","*"]            = (Nat,Nat,Nat)
-                | op `elem` ["==","<",">","<=",">="] = (Nat,Nat,Bool)
-                | otherwise                  = error $ "Invalid op: " ++ op
+operatorType :: String -> (Ty, Ty, Ty)
+operatorType op
+  | op `elem` ["-","+","*"]            = (Nat, Nat, Nat)
+  | op `elem` ["==","<",">","<=",">="] = (Nat, Nat, Bool)
+  | otherwise                          = error $ "Invalid op: " ++ op
 
--- | Turn a number (the counter's current value) into a type variable. 
--- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
+-- | Turn a number (the counter's current value) into a type variable.
+-- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program.
 --       This seems reasonable, given the scope of the assignment, a workaround
 --       shouldn't be difficult to implement.
 freshVar :: Int -> Ty
@@ -267,7 +268,7 @@ grabForallVars (AnnSig tv t1)  = let (vars, avars, ty) = grabForallVars t1
                                  in  (vars, tv:avars, ty)
 
 -- | This gives us unique variable numbers, incrementing the seed each time.
--- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next 
+-- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next
 -- to an attribute.
 nextUnique :: Int -> (Int, Int)
 nextUnique u = (u+1, u)
@@ -441,11 +442,9 @@ iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
           -> MultiSet ConstrPair -> Map SAnn c -> Map SAnn c
 iterAbsWl infl join atMost eval wlst ana
   | DMS.null wlst              = ana
-  | not $ anaLU x `atMost` new = iter newWl ana'
-  | otherwise                  = iter wltl  ana
+  | not $ anaLU x `atMost` new = iter (wltl `DMS.union` inflx x) (ana `join` new)
+  | otherwise                  = iter wltl ana
   where new   = eval t ana
-        ana'  = ana `join` new
-        newWl = wltl `DMS.union` inflx x
         inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
         anaLU = DM.fromJust . flip DM.lookup ana
         iter  = iterAbsWl infl join atMost eval
