@@ -80,7 +80,7 @@ instance Show Ty where
   show (Arr t t' a) = show t ++ "--"++ show a ++ "-->" ++ show t'
   show Nat          = "Nat"
   show Bool         = "Bool"
-  show (List t an)  = "List^" ++ show an ++ " " ++ show t
+  show (List t an)  = "List^{" ++ show an ++ "} " ++ show t
 
 instance Show SimpleSubstitution where
   show Identity      = ""
