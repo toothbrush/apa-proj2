@@ -4,6 +4,7 @@ optpragmas {
 
 imports
 {
+import Debug.Trace
 import            Data.Map (Map)
 import qualified  Data.Map as DM
 import qualified  Data.Maybe as DM
@@ -216,8 +217,10 @@ SEM MH
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in a Tm with type lambdas at the right spots.
 generalise :: TyEnv -> Ty -> TyScheme
-generalise env tau = let free = fv tau DS.\\ fv env
-                     in  DS.fold Forall (Ty tau) free
+generalise env tau = let free    = fv tau DS.\\ fv env
+                         generalisedTypeVariables = DS.fold Forall (Ty tau) free
+                         annots  = fav tau
+                     in  trace (show annots) $ DS.fold AnnSig (generalisedTypeVariables) annots --generalisedTypeVariables
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
@@ -225,7 +228,7 @@ generalise env tau = let free = fv tau DS.\\ fv env
 -- type instantiations were applied.
 instantiate :: TyScheme -> Ty
 instantiate ts =
-  let (forallVars, ty') = grabForallVars ts
+  let (forallVars, forallAVars, ty') = grabForallVars ts
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
       nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map show ([0..] :: [Int]))
@@ -234,12 +237,13 @@ instantiate ts =
 
 -- | These operators are pretty dull
 operatorType :: String -> (Ty, Ty, Ty)
-operatorType op | op `elem` ["-","+","*"]            = (Nat, Nat, Nat)
-                | op `elem` ["==","<",">","<=",">="] = (Nat, Nat, Bool)
-                | otherwise = error $ "Invalid op: " ++ op
+operatorType op
+  | op `elem` ["-","+","*"]            = (Nat, Nat, Nat)
+  | op `elem` ["==","<",">","<=",">="] = (Nat, Nat, Bool)
+  | otherwise                          = error $ "Invalid op: " ++ op
 
--- | Turn a number (the counter's current value) into a type variable. 
--- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
+-- | Turn a number (the counter's current value) into a type variable.
+-- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program.
 --       This seems reasonable, given the scope of the assignment, a workaround
 --       shouldn't be difficult to implement.
 freshVar :: Int -> Ty
@@ -248,14 +252,16 @@ freshVar i = TyVar $ 'v' : show i
 -- | Unrolls a type, and returns all the variables
 -- which are in "forall". This is useful for instantiation,
 -- since these variables will need concrete values.
-grabForallVars :: TyScheme -> ([TyVar], Ty)
-grabForallVars (Ty t)          = ([], t)
-grabForallVars (Forall tv t1)  = let (vars, ty) = grabForallVars t1
-                                 in  (tv:vars, ty)
-grabForallVars _               = undefined
+grabForallVars :: TyScheme -> ([TyVar], [AnnVar], Ty)
+grabForallVars (Ty t)          = ([], [], t)
+grabForallVars (Forall tv t1)  = let (vars, avars, ty) = grabForallVars t1
+                                 in  (tv:vars, avars, ty)
+-- now with Annotation super powers
+grabForallVars (AnnSig tv t1)  = let (vars, avars, ty) = grabForallVars t1
+                                 in  (vars, tv:avars, ty)
 
 -- | This gives us unique variable numbers, incrementing the seed each time.
--- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next 
+-- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next
 -- to an attribute.
 nextUnique :: Int -> (Int, Int)
 nextUnique u = (u+1, u)
@@ -312,8 +318,10 @@ unify t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
 
 unify (Arr t11 t12 an1) (Arr t21 t22 an2) =
   let theta0 = AnnSub an2 an1
-      theta1 = unify (applySubst theta0 t11) (applySubst theta0 t21)
-      theta2 = unify (applySubst (theta1 `dot` theta0) t12) (applySubst (theta1 `dot` theta0) t22)
+      theta1 = unify (applySubst theta0 t11) 
+                     (applySubst theta0 t21)
+      theta2 = unify (applySubst (theta1 `dot` theta0) t12) 
+                     (applySubst (theta1 `dot` theta0) t22)
   in theta2 `dot` theta1 `dot` theta0
 
 unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
@@ -325,10 +333,10 @@ type TyEnv = Map Var TyScheme
 
 
 class FreeVariables a where
-  fv :: a -> Set String
+  fv :: a -> Set TyVar   -- alias String
 
 class FreeAnnVars a where
-  fav :: a -> Set SAnn
+  fav :: a -> Set AnnVar -- alias String
 
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
@@ -406,7 +414,7 @@ instance FreeAnnVars SAnn where
   fav EmptyAnn         = DS.empty
   fav (SingleAnn _)    = DS.empty
   fav (AnnUnion a1 a2) = fav a1 `DS.union` fav a2
-  fav av@(AnnVar _)    = DS.singleton av
+  fav (AnnVar av)      = DS.singleton av
 
 -- TODO: Add type signatures once the dust has settled
 -- TODO: Double-check correctness of implementation
@@ -420,7 +428,7 @@ absWl cstr bott join amst eval = iterAbsWl infl join amst eval
         infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
         inflx_ cxt@(ConstrPair _ t) =
           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
-          in  DS.fold cf DM.empty (fav t)
+          in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
 
 iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
           -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t)
