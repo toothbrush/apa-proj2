@@ -3,6 +3,11 @@
 \usepackage{semantic}
 \usepackage{dsfont}
 
+% things for the semantic package
+\reservestyle{\command}{\textbf}
+\command{let,in}
+% end semantic
+
 \author{Jurri\"en Stutterheim\and Ruben de Gooijer \and Paul van der Walt} 
 \date{\today} 
 \title{Implementation notes for Type and Effect Systems}
@@ -75,9 +80,13 @@ data structures.
 
 \subsection{Natural semantics}
 
-We have the usual rules such as \emph{t-var} or \emph{t-let}, which have been extended to support lists, see \emph{t-list}. 
+We have the usual rules such as \emph{cfa-var} or \emph{cfa-let}, which have been extended to support lists, see \emph{cfa-list}. 
 
-
+\inference[cfa-var]{\widehat{\Gamma}(x) = \widehat{\sigma}}
+{\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}}
+\inference[cfa-let]{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma}_1 
+& \widehat{\Gamma}[x \mapsto \widehat{\sigma}_1] |-_{CFA} t_2 : \widehat{\tau}}
+{\widehat{\Gamma} |-_{CFA}\: \<let>\: x = t_1\: \<in>\: t_2 : \widehat{\tau}}
 
 
 \section{Approach}
