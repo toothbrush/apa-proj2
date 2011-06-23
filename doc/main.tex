@@ -90,8 +90,8 @@ We have the usual set of rules including, for example,  \emph{cfa-var} or \emph{
 {\widehat{\Gamma} |-_{CFA}\: \<let>\: x = t_1\: \<in>\: t_2 : \widehat{\tau}}
 
 
-\inference[cfa-nil]{\widehat{\Gamma} |-_{CFA} t : \widehat{\sigma}}
-{\widehat{\Gamma} |-_{CFA} t\<:>[\,] : [\widehat{\sigma}]}
+\inference[cfa-nil]{}
+{\widehat{\Gamma} |-_{CFA} [\,] : [\widehat{\tau}]}
 
 \inference[cfa-cons]{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma} 
 & \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
