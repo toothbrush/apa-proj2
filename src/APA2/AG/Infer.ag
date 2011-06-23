@@ -233,9 +233,9 @@ instantiate ts =
   in  applySubst s ty'
 
 -- | These operators are pretty dull
-operatorType :: String -> (Ty,Ty,Ty)
-operatorType op | op `elem` ["-","+","*"] = (Nat,Nat,Nat)
-                | op `elem` ["==","<",">","<=",">="] = (Nat,Nat,Bool)
+operatorType :: String -> (Ty, Ty, Ty)
+operatorType op | op `elem` ["-","+","*"]            = (Nat, Nat, Nat)
+                | op `elem` ["==","<",">","<=",">="] = (Nat, Nat, Bool)
                 | otherwise = error $ "Invalid op: " ++ op
 
 -- | Turn a number (the counter's current value) into a type variable. 
@@ -427,11 +427,9 @@ iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
           -> MultiSet ConstrPair -> Map SAnn c -> Map SAnn c
 iterAbsWl infl join atMost eval wlst ana
   | DMS.null wlst              = ana
-  | not $ anaLU x `atMost` new = iter newWl ana'
-  | otherwise                  = iter wltl  ana
+  | not $ anaLU x `atMost` new = iter (wltl `DMS.union` inflx x) (ana `join` new)
+  | otherwise                  = iter wltl ana
   where new   = eval t ana
-        ana'  = ana `join` new
-        newWl = wltl `DMS.union` inflx x
         inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
         anaLU = DM.fromJust . flip DM.lookup ana
         iter  = iterAbsWl infl join atMost eval
