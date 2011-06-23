@@ -238,9 +238,8 @@ instantiate ts =
       s     = sfold TySub (zip forallVars $ nzip TyVar)
       -- do kinda the same for annotation variables. 
       s'     = sfold AnnSub (zip (map AnnVar forallAVars) $ nzip AnnVar)
-      finalSub = Dot s s'
   in  {-trace (show finalSub) $ -}
-      applySubst finalSub ty'
+      applySubst (Dot s s') ty'
 
 -- | These operators are pretty dull
 operatorType :: String -> (Ty, Ty, Ty)
