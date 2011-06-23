@@ -239,7 +239,7 @@ instantiate ts =
 operatorType :: String -> (Ty,Ty,Ty)
 operatorType op | op `elem` ["-","+","*"]            = (Nat,Nat,Nat)
                 | op `elem` ["==","<",">","<=",">="] = (Nat,Nat,Bool)
-                | otherwise                          = undefined -- kill a warning
+                | otherwise                  = error $ "Invalid op: " ++ op
 
 -- | Turn a number (the counter's current value) into a type variable. 
 -- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
@@ -417,7 +417,8 @@ instance FreeAnnVars SAnn where
 
 -- TODO: Add type signatures once the dust has settled
 -- TODO: Double-check correctness of implementation
--- cstr :: Set Constraint
+absWl :: Set ConstrPair -> c -> (Map SAnn c -> t -> Map SAnn c)
+      -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t) -> Map SAnn c
 absWl cstr bott join amst eval = iterAbsWl infl join amst eval
                                            (DMS.fromSet cstr) (mkMap bott)
   where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
@@ -428,6 +429,9 @@ absWl cstr bott join amst eval = iterAbsWl infl join amst eval
           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
 
+iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
+          -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t)
+          -> MultiSet ConstrPair -> Map SAnn c -> Map SAnn c
 iterAbsWl infl join atMost eval wlst ana
   | DMS.null wlst              = ana
   | not $ anaLU x `atMost` new = iter newWl ana'
