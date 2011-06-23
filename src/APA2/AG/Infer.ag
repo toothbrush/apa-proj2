@@ -208,18 +208,14 @@ SEM MH
        lhs.substitution = @loc.theta
 
 {
--- | These operators are pretty dull
-operatorType :: String -> (Ty,Ty,Ty)
-operatorType op | op `elem` ["-","+","*"] = (Nat,Nat,Nat)
-                | op `elem` ["==","<",">","<=",">="] = (Nat,Nat,Bool)
-                | otherwise = undefined -- kill a warning
-
--- | Turn a number (the counter's current value) into a type variable. 
--- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
---       This seems reasonable, given the scope of the assignment, a workaround
---       shouldn't be difficult to implement.
-freshVar :: Int -> Ty
-freshVar i = TyVar $ 'v' : show i
+-- | Generalise function. Finds all unbound type variables in
+-- a type T, and then makes the type into 
+-- "foreach [those variables] T."
+-- Also returns a coercion. This is to be applied to the term, 
+-- resulting in a Tm with type lambdas at the right spots.
+generalise :: TyEnv -> Ty -> TyScheme
+generalise env tau = let free = fv tau DS.\\ fv env
+                     in  DS.fold Forall (Ty tau) free
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
@@ -234,6 +230,19 @@ instantiate ts =
       s     = foldr (\(o,n) -> Dot (TySub o n)) Identity (zip forallVars nvars)
   in  applySubst s ty'
 
+-- | These operators are pretty dull
+operatorType :: String -> (Ty,Ty,Ty)
+operatorType op | op `elem` ["-","+","*"] = (Nat,Nat,Nat)
+                | op `elem` ["==","<",">","<=",">="] = (Nat,Nat,Bool)
+                | otherwise = undefined -- kill a warning
+
+-- | Turn a number (the counter's current value) into a type variable. 
+-- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
+--       This seems reasonable, given the scope of the assignment, a workaround
+--       shouldn't be difficult to implement.
+freshVar :: Int -> Ty
+freshVar i = TyVar $ 'v' : show i
+
 -- | Unrolls a type, and returns all the variables
 -- which are in "forall". This is useful for instantiation,
 -- since these variables will need concrete values.
@@ -242,15 +251,6 @@ grabForallVars (Ty t)          = ([], t)
 grabForallVars (Forall tv t1)  = let (vars, ty) = grabForallVars t1
                                  in  (tv:vars, ty)
 grabForallVars _               = undefined
-
--- | Generalise function. Finds all unbound type variables in
--- a type T, and then makes the type into 
--- "foreach [those variables] T."
--- Also returns a coercion. This is to be applied to the term, 
--- resulting in a Tm with type lambdas at the right spots.
-generalise :: TyEnv -> Ty -> TyScheme
-generalise env tau = let free = fv tau DS.\\ fv env
-                     in  DS.fold Forall (Ty tau) free
 
 -- | This gives us unique variable numbers, incrementing the seed each time.
 -- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next 
