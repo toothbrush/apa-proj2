@@ -32,7 +32,7 @@ DERIVING MH: Show, Eq
 DATA TyScheme
   | Ty     ty : Ty
   | Forall a : {TyVar} ts : TyScheme
-  | AnnSig a : {SAnn}  ts : TyScheme --TODO a should probably be : {AnnVar}
+  | AnnSig a : {AnnVar}  ts : TyScheme --TODO a should probably be : {AnnVar}
 
 DERIVING TyScheme: Show, Eq
 
