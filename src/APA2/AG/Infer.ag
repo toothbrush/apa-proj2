@@ -410,7 +410,8 @@ instance FreeAnnVars SAnn where
 
 -- TODO: Add type signatures once the dust has settled
 -- TODO: Double-check correctness of implementation
--- cstr :: Set Constraint
+absWl :: Set ConstrPair -> c -> (Map SAnn c -> t -> Map SAnn c)
+      -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t) -> Map SAnn c
 absWl cstr bott join amst eval = iterAbsWl infl join amst eval
                                            (DMS.fromSet cstr) (mkMap bott)
   where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
@@ -421,6 +422,9 @@ absWl cstr bott join amst eval = iterAbsWl infl join amst eval
           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
           in  DS.fold cf DM.empty (fav t)
 
+iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
+          -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t)
+          -> MultiSet ConstrPair -> Map SAnn c -> Map SAnn c
 iterAbsWl infl join atMost eval wlst ana
   | DMS.null wlst              = ana
   | not $ anaLU x `atMost` new = iter newWl ana'
