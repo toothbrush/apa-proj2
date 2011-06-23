@@ -415,19 +415,15 @@ absWl cstr bott join amst evl = iterAbsWl infl join amst evl (DMS.fromSet cstr)
   where mkMap  s = let f (ConstrPair x _) xs = DM.insert (x, s) xs
                    in  DS.fold f DM.empty cstr
         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-        infl     = DM.fromList $ DS.fold (\x xs -> x : xs)
-                               [ (x, cs)
-                               | cxt <- cstr
-                               , cs <- DS.toList (foo cxt)]
-                                {- [ inflx' x' `DM.union` DM.singleton cxt-}
-                                {-        | x' <- DS.toList $ fav t]]-}
+        infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
 
-foo cxt@(ConstrPair x t) = DS.fold (\x' m -> inflx' x' `DS.union` DS.singleton cxt `DS.union` m) DS.empty (fav t)
+inflx_ cxt@(ConstrPair _ t) = DM.fold f DM.empty (fav t)
+  where f x' m = DM.singleton x' DS.singleton cxt `DM.union` inflx' x' `DM.union` m
 
 iterAbsWl inflow join atMost eval wlst ana
-  | DMS.null wlst              = ana
-  | not $ anaLU x `atMost` new = iter newWl ana'
-  | otherwise                  = iter wltl  ana
+  | DMS.null wlst                  = ana
+  | DMS.not $ anaLU x `atMost` new = iter newWl ana'
+  | otherwise                      = iter wltl  ana
   where new   = eval t ana
         ana'  = ana `join` new
         newWl = wltl `DMS.union` inflow
