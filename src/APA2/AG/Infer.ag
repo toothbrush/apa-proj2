@@ -236,7 +236,7 @@ instantiate ts =
 operatorType :: String -> (Ty,Ty,Ty)
 operatorType op | op `elem` ["-","+","*"] = (Nat,Nat,Nat)
                 | op `elem` ["==","<",">","<=",">="] = (Nat,Nat,Bool)
-                | otherwise = undefined -- kill a warning
+                | otherwise = error $ "Invalid op: " ++ op
 
 -- | Turn a number (the counter's current value) into a type variable. 
 -- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program. 
