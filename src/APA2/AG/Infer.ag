@@ -7,6 +7,8 @@ imports
 import            Data.Map (Map)
 import qualified  Data.Map as DM
 import qualified  Data.Maybe as DM
+import            Data.MultiSet (MultiSet)
+import qualified  Data.MultiSet as DMS
 import qualified  Data.Set as DS
 }
 
@@ -273,7 +275,7 @@ annPoint :: Int -> SAnn
 annPoint = SingleAnn
 
 (<:) :: SAnn -> SAnn -> Constraint
-var@(AnnVar _) <: p = SingleConstr var p
+var@(AnnVar _) <: p = SingleConstr $ ConstrPair var p
 _              <: _ = error "invalid constraint"
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
@@ -345,7 +347,7 @@ instance Substitutable Ty where
   applySubst (AnnSub _ _) t = t
   applySubst d@(Dot _ _)  t = dotApply d t
 
-  applySubst (TySub a t0) (TyVar t) 
+  applySubst (TySub a t0) (TyVar t)
     | a == t    = t0
     | otherwise = TyVar t
 
@@ -362,7 +364,7 @@ instance Substitutable TyEnv where
 instance Substitutable Constraint where
   applySubst Identity    subj = subj
   applySubst d@(Dot _ _) subj = dotApply d subj
-  applySubst s (SingleConstr b p)  = SingleConstr (applySubst s b) (applySubst s p)
+  applySubst s (SingleConstr (ConstrPair b p))  = SingleConstr $ ConstrPair (applySubst s b) (applySubst s p)
   applySubst s (UnionConstr c1 c2) = UnionConstr (applySubst s c1) (applySubst s c2)
   applySubst _ c = c
 
@@ -406,23 +408,39 @@ instance FreeAnnVars SAnn where
   fav (AnnUnion a1 a2) = fav a1 `DS.union` fav a2
   fav av@(AnnVar _)    = DS.singleton av
 
-
 -- TODO: Add type signatures once the dust has settled
-absWl cstr bott join amst evl = iterAbsWl infl join amst evl cstr (mkMap bott)
-  where mkMap  s = DM.fromList [(x, s) | SingleConstr x _ <- cstr]
+-- TODO: Double-check correctness of implementation
+-- cstr :: Set Constraint
+absWl cstr bott join amst eval = iterAbsWl infl join amst eval
+                                           (DMS.fromSet cstr) (mkMap bott)
+  where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
+                   in  DS.fold mf DM.empty cstr
         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-        infl     = DM.fromList [ (x, cs)
-                               | cxt@(SingleConstr x t) <- cstr
-                               , cs <- [ inflx' x' `DS.union` DS.singleton cxt
-                                       | x' <- DS.toList $ fav t]]
+        infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
+        inflx_ cxt@(ConstrPair _ t) =
+          let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
+          in  DS.fold cf DM.empty (fav t)
 
-iterAbsWl _      _    _      _    []                      ana = ana
-iterAbsWl inflow join atMost eval (SingleConstr x t:wltl) ana
+iterAbsWl infl join atMost eval wlst ana
+  | DMS.null wlst              = ana
   | not $ anaLU x `atMost` new = iter newWl ana'
   | otherwise                  = iter wltl  ana
   where new   = eval t ana
         ana'  = ana `join` new
-        newWl = wltl ++ DM.fold ((++) . DS.toList) [] inflow -- TODO: Double check
+        newWl = wltl `DMS.union` inflx x
+        inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
         anaLU = DM.fromJust . flip DM.lookup ana
-        iter  = iterAbsWl inflow join atMost eval
+        iter  = iterAbsWl infl join atMost eval
+        wltl  = DMS.deleteAll cp wlst
+        cp@(ConstrPair x t) = DMS.findMin wlst
 }
+
+ATTR Constraint ConstrPair SAnn
+  [||copy : SELF]
+
+ATTR Constraint
+  [|| mkCstrSet USE {`DS.union`} {DS.empty} : {Set ConstrPair}
+  ]
+
+SEM Constraint
+  | SingleConstr lhs.mkCstrSet = DS.singleton @pr.copy
