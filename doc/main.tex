@@ -5,7 +5,7 @@
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
-\command{let,in}
+\command{let,in,:}
 % end semantic
 
 \author{Jurri\"en Stutterheim\and Ruben de Gooijer \and Paul van der Walt} 
@@ -80,14 +80,22 @@ data structures.
 
 \subsection{Natural semantics}
 
-We have the usual rules such as \emph{cfa-var} or \emph{cfa-let}, which have been extended to support lists, see \emph{cfa-list}. 
+We have the usual set of rules including, for example,  \emph{cfa-var} or \emph{cfa-let}, which has been extended to support lists, see \emph{cfa-nil} and \emph{cfa-cons}, the rules specifying list-typing. 
 
 \inference[cfa-var]{\widehat{\Gamma}(x) = \widehat{\sigma}}
 {\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}}
+
 \inference[cfa-let]{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma}_1 
 & \widehat{\Gamma}[x \mapsto \widehat{\sigma}_1] |-_{CFA} t_2 : \widehat{\tau}}
 {\widehat{\Gamma} |-_{CFA}\: \<let>\: x = t_1\: \<in>\: t_2 : \widehat{\tau}}
 
+
+\inference[cfa-nil]{\widehat{\Gamma} |-_{CFA} t : \widehat{\sigma}}
+{\widehat{\Gamma} |-_{CFA} t\<:>[\,] : [\widehat{\sigma}]}
+
+\inference[cfa-cons]{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma} 
+& \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
+{\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]}
 
 \section{Approach}
 
