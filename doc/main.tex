@@ -42,15 +42,42 @@ data structures.
         $t$ & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
             & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
             & $|$ & $t_1 \oplus t_2 \:|\: [\,]\:|\:t_1:t_2 $\\
-          
     \end{tabular}
     \caption{Grammar}
     \label{tab:grammar}
 \end{table}
 
+\subsection{Typing}
 
+\begin{table}
+    \centering
+    \begin{tabular}{rcll}
+        $\alpha$ &      $\in$ & \textbf{TyVar}    & type variables  \\
+        $\tau$&         $\in$ & \textbf{Ty}       & types \\
+        $\sigma $&      $\in$ & \textbf{TyScheme} & type schemes\\
+        $\Gamma$&       $\in$ & \textbf{TyEnv}    & type environments  \\
+    \end{tabular}
+    \caption{Typing elements}
+    \label{tab:typingelems}
+\end{table}
+\begin{table}
+    \centering
+    \begin{tabular}{lcl}
+        $\tau$   & ::= & $\alpha \:|\: Nat \: | \: Bool \: | \: \tau_1 \rightarrow \tau_2 $ \\ 
+        $\sigma$ & ::= & $\tau \:|\: \forall \alpha. \sigma_1 $ \\ 
+        $\Gamma$ & ::= & $[\,] \:|\: \Gamma_1[x \mapsto \sigma] $ \\
+    \end{tabular}
+    \caption{Typing}
+    \label{tab:typing}
+\end{table}
+
+\fbox{$\Gamma\:\vdash_{UL} t : \sigma$}
 
 \subsection{Natural semantics}
+
+We have the usual rules such as \emph{t-var} or \emph{t-let}, which have been extended to support lists, see \emph{t-list}. 
+
+
 
 
 \section{Approach}
