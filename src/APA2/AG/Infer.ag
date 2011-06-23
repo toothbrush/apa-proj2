@@ -219,8 +219,9 @@ SEM MH
 generalise :: TyEnv -> Ty -> TyScheme
 generalise env tau = let free    = fv tau DS.\\ fv env
                          generalisedTypeVariables = DS.fold Forall (Ty tau) free
-                         annots  = fav tau
-                     in  trace (show annots) $ DS.fold AnnSig (generalisedTypeVariables) annots --generalisedTypeVariables
+                         annots  = fav tau -- TODO: exclude anything?
+                     in  {- trace (show annots) $ -}
+                         DS.fold AnnSig (generalisedTypeVariables) annots
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
@@ -233,7 +234,13 @@ instantiate ts =
       -- then replace these with fresh variables
       nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map show ([0..] :: [Int]))
       s     = foldr (\(o,n) -> Dot (TySub o n)) Identity (zip forallVars nvars)
-  in  applySubst s ty'
+      -- do kinda the same for annotation variables. 
+      nvars' = zipWith (\a b -> AnnVar (a ++ b)) forallAVars (map show ([0..] :: [Int]))
+      wrappedForallAVars = map AnnVar forallAVars
+      s'     = foldr (\(o,n) -> Dot (AnnSub o n)) Identity (zip wrappedForallAVars nvars')
+      finalSub = Dot s s'
+  in  {-trace (show finalSub) $ -}
+      applySubst finalSub ty'
 
 -- | These operators are pretty dull
 operatorType :: String -> (Ty,Ty,Ty)
