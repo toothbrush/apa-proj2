@@ -275,7 +275,7 @@ annPoint :: Int -> SAnn
 annPoint = SingleAnn
 
 (<:) :: SAnn -> SAnn -> Constraint
-var@(AnnVar _) <: p = SingleConstr var p
+var@(AnnVar _) <: p = SingleConstr $ ConstrPair var p
 _              <: _ = error "invalid constraint"
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
@@ -364,7 +364,7 @@ instance Substitutable TyEnv where
 instance Substitutable Constraint where
   applySubst Identity    subj = subj
   applySubst d@(Dot _ _) subj = dotApply d subj
-  applySubst s (SingleConstr b p)  = SingleConstr (applySubst s b) (applySubst s p)
+  applySubst s (SingleConstr (ConstrPair b p))  = SingleConstr $ ConstrPair (applySubst s b) (applySubst s p)
   applySubst s (UnionConstr c1 c2) = UnionConstr (applySubst s c1) (applySubst s c2)
   applySubst _ c = c
 
@@ -410,27 +410,27 @@ instance FreeAnnVars SAnn where
 
 -- TODO: Add type signatures once the dust has settled
 -- cstr :: Set Constraint
-absWl cstr bott join amst evl = iterAbsWl infl join amst evl (DMS.fromSet cstr)
-                                          (mkMap bott)
-  where mkMap  s = let f (ConstrPair x _) xs = DM.insert (x, s) xs
-                   in  DS.fold f DM.empty cstr
-        inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-        infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
+{- absWl cstr bott join amst evl = iterAbsWl infl join amst evl (DMS.fromSet cstr)-}
+{-                                           (mkMap bott)-}
+{-   where mkMap  s = let f (ConstrPair x _) xs = DM.insert (x, s) xs-}
+{-                    in  DS.fold f DM.empty cstr-}
+{-         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))-}
+{-         infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr-}
 
-inflx_ cxt@(ConstrPair _ t) = DM.fold f DM.empty (fav t)
-  where f x' m = DM.singleton x' DS.singleton cxt `DM.union` inflx' x' `DM.union` m
+{-         inflx_ cxt@(ConstrPair _ t) = DM.fold f DM.empty (fav t)-}
+{-           where f x' m = DM.singleton x' DS.singleton cxt `DM.union` inflx' x' `DM.union` m-}
 
-iterAbsWl inflow join atMost eval wlst ana
-  | DMS.null wlst                  = ana
-  | DMS.not $ anaLU x `atMost` new = iter newWl ana'
-  | otherwise                      = iter wltl  ana
-  where new   = eval t ana
-        ana'  = ana `join` new
-        newWl = wltl `DMS.union` inflow
-        anaLU = DM.fromJust . flip DM.lookup ana
-        iter  = iterAbsWl inflow join atMost eval
-        wltl  = DMS.deleteAll cp wlst
-        cp@(ConstrPair x t) = DMS.findMin wlst
+{- iterAbsWl inflow join atMost eval wlst ana-}
+{-   | DMS.null wlst              = ana-}
+{-   | not $ anaLU x `atMost` new = iter newWl ana'-}
+{-   | otherwise                  = iter wltl  ana-}
+{-   where new   = eval t ana-}
+{-         ana'  = ana `join` new-}
+{-         newWl = wltl `DMS.union` inflow-}
+{-         anaLU = DM.fromJust . flip DM.lookup ana-}
+{-         iter  = iterAbsWl inflow join atMost eval-}
+{-         wltl  = DMS.deleteAll cp wlst-}
+{-         cp@(ConstrPair x t) = DMS.findMin wlst-}
 }
 
 ATTR Constraint ConstrPair SAnn

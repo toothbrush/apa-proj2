@@ -62,7 +62,7 @@ DERIVING ConstrPair: Show, Eq, Ord
 
 DATA Constraint
   | EmptyConstr
-  | SingleConstr ConstrPair
+  | SingleConstr pr : ConstrPair
   | UnionConstr  c1 : Constraint c2 : Constraint
 
 DERIVING Constraint: Show, Eq, Ord
