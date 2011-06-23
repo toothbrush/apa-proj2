@@ -1,0 +1,40 @@
+\documentclass[a4paper]{article}
+
+\author{Jurri\"en Stutterheim\and Ruben de Gooijer \and Paul van der Walt} 
+\date{\today} 
+\title{Implementation notes for Type and Effect Systems}
+
+\begin{document}
+
+\maketitle \tableofcontents
+
+\section{Introduction}
+
+
+\section{Approach}
+
+
+\section{Design}
+
+
+
+\section{Implemented}
+
+\section{Example programs}
+
+\begin{itemize}
+    \item \texttt{app.hm} An illustration of the function application in action. 
+    \item \texttt{assignment.hm} The example program from the assignment, with
+        the correct output. 
+    \item \texttt{identity.hm} The simplest possible program, the identity
+        function. 
+    \item \texttt{inf.hm} Gives a type error, correctly (the program, $\lambda
+        x.
+        \lambda y . (y x) (x y)$ isn't typable and leads to a so-called
+        \emph{occurs check\footnote{Meaning that the unification algorithm would
+        have to introduce an infinite type to succeed.}}).
+    \item \textit{singleton.hm} Simply illustrates a variable which is out of
+        scope. 
+\end{itemize}
+
+\end{document}
