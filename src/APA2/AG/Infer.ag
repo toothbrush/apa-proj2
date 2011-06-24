@@ -334,6 +334,35 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
 
+
+-- TODO: Add type signatures once the dust has settled
+-- TODO: Double-check correctness of implementation
+absWl :: Set ConstrPair -> c -> (Map SAnn c -> t -> Map SAnn c)
+      -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t) -> Map SAnn c
+absWl cstr bott join amst eval = iterAbsWl infl join amst eval
+                                           (DMS.fromSet cstr) (mkMap bott)
+  where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
+                   in  DS.fold mf DM.empty cstr
+        inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
+        infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
+        inflx_ cxt@(ConstrPair _ t) =
+          let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
+          in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
+
+iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
+          -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t)
+          -> MultiSet ConstrPair -> Map SAnn c -> Map SAnn c
+iterAbsWl infl join atMost eval wlst ana
+  | DMS.null wlst              = ana
+  | not $ anaLU x `atMost` new = iter (wltl `DMS.union` inflx x) (ana `join` new)
+  | otherwise                  = iter wltl ana
+  where new   = eval t ana
+        inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
+        anaLU = DM.fromJust . flip DM.lookup ana
+        iter  = iterAbsWl infl join atMost eval
+        wltl  = DMS.deleteAll cp wlst
+        cp@(ConstrPair x t) = DMS.findMin wlst
+
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
 
@@ -429,44 +458,9 @@ SEM Ty
 SEM SAnn
   | AnnVar lhs.fav = DS.singleton @var
 
-
-
-
 {- SEM TyEnv-}
 {-   | Entry lhs.fv = @val.fv `DS.union` @tl.fv-}
 {-   | Nil   lhs.fv = DS.empty-}
-
-{
-
-
--- TODO: Add type signatures once the dust has settled
--- TODO: Double-check correctness of implementation
-absWl :: Set ConstrPair -> c -> (Map SAnn c -> t -> Map SAnn c)
-      -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t) -> Map SAnn c
-absWl cstr bott join amst eval = iterAbsWl infl join amst eval
-                                           (DMS.fromSet cstr) (mkMap bott)
-  where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
-                   in  DS.fold mf DM.empty cstr
-        inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-        infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
-        inflx_ cxt@(ConstrPair _ t) =
-          let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
-          in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
-
-iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
-          -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t)
-          -> MultiSet ConstrPair -> Map SAnn c -> Map SAnn c
-iterAbsWl infl join atMost eval wlst ana
-  | DMS.null wlst              = ana
-  | not $ anaLU x `atMost` new = iter (wltl `DMS.union` inflx x) (ana `join` new)
-  | otherwise                  = iter wltl ana
-  where new   = eval t ana
-        inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
-        anaLU = DM.fromJust . flip DM.lookup ana
-        iter  = iterAbsWl infl join atMost eval
-        wltl  = DMS.deleteAll cp wlst
-        cp@(ConstrPair x t) = DMS.findMin wlst
-}
 
 ATTR Constraint ConstrPair SAnn
   [||copy : SELF]
