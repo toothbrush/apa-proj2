@@ -335,10 +335,9 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t2
 
 
--- TODO: Add type signatures once the dust has settled
 -- TODO: Double-check correctness of implementation
-absWl :: Set ConstrPair -> c -> (Map SAnn c -> t -> Map SAnn c)
-      -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t) -> Map SAnn c
+absWl :: Set ConstrPair -> a -> (a -> a -> a) -> (a -> a -> Bool)
+      -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
 absWl cstr bott join amst eval = iterAbsWl infl join amst eval
                                            (DMS.fromSet cstr) (mkMap bott)
   where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
@@ -349,16 +348,18 @@ absWl cstr bott join amst eval = iterAbsWl infl join amst eval
           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
 
-iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
-          -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t)
-          -> MultiSet ConstrPair -> Map SAnn c -> Map SAnn c
+iterAbsWl :: Map SAnn (Set ConstrPair) -> (a -> a -> a) -> (a -> a -> Bool)
+          -> (SAnn -> Map SAnn a -> a) -> MultiSet ConstrPair -> Map SAnn a
+          -> Map SAnn a
 iterAbsWl infl join atMost eval wlst ana
-  | DMS.null wlst              = ana
-  | not $ anaLU x `atMost` new = iter (wltl `DMS.union` inflx x) (ana `join` new)
-  | otherwise                  = iter wltl ana
+  | DMS.null wlst            = ana
+  | not $ anaLU `atMost` new = iter (wltl `DMS.union` inflx x) newAna
+  | otherwise                = iter wltl ana
   where new   = eval t ana
         inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
-        anaLU = DM.fromJust . flip DM.lookup ana
+        anaLU = DM.fromJust $ DM.lookup x ana
+        newAna  = DM.insert x newAnax ana
+        newAnax = anaLU `join` new
         iter  = iterAbsWl infl join atMost eval
         wltl  = DMS.delete cp wlst
         cp@(ConstrPair x t) = DMS.findMin wlst
