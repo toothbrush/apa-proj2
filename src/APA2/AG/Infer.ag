@@ -39,7 +39,7 @@ SEM MH
 
   | Nil   loc.num : UNIQUEREF counter
 
-          lhs.ty = List (TyVar $ show @loc.num) (mkAnnVar "g")
+          lhs.ty = List (TyVar $ show @loc.num) (mkSAnn "g")
 
           lhs.substitution = Identity
 
@@ -49,9 +49,9 @@ SEM MH
                        theta1 = @e1.substitution
                        tau2   = @e2.ty
                        theta2 = @e2.substitution
-                       theta3 = unify tau2 (applySubst theta2 (List tau1 (mkAnnVar "g")))
+                       theta3 = unify tau2 (applySubst theta2 (List tau1 (mkSAnn "g")))
                        theta  = theta3 `dot` theta2 `dot` theta1
-                   in applySubst theta (List tau1 (mkAnnVar "g"))
+                   in applySubst theta (List tau1 (mkSAnn "g"))
 
           lhs.constraints = EmptyConstr
 
@@ -104,7 +104,7 @@ SEM MH
                         tau2   = @e.ty
                     in Arr (applySubst theta1 alpha1) tau2 @loc.beta'
 
-           lhs.constraints = UnionConstr @e.constraints ((AnnVar . show) @loc.beta <: @loc.pi)
+           lhs.constraints = UnionConstr @e.constraints (mkAnnVar @loc.beta <: @loc.pi)
 
            e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
 
@@ -167,7 +167,7 @@ SEM MH
       lhs.substitution = @loc.theta
 
       lhs.constraints = UnionConstr (applySubst @loc.theta1 @e1.constraints)
-                                    (applySubst @loc.theta ((AnnVar . show) @loc.beta) <: @loc.pi)
+                                    (applySubst @loc.theta (mkAnnVar @loc.beta) <: @loc.pi)
 
       e1.typeEnvironment =
         case @x of
@@ -285,9 +285,11 @@ getVar x env =
 annVar :: Int -> SAnn
 annVar = DS.singleton . AnnVar . ("b" ++) . show
 
+mkAnnVar :: Int -> SAnnElem
+mkAnnVar = AnnVar . show
 
-mkAnnVar :: String -> SAnn
-mkAnnVar = DS.singleton . AnnVar
+mkSAnn :: String -> SAnn
+mkSAnn = DS.singleton . AnnVar
 
 
 annPoint :: Int -> SAnnElem
