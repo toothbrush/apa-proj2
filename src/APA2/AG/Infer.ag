@@ -360,7 +360,7 @@ iterAbsWl infl join atMost eval wlst ana
         inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
         anaLU = DM.fromJust . flip DM.lookup ana
         iter  = iterAbsWl infl join atMost eval
-        wltl  = DMS.deleteAll cp wlst
+        wltl  = DMS.delete cp wlst
         cp@(ConstrPair x t) = DMS.findMin wlst
 
 class Substitutable subject where

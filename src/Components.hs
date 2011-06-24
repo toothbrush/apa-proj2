@@ -2,6 +2,8 @@ module Components where
 import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
 import qualified Data.Map as DM
+import qualified Data.Set (Set)
+import qualified Data.Set as DS
 import APA2.AG
 import Data.Generics.Schemes
 import Data.Generics.Aliases
@@ -39,6 +41,23 @@ debugInference tm =
     print ty
     putStrLn "Constraints:"
     print constraints
+    putStrLn "Interpreted contraints:"
+    print (interpretConstraints constraints)    
+
+interpretConstraints :: Constraint -> DS.Set ConstrPair 
+interpretConstraints c =  mkCstrSet_Syn_Constraint (wrap_Constraint (sem_Constraint c) Inh_Constraint)
+
+{-
+solveConstraints :: DS.Set ConstrPair -> DS.Set ConstrPair
+solveConstraints c = absWl c EmptyAnn join
+  where
+  join 
+-}
+{-
+absWl :: Set ConstrPair -> c -> (Map SAnn c -> t -> Map SAnn c)
+      -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t) -> Map SAnn c
+absWl cstr bott join amst eval = iterAbsWl infl join amst eval
+-}
 
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 

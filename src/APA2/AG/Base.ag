@@ -67,7 +67,6 @@ DATA Constraint
 
 DERIVING Constraint: Show, Eq, Ord
 
-
 DATA SimpleSubstitution
   | Identity
   | TySub  tv : {TyVar} t  : Ty
