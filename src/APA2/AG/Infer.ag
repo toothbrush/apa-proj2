@@ -104,7 +104,7 @@ SEM MH
                         tau2   = @e.ty
                     in Arr (applySubst theta1 alpha1) tau2 @loc.beta'
 
-           lhs.constraints = UnionConstr @e.constraints (@loc.beta' <: @loc.pi)
+           lhs.constraints = UnionConstr @e.constraints ((AnnVar . show) @loc.beta <: @loc.pi)
 
            e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
 
@@ -167,7 +167,7 @@ SEM MH
       lhs.substitution = @loc.theta
 
       lhs.constraints = UnionConstr (applySubst @loc.theta1 @e1.constraints)
-                                    (applySubst @loc.theta @loc.beta' <: @loc.pi)
+                                    (applySubst @loc.theta ((AnnVar . show) @loc.beta) <: @loc.pi)
 
       e1.typeEnvironment =
         case @x of
@@ -214,10 +214,6 @@ SEM MH
 {
 
 type SAnn = Set SAnnElem
-
-mkAnnVar :: String -> SAnn
-mkAnnVar = DS.singleton . AnnVar
-
 -- | Generalise function. Finds all unbound type variables in
 -- a type T, and then makes the type into 
 -- "foreach [those variables] T."
@@ -286,8 +282,13 @@ getVar x env =
     _           -> error ("This shouldn't happen. " ++ x ++
                           " wasn't found in the environment.")
 
-annVar :: Int -> SAnnElem
-annVar = AnnVar . ("b" ++) . show 
+annVar :: Int -> SAnn
+annVar = DS.singleton . AnnVar . ("b" ++) . show
+
+
+mkAnnVar :: String -> SAnn
+mkAnnVar = DS.singleton . AnnVar
+
 
 annPoint :: Int -> SAnnElem
 annPoint = AnnPt
