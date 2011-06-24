@@ -218,11 +218,11 @@ SEM MH
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in a Tm with type lambdas at the right spots.
 generalise :: TyEnv -> Ty -> TyScheme
-generalise env tau = let free    = fv tau DS.\\ fv env
-                         generalisedTypeVariables = DS.fold Forall (Ty tau) free
-                         annots  = fav tau -- TODO: exclude anything?
+generalise env tau = let free      = fv tau DS.\\ fv env
+                         genTyVars = DS.fold Forall (Ty tau) free
+                         annots    = fav tau -- TODO: exclude anything?
                      in  {- trace (show annots) $ -}
-                         DS.fold AnnSig (generalisedTypeVariables) annots
+                         DS.fold AnnSig genTyVars annots
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
