@@ -335,11 +335,14 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t2
 
 
+class Ord a => Lattice a where
+  top     :: a
+  bottom  :: a
+  join    :: a -> a -> a
+
 -- TODO: Double-check correctness of implementation
-absWl :: Set ConstrPair -> a -> (a -> a -> a) -> (a -> a -> Bool)
-      -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
-absWl cstr bott join amst eval = iterAbsWl infl join amst eval
-                                           (DMS.fromSet cstr) (mkMap bott)
+absWl :: Lattice a => Set ConstrPair -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
+absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
   where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
                    in  DS.fold mf DM.empty cstr
         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
@@ -348,19 +351,22 @@ absWl cstr bott join amst eval = iterAbsWl infl join amst eval
           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
 
-iterAbsWl :: Map SAnn (Set ConstrPair) -> (a -> a -> a) -> (a -> a -> Bool)
-          -> (SAnn -> Map SAnn a -> a) -> MultiSet ConstrPair -> Map SAnn a
+iterAbsWl :: Lattice a => 
+             Map SAnn (Set ConstrPair) 
+          -> (SAnn -> Map SAnn a -> a) 
+          -> MultiSet ConstrPair 
           -> Map SAnn a
-iterAbsWl infl join atMost eval wlst ana
-  | DMS.null wlst            = ana
-  | not $ anaLU `atMost` new = iter (wltl `DMS.union` inflx x) newAna
-  | otherwise                = iter wltl ana
+          -> Map SAnn a
+iterAbsWl infl eval wlst ana
+  | DMS.null wlst      = ana
+  | not $ anaLU >= new = iter (wltl `DMS.union` inflx x) newAna
+  | otherwise          = iter wltl ana
   where new   = eval t ana
         inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
         anaLU = DM.fromJust $ DM.lookup x ana
         newAna  = DM.insert x newAnax ana
         newAnax = anaLU `join` new
-        iter  = iterAbsWl infl join atMost eval
+        iter  = iterAbsWl infl eval
         wltl  = DMS.delete cp wlst
         cp@(ConstrPair x t) = DMS.findMin wlst
 
