@@ -432,8 +432,7 @@ instance FreeVariables Ty where
   fv x = fv_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
 
 instance FreeVariables TyEnv where
--- TODO: Move to AG once uuagc bugs are fixed
-  fv = DM.fold (\el acc -> fv el `DS.union` acc) DS.empty
+  fv x = fv_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
 
 instance FreeAnnVars Ty where
   fav x = fav_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
@@ -443,11 +442,11 @@ instance FreeAnnVars TyScheme where
 
 instance FreeAnnVars SAnn where
   fav x = fav_Syn_SAnn (wrap_SAnn (sem_SAnn x) Inh_SAnn)
-
-type TyEnv = Map Var TyScheme
 }
 
-ATTR TyScheme Ty -- TyEnv
+TYPE TyEnv = MAP {Var} TyScheme
+
+ATTR TyScheme Ty TyEnv
   [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
   ]
 
@@ -465,9 +464,9 @@ SEM Ty
 SEM SAnn
   | AnnVar lhs.fav = DS.singleton @var
 
-{- SEM TyEnv-}
-{-   | Entry lhs.fv = @val.fv `DS.union` @tl.fv-}
-{-   | Nil   lhs.fv = DS.empty-}
+SEM TyEnv
+  | Entry lhs.fv = @val.fv `DS.union` @tl.fv
+  | Nil   lhs.fv = DS.empty
 
 ATTR Constraint ConstrPair SAnn
   [||copy : SELF]
