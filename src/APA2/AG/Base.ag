@@ -47,11 +47,11 @@ DERIVING Ty: Eq
 
 -- | We need to make the set operations explicit, since it is also possible to
 -- have something like β∪{h}
-DATA SAnn
-  | AnnVar  var : {AnnVar}
-  | EmptyAnn
-  | SingleAnn p : {Point}
-  | AnnUnion a1 : SAnn a2 : SAnn
+TYPE SAnn = Set SAnnElem
+
+DATA SAnnElem
+  | AnnVar var : {AnnVar}
+  | AnnPt  pt  : {Point}
 
 DERIVING SAnn: Show, Eq, Ord
 
