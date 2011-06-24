@@ -232,12 +232,12 @@ instantiate :: TyScheme -> Ty
 instantiate ts =
   let (forallVars, forallAVars, ty') = grabForallVars ts
       sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      nzip c  = zipWith (\a b -> c (a ++ b)) forallVars (map show ([0..] :: [Int]))
+      nzip  c = zipWith (\a b -> c (a ++ b)) forallVars (map show ([0..] :: [Int]))
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
-      s     = sfold TySub (zip forallVars $ nzip TyVar)
+      s  = sfold TySub (zip forallVars $ nzip TyVar)
       -- do kinda the same for annotation variables. 
-      s'     = sfold AnnSub (zip (map AnnVar forallAVars) $ nzip AnnVar)
+      s' = sfold AnnSub (zip (map AnnVar forallAVars) $ nzip AnnVar)
   in  {-trace (show finalSub) $ -}
       applySubst (Dot s s') ty'
 
