@@ -19,7 +19,7 @@
 \section{Introduction}
 
 This project aims to implement a tool which can do a control-flow analysis on a lambda-calculus language with support for
-data structures. 
+data structures. The focus is on lists and pairs, for now.
 %todo: more. 
 
 \section{Design}
@@ -82,20 +82,28 @@ data structures.
 
 We have the usual set of rules including, for example,  \emph{cfa-var} or \emph{cfa-let}, which has been extended to support lists, see \emph{cfa-nil} and \emph{cfa-cons}, the rules specifying list-typing. 
 
-\inference[cfa-var]{\widehat{\Gamma}(x) = \widehat{\sigma}}
-{\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}}
-
-\inference[cfa-let]{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma}_1 
+\begin{table}
+    \centering
+    \begin{tabular}{ll}
+        
+        $ [$\emph{cfa-var}$] $& \inference{\widehat{\Gamma}(x) = \widehat{\sigma}}
+{\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}} \\
+~&~\\
+$[$\emph{cfa-let}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma}_1 
 & \widehat{\Gamma}[x \mapsto \widehat{\sigma}_1] |-_{CFA} t_2 : \widehat{\tau}}
-{\widehat{\Gamma} |-_{CFA}\: \<let>\: x = t_1\: \<in>\: t_2 : \widehat{\tau}}
-
-
-\inference[cfa-nil]{}
-{\widehat{\Gamma} |-_{CFA} [\,] : [\widehat{\sigma}]}
-
-\inference[cfa-cons]{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma} 
-& \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
-{\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]}
+{\widehat{\Gamma} |-_{CFA}\: \<let>\: x = t_1\: \<in>\: t_2 : \widehat{\tau}} \\
+~&~\\
+$[$\emph{cfa-nil}$] $& 
+\inference{}
+{\widehat{\Gamma} |-_{CFA} [\,] : [\widehat{\sigma}]} \\
+~&~\\
+$[$\emph{cfa-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma} 
+ \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
+{\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]} \\
+    \end{tabular}
+    \caption{Control flow analysis rules. }
+    \label{tab:cfa-rules}
+\end{table}
 
 \section{Approach}
 
