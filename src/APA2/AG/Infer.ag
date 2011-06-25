@@ -7,6 +7,7 @@ imports
 import Debug.Trace
 import            Data.Map (Map)
 import qualified  Data.Map as DM
+import qualified  Data.Map as Map
 import qualified  Data.Maybe as DM
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
@@ -38,7 +39,7 @@ SEM MH
 
   | Nil   loc.num : UNIQUEREF counter
 
-          lhs.ty = List (TyVar $ show @loc.num) (AnnVar "g")
+          lhs.ty = List (TyVar $ show @loc.num) (mkSAnn "g")
 
           lhs.substitution = Identity
 
@@ -48,9 +49,9 @@ SEM MH
                        theta1 = @e1.substitution
                        tau2   = @e2.ty
                        theta2 = @e2.substitution
-                       theta3 = unify tau2 (applySubst theta2 (List tau1 (AnnVar "g")))
+                       theta3 = unify tau2 (applySubst theta2 (List tau1 (mkSAnn "g")))
                        theta  = theta3 `dot` theta2 `dot` theta1
-                   in applySubst theta (List tau1 (AnnVar "g"))
+                   in applySubst theta (List tau1 (mkSAnn "g"))
 
           lhs.constraints = EmptyConstr
 
@@ -103,7 +104,7 @@ SEM MH
                         tau2   = @e.ty
                     in Arr (applySubst theta1 alpha1) tau2 @loc.beta'
 
-           lhs.constraints = UnionConstr @e.constraints (@loc.beta' <: @loc.pi)
+           lhs.constraints = UnionConstr @e.constraints (mkAnnVar @loc.beta <: @loc.pi)
 
            e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
 
@@ -166,7 +167,7 @@ SEM MH
       lhs.substitution = @loc.theta
 
       lhs.constraints = UnionConstr (applySubst @loc.theta1 @e1.constraints)
-                                    (applySubst @loc.theta @loc.beta' <: @loc.pi)
+                                    (applySubst @loc.theta (mkAnnVar @loc.beta) <: @loc.pi)
 
       e1.typeEnvironment =
         case @x of
@@ -211,17 +212,19 @@ SEM MH
        lhs.substitution = @loc.theta
 
 {
+
+type SAnn = Set SAnnElem
 -- | Generalise function. Finds all unbound type variables in
 -- a type T, and then makes the type into 
 -- "foreach [those variables] T."
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in a Tm with type lambdas at the right spots.
 generalise :: TyEnv -> Ty -> TyScheme
-generalise env tau = let free    = fv tau DS.\\ fv env
-                         generalisedTypeVariables = DS.fold Forall (Ty tau) free
-                         annots  = fav tau -- TODO: exclude anything?
+generalise env tau = let free      = fv tau DS.\\ fv env
+                         genTyVars = DS.fold Forall (Ty tau) free
+                         annots    = fav tau -- TODO: exclude anything?
                      in  {- trace (show annots) $ -}
-                         DS.fold AnnSig (generalisedTypeVariables) annots
+                         DS.fold AnnSig genTyVars annots
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
@@ -230,17 +233,15 @@ generalise env tau = let free    = fv tau DS.\\ fv env
 instantiate :: TyScheme -> Ty
 instantiate ts =
   let (forallVars, forallAVars, ty') = grabForallVars ts
+      sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
+      nzip  c = zipWith (\a b -> c (a ++ b)) forallVars (map show ([0..] :: [Int]))
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
-      nvars = zipWith (\a b -> TyVar (a ++ b)) forallVars (map show ([0..] :: [Int]))
-      s     = foldr (\(o,n) -> Dot (TySub o n)) Identity (zip forallVars nvars)
-      -- do kinda the same for annotation variables. 
-      nvars' = zipWith (\a b -> AnnVar (a ++ b)) forallAVars (map show ([0..] :: [Int]))
-      wrappedForallAVars = map AnnVar forallAVars
-      s'     = foldr (\(o,n) -> Dot (AnnSub o n)) Identity (zip wrappedForallAVars nvars')
-      finalSub = Dot s s'
+      s  = sfold TySub (zip forallVars $ nzip TyVar)
+      -- do kinda the same for annotation variables.
+      s' = sfold AnnSub (zip (map AnnVar forallAVars) $ nzip AnnVar)
   in  {-trace (show finalSub) $ -}
-      applySubst finalSub ty'
+      applySubst (Dot s s') ty'
 
 -- | These operators are pretty dull
 operatorType :: String -> (Ty, Ty, Ty)
@@ -282,13 +283,20 @@ getVar x env =
                           " wasn't found in the environment.")
 
 annVar :: Int -> SAnn
-annVar = AnnVar . ("b" ++) . show 
+annVar = DS.singleton . AnnVar . ("b" ++) . show
 
-annPoint :: Int -> SAnn
-annPoint = SingleAnn
+mkAnnVar :: Int -> SAnnElem
+mkAnnVar = AnnVar . show
 
-(<:) :: SAnn -> SAnn -> Constraint
-var@(AnnVar _) <: p = SingleConstr $ ConstrPair var p
+mkSAnn :: String -> SAnn
+mkSAnn = DS.singleton . AnnVar
+
+
+annPoint :: Int -> SAnnElem
+annPoint = AnnPt
+
+(<:) :: SAnnElem -> SAnnElem -> Constraint
+var@(AnnVar _) <: p = SingleConstr $ ConstrPair (DS.singleton var) (DS.singleton p)
 _              <: _ = error "invalid constraint"
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
@@ -301,7 +309,7 @@ dotApply _           _ = error "not allowed"
 -- | The unification algorithm. If none of the cases match, fail.
 unify :: Ty -> Ty -> SimpleSubstitution
 
-unify Nat Nat   = Identity
+unify Nat  Nat  = Identity
 unify Bool Bool = Identity
 
 unify (List t _) (List t' _) = unify t t'
@@ -324,10 +332,9 @@ unify t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
                                             ++ "\nCannot create infinite type."
 
 unify (Arr t11 t12 an1) (Arr t21 t22 an2) =
-  let theta0 = AnnSub an2 an1
-      theta1 = unify (applySubst theta0 t11) 
-                     (applySubst theta0 t21)
-      theta2 = unify (applySubst (theta1 `dot` theta0) t12) 
+  let theta0 = undefined -- TODO: Polyvariance AnnSub an2 an1
+      theta1 = unify (applySubst theta0 t11) (applySubst theta0 t21)
+      theta2 = unify (applySubst (theta1 `dot` theta0) t12)
                      (applySubst (theta1 `dot` theta0) t22)
   in theta2 `dot` theta1 `dot` theta0
 
@@ -335,15 +342,30 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
 
--- | A Type environment maps variable names to types.
-type TyEnv = Map Var TyScheme
 
+-- TODO: Double-check correctness of implementation
+{- absWl cstr bott join amst eval = iterAbsWl infl join amst eval-}
+{-                                            (DMS.fromSet cstr) (mkMap bott)-}
+{-   where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs-}
+{-                    in  DS.fold mf DM.empty cstr-}
+{-         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))-}
+{-         infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr-}
+{-         inflx_ cxt@(ConstrPair _ t) =-}
+{-           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m-}
+{-           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)-}
 
-class FreeVariables a where
-  fv :: a -> Set TyVar   -- alias String
-
-class FreeAnnVars a where
-  fav :: a -> Set AnnVar -- alias String
+{- iterAbsWl infl join atMost eval wlst ana-}
+{-   | DMS.null wlst            = ana-}
+{-   | not $ anaLU `atMost` new = iter (wltl `DMS.union` inflx x) newAna-}
+{-   | otherwise                = iter wltl ana-}
+{-   where new   = eval t ana-}
+{-         inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl-}
+{-         anaLU = DM.fromJust $ DM.lookup x ana-}
+{-         newAna  = DM.insert x newAnax ana-}
+{-         newAnax = anaLU `join` new-}
+{-         iter  = iterAbsWl infl join atMost eval-}
+{-         wltl  = DMS.deleteAll cp wlst-}
+{-         cp@(ConstrPair x t) = DMS.findMin wlst-}
 
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
@@ -384,75 +406,69 @@ instance Substitutable Constraint where
   applySubst _ c = c
 
 instance Substitutable SAnn where
-  applySubst Identity    a = a
-  applySubst d@(Dot _ _) a = dotApply d a
+  applySubst s = DS.map (applySubst s)
 
-  applySubst (AnnSub (AnnVar b) (AnnVar b')) a@(AnnVar b'') 
+instance Substitutable SAnnElem where
+  applySubst Identity    a = a
+  applySubst d@(Dot _ _) a@(AnnVar _) = dotApply d a
+  applySubst d@(Dot _ _) (AnnPt _)  = error "Cannot apply subst to AnnPt"
+
+  applySubst (AnnSub (AnnVar b) (AnnVar b')) a@(AnnVar b'')
     | b == b''  = AnnVar b'
     | otherwise = a
 
   applySubst _ a = a
 
+
+class FreeVariables a where
+  fv :: a -> Set TyVar -- alias String
+
+class FreeAnnVars a where
+  fav :: a -> Set AnnVar -- alias String
+
 instance FreeVariables TyScheme where
-  fv (Forall v s) = fv s DS.\\ DS.singleton v
-  fv (AnnSig _ s) = fv s
-  fv (Ty t)       = fv t
+  fv x = fv_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
 
 instance FreeVariables Ty where
-  fv (TyVar tv)      = DS.singleton tv
-  fv (Arr t1 t2  _ ) = fv t1 `DS.union` fv t2
-  fv (List t1 _)     = fv t1
-  fv _               = DS.empty
+  fv x = fv_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
 
 instance FreeVariables TyEnv where
-  fv = DM.fold (\el acc -> fv el `DS.union` acc) DS.empty
+  fv x = fv_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
 
 instance FreeAnnVars Ty where
-  fav (Arr ty1 ty2 ann) = fav ty1 `DS.union` fav ty2 `DS.union` fav ann
-  fav (List ty ann)     = fav ty `DS.union` fav ann
-  fav _                 = DS.empty
+  fav x = fav_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
 
 instance FreeAnnVars TyScheme where
-  fav (Ty _)       = DS.empty
-  fav (Forall _ s) = fav s
-  fav (AnnSig t s) = fav s DS.\\ DS.singleton t
+  fav x = fav_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
 
-instance FreeAnnVars SAnn where
-  fav EmptyAnn         = DS.empty
-  fav (SingleAnn _)    = DS.empty
-  fav (AnnUnion a1 a2) = fav a1 `DS.union` fav a2
-  fav (AnnVar av)      = DS.singleton av
+instance FreeAnnVars SAnnElem where
+  fav (AnnVar v) = DS.singleton v
+  fav (AnnPt _)  = DS.empty
 
--- TODO: Add type signatures once the dust has settled
--- TODO: Double-check correctness of implementation
-absWl :: Set ConstrPair -> c -> (Map SAnn c -> t -> Map SAnn c)
-      -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t) -> Map SAnn c
-absWl cstr bott join amst eval = iterAbsWl infl join amst eval
-                                           (DMS.fromSet cstr) (mkMap bott)
-  where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
-                   in  DS.fold mf DM.empty cstr
-        inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-        infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
-        inflx_ cxt@(ConstrPair _ t) =
-          let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
-          in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
-
-iterAbsWl :: Map SAnn (Set ConstrPair) -> (Map SAnn c -> t -> Map SAnn c)
-          -> (c -> t -> Bool) -> (SAnn -> Map SAnn c -> t)
-          -> MultiSet ConstrPair -> Map SAnn c -> Map SAnn c
-iterAbsWl infl join atMost eval wlst ana
-  | DMS.null wlst              = ana
-  | not $ anaLU x `atMost` new = iter (wltl `DMS.union` inflx x) (ana `join` new)
-  | otherwise                  = iter wltl ana
-  where new   = eval t ana
-        inflx = DMS.fromSet . DM.fromJust . flip DM.lookup infl
-        anaLU = DM.fromJust . flip DM.lookup ana
-        iter  = iterAbsWl infl join atMost eval
-        wltl  = DMS.deleteAll cp wlst
-        cp@(ConstrPair x t) = DMS.findMin wlst
 }
 
-ATTR Constraint ConstrPair SAnn
+TYPE TyEnv = MAP {Var} TyScheme
+
+ATTR TyScheme Ty TyEnv
+  [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
+  ]
+
+ATTR TyScheme Ty
+  [|| fav USE {`DS.union`} {DS.empty} : {Set AnnVar} -- alias String
+  ]
+
+SEM TyScheme
+  | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a
+  | Forall lhs.fv  = @ts.fv  DS.\\ DS.singleton @a
+
+SEM Ty
+  | TyVar lhs.fv = DS.singleton @a
+
+SEM TyEnv
+  | Entry lhs.fv = @val.fv `DS.union` @tl.fv
+  | Nil   lhs.fv = DS.empty
+
+ATTR Constraint ConstrPair
   [||copy : SELF]
 
 ATTR Constraint

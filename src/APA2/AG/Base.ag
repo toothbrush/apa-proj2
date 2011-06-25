@@ -18,28 +18,28 @@ DATA MH
   | VBool  v  : {Bool}
   | VInt   v  : {Integer}
   | Var    x  : {Var}
-  | Op     op : String    e1 : MH               e2 : MH
-  | Lambda x  : {Var}     e  : MH
-  | App    e1 : MH        e2 : MH
-  | Let    x  : {Var}     e1 : MH               e2 : MH
-  | LetRec f  : {Var}     x  : {Maybe Var}      e1 : MH e2 : MH
-  | If     c  : MH        e1 : MH               e2 : MH
-  | Cons   e1 : MH        e2 : MH
+  | Op     op : String e1 : MH          e2 : MH
+  | Lambda x  : {Var}  e  : MH
+  | App    e1 : MH     e2 : MH
+  | Let    x  : {Var}  e1 : MH          e2 : MH
+  | LetRec f  : {Var}  x  : {Maybe Var} e1 : MH e2 : MH
+  | If     c  : MH     e1 : MH          e2 : MH
+  | Cons   e1 : MH     e2 : MH
   | Nil
 
 DERIVING MH: Show, Eq
 
 DATA TyScheme
   | Ty     ty : Ty
-  | Forall a : {TyVar} ts : TyScheme
-  | AnnSig a : {AnnVar}  ts : TyScheme --TODO a should probably be : {AnnVar}
+  | Forall a : {TyVar}  ts : TyScheme
+  | AnnSig a : {AnnVar} ts : TyScheme
 
 DERIVING TyScheme: Show, Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty      ty2 : Ty     ann : {SAnn}
-  | List  ty  : Ty      ann : {SAnn} -- builtin List is an addition
+  | Arr   ty1 : Ty ty2 : Ty     ann : {SAnn}
+  | List  ty  : Ty ann : {SAnn} -- builtin List is an addition
   | Nat
   | Bool
 
@@ -47,13 +47,12 @@ DERIVING Ty: Eq
 
 -- | We need to make the set operations explicit, since it is also possible to
 -- have something like β∪{h}
-DATA SAnn
-  | AnnVar  var : {AnnVar}
-  | EmptyAnn
-  | SingleAnn p : {Point}
-  | AnnUnion a1 : SAnn a2 : SAnn
 
-DERIVING SAnn: Show, Eq, Ord
+DATA SAnnElem
+  | AnnVar var : {AnnVar}
+  | AnnPt  pt  : {Point}
+
+DERIVING SAnnElem: Show, Eq, Ord
 
 DATA ConstrPair
   | ConstrPair a1 : SAnn a2 : SAnn
@@ -71,7 +70,7 @@ DERIVING Constraint: Show, Eq, Ord
 DATA SimpleSubstitution
   | Identity
   | TySub  tv : {TyVar} t  : Ty
-  | AnnSub a1 : SAnn    a2 : SAnn -- annotation substitution
+  | AnnSub a1 : SAnnElem    a2 : SAnnElem -- annotation substitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
 {

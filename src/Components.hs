@@ -7,18 +7,17 @@ import Data.Generics.Schemes
 import Data.Generics.Aliases
 
 initialInheritedAttributes :: Inh_MH
-initialInheritedAttributes = 
+initialInheritedAttributes =
   Inh_MH { typeEnvironment_Inh_MH = DM.empty
          , counter_Inh_MH = 0
          }
 
 w :: MH -> (Ty, SimpleSubstitution, Constraint)
-w tm = let wrappedDS = (wrap_MH (sem_MH tm) initialInheritedAttributes)
-       in
-         ( ty_Syn_MH           wrappedDS
-         , substitution_Syn_MH wrappedDS
-         , constraints_Syn_MH  wrappedDS
-         )
+w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
+       in  ( ty_Syn_MH           wrappedDS
+           , substitution_Syn_MH wrappedDS
+           , constraints_Syn_MH  wrappedDS
+           )
 
 inferTypes :: MH -> Ty
 inferTypes tm = let (ty,_,_) = w tm
