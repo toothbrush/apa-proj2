@@ -19,7 +19,7 @@
 \section{Introduction}
 
 This project aims to implement a tool which can do a control-flow analysis on a lambda-calculus language with support for
-data structures. 
+data structures. The focus is on lists and pairs, for now.
 %todo: more. 
 
 \section{Design}
@@ -46,7 +46,9 @@ data structures.
     \begin{tabular}{lcl}
         $t$ & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
             & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
-            & $|$ & $t_1 \oplus t_2 \:|\: [\,]\:|\:t_1:t_2 $\\
+            & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
+            & $|$ & $ (\texttt{case } e_0 \texttt{ of }(x_1,x_2) \Rightarrow e_1)     $ \\
+            & $|$ & $ (\texttt{case } e_0 \texttt{ of }(x_1\<:>x_2) \Rightarrow e_1 \texttt{ or } e_2)     $ \\
     \end{tabular}
     \caption{Grammar}
     \label{tab:grammar}
@@ -57,45 +59,64 @@ data structures.
 \begin{table}
     \centering
     \begin{tabular}{rcll}
-        $\alpha$ &      $\in$ & \textbf{TyVar}    & type variables  \\
-        $\tau$&         $\in$ & \textbf{Ty}       & types \\
-        $\sigma $&      $\in$ & \textbf{TyScheme} & type schemes\\
-        $\Gamma$&       $\in$ & \textbf{TyEnv}    & type environments  \\
+        $\varphi$ &               $\in$ & \textbf{Ann}                   & annotations \\ 
+        $\widehat{\tau}$&         $\in$ & $\widehat{\textbf{Ty}      } $ & annotated types \\
+        $\widehat{\sigma} $&      $\in$ & $\widehat{\textbf{TyScheme}} $ & annotated type schemes\\
+        $\widehat{\Gamma}$&       $\in$ & $\widehat{\textbf{TyEnv}   } $ & annotated type environments  \\
     \end{tabular}
-    \caption{Typing elements}
+    \caption{Typing elements, annotated types}
     \label{tab:typingelems}
 \end{table}
 \begin{table}
     \centering
     \begin{tabular}{lcl}
-        $\tau$   & ::= & $\alpha \:|\: Nat \: | \: Bool \: | \: \tau_1 \rightarrow \tau_2 $ \\ 
-        $\sigma$ & ::= & $\tau \:|\: \forall \alpha. \sigma_1 $ \\ 
-        $\Gamma$ & ::= & $[\,] \:|\: \Gamma_1[x \mapsto \sigma] $ \\
+        $ \varphi$         & ::= & $ \emptyset \:|\: \{\pi\} \:|\: \varphi_1 \cup \varphi_2 $ \\
+        $\widehat{\tau}$   & ::= & $\alpha \:|\: Nat \: | \: Bool \: | \: \widehat{\tau}_1 \stackrel{\varphi}{\rightarrow} \widehat{\tau}_2 \:|\: \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 \:|\: \widehat{\tau}~\texttt{list}^\varphi   $ \\ 
+        $\widehat{\sigma}$ & ::= & $\widehat{\tau} \:|\: \forall \alpha. \widehat{\sigma}_1 $ \\ 
+        $\widehat{\Gamma}$ & ::= & $[\,] \:|\: \widehat{\Gamma}_1[x \mapsto \widehat{\sigma}] $ \\
     \end{tabular}
     \caption{Typing}
     \label{tab:typing}
 \end{table}
 
-\fbox{$\Gamma\:\vdash_{UL} t : \sigma$}
+This is the control-flow analysis: 
+\fbox{$\widehat{\Gamma}\:\vdash_{CFA} t : \widehat{\sigma}$}
 
 \subsection{Natural semantics}
 
 We have the usual set of rules including, for example,  \emph{cfa-var} or \emph{cfa-let}, which has been extended to support lists, see \emph{cfa-nil} and \emph{cfa-cons}, the rules specifying list-typing. 
 
-\inference[cfa-var]{\widehat{\Gamma}(x) = \widehat{\sigma}}
-{\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}}
-
-\inference[cfa-let]{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma}_1 
+\begin{table}
+    \centering
+    \begin{tabular}{ll}
+        $ [$\emph{cfa-var}$] $& \inference{\widehat{\Gamma}(x) = \widehat{\sigma}}
+{\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}} \\
+~&~\\
+$[$\emph{cfa-let}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma}_1 
 & \widehat{\Gamma}[x \mapsto \widehat{\sigma}_1] |-_{CFA} t_2 : \widehat{\tau}}
-{\widehat{\Gamma} |-_{CFA}\: \<let>\: x = t_1\: \<in>\: t_2 : \widehat{\tau}}
+{\widehat{\Gamma} |-_{CFA}\: \<let>\: x = t_1\: \<in>\: t_2 : \widehat{\tau}} \\
+~&~\\
+$[$\emph{cfa-nil}$] $& 
+\inference{}
+{\widehat{\Gamma} |-_{CFA} [\,] : [\widehat{\sigma}]} \\
+~&~\\
+$[$\emph{cfa-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma} 
+ \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
+{\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]} \\
+~&~\\
+$[$\emph{cfa-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau}_1 &  \widehat{\Gamma} |-_{CFA} t_2 : \widehat{\tau}_2   } 
+{\widehat{\Gamma} |-_{CFA} (t_1,t_2) : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 } \\
+~&~\\
+$[$\emph{cfa-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
+&  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
+{\widehat{\Gamma} |-_{CFA} \texttt{case } e_1 \texttt{ of }(x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
 
+%todo still: cfa-case-list.  also, natural semantics for cases. 
 
-\inference[cfa-nil]{}
-{\widehat{\Gamma} |-_{CFA} [\,] : [\widehat{\tau}]}
-
-\inference[cfa-cons]{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma} 
-& \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
-{\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]}
+    \end{tabular}
+    \caption{Control flow analysis rules. }
+    \label{tab:cfa-rules}
+\end{table}
 
 \section{Approach}
 

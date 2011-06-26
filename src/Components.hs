@@ -45,12 +45,17 @@ debugInference tm =
     print (interpretConstraints constraints)    
 
 interpretConstraints :: Constraint -> Set ConstrPair 
-interpretConstraints c =  mkCstrSet_Syn_Constraint (wrap_Constraint (sem_Constraint c) Inh_Constraint)
+interpretConstraints c = mkCstrSet_Syn_Constraint (wrap_Constraint (sem_Constraint c) Inh_Constraint)
+
+instance Lattice SAnn where
+  top    = undefined
+  bottom = DS.empty
+  join   = DS.union
 
 solveConstraints :: Lattice a => Set ConstrPair -> Map SAnn a
 solveConstraints c = absWl c eval 
   where
-  eval = undefined
+  eval annVar ana = DM.lookup annVar ana
 
 {-
 absWl :: Set ConstrPair -> c -> (Map SAnn c -> t -> Map SAnn c)
