@@ -366,7 +366,7 @@ class Ord a => Lattice a where
   bottom  :: a
   join    :: a -> a -> a
 
-absWl :: Lattice a => Set Constraint -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
+absWl :: Lattice a => Constraints -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
 absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
   where mkMap  s = let mf (Constraint x _) xs = DM.insert x s xs
                    in  DS.fold mf DM.empty cstr
@@ -376,7 +376,7 @@ absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
 
-iterAbsWl :: Lattice a => Map SAnn (Set Constraint)
+iterAbsWl :: Lattice a => Map SAnn Constraints
           -> (SAnn -> Map SAnn a -> a) -> MultiSet Constraint -> Map SAnn a
           -> Map SAnn a
 iterAbsWl infl eval wlst ana
