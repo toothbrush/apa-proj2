@@ -217,7 +217,7 @@ SEM MH
 -- "foreach [those variables] T."
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in a Tm with type lambdas at the right spots.
-generalise :: TyEnv -> Ty -> Constraint -> (Constraint, TyScheme) -- I'm assuming there's no need for Annotations here?
+generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme) -- I'm assuming there's no need for Annotations here?
 generalise env     tau c = let (c', c'')   = simplify c
                                freeAlpha   = fv  tau DS.\\ fv  env
                                freeBeta    = fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
@@ -228,7 +228,7 @@ generalise env     tau c = let (c', c'')   = simplify c
                                (c'', DS.fold AnnSig genTyVars (freeBeta `DS.union` freeBeta'))
 
 -- | Simplify constraints. 
-simplify :: Constraint -> (Constraint, Constraint)
+simplify :: Constraints -> (Constraints, Constraints)
 simplify = undefined
 
 -- | Instantiate. Specialise a given polymorphic type
