@@ -382,7 +382,7 @@ iterAbsWl infl eval wlst ana
 
 
 instance Lattice SAnn where
-  top    = undefined
+  top    = error "SAnn does not have a concrete Top value"
   bottom = AnnSet DS.empty
   join   = annUnion
 
