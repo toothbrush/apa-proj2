@@ -45,56 +45,6 @@ debugInference tm =
     putStrLn "Constraints:"
     print constraints
 
-instance Lattice SAnn where
-  top    = undefined
-  bottom = AnnSet DS.empty
-  join   = annUnion
-
-annUnion :: SAnn -> SAnn -> SAnn
-annUnion (AnnSet s)   (AnnSet s') = AnnSet (DS.union s s')
-annUnion a@(AnnVar v) a' 
-  | containsAnnVar v a' = a' 
-  | otherwise           = AnnUnion a a'
-annUnion a@(AnnUnion _ _) a'@(AnnVar v)
-  | containsAnnVar v a = a 
-  | otherwise          = AnnUnion a a'
-annUnion b@(AnnUnion a a') c@(AnnSet _) = AnnUnion b c
-annUnion a@(AnnUnion _ _) b@(AnnUnion _ _) = mkDisjoint a b
-
--- maybe monad?
-mkDisjoint :: SAnn -> SAnn -> SAnn 
-mkDisjoint c@(AnnUnion a a') d@(AnnUnion b b') = 
-  let vars = collectAnnVars a `DS.union` collectAnnVars a'
-
-      traverse a@(AnnVar v) | v `DS.member` vars = Nothing
-                            | otherwise          = Just a
-      traverse a@(AnnSet _) = Just a
-      traverse b@(AnnUnion a a') = 
-        case traverse a of
-          Nothing -> case traverse a' of
-                      Nothing -> Just AnnEmpty
-                      Just x  -> Just x
-          Just x  -> case traverse a' of
-                      Nothing -> Just AnnEmpty
-                      Just x' -> Just $ AnnUnion x x'
-  in case traverse b of
-      Nothing -> case traverse b' of
-                  Nothing -> c
-                  Just x  -> AnnUnion c x
-      Just x  -> case traverse b' of
-                  Nothing -> AnnUnion c x
-                  Just x' -> AnnUnion c (AnnUnion x x')
-                  
-collectAnnVars :: SAnn -> Set AnnVar
-collectAnnVars (AnnVar v)     = DS.singleton v
-collectAnnVars (AnnUnion a b) = collectAnnVars a `DS.union` collectAnnVars b
-collectAnnVars (AnnSet _ )    = DS.empty
-
-containsAnnVar :: AnnVar -> SAnn -> Bool
-containsAnnVar v (AnnVar v')    = v == v'
-containsAnnVar v (AnnSet _)     = False 
-containsAnnVar v (AnnUnion a b) = containsAnnVar v a || containsAnnVar v b
-
 {-
 solveConstraints :: Lattice a => Set ConstrPair -> Map SAnn a
 solveConstraints c = absWl c eval 
