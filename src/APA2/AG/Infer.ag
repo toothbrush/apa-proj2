@@ -238,7 +238,7 @@ simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.un
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c = let vars = DS.fromList [ u | Constraint l u <- DS.toList c, l `DS.member` active ] `DS.union` active
                         in  if (DS.null (vars `DS.intersection` active)) then pseudoActive vars c
-                            else DS.fromList [ x | AnnVar x <- DS.toList vars]
+                            else DS.map (\(AnnVar x)->x) vars
 
 range = undefined
 satisfiable = undefined
