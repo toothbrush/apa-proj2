@@ -434,7 +434,7 @@ instance Substitutable SAnn where
     | b == b''  = AnnVar b'
     | otherwise = a
 
-  applySubst s _ = error "cannot apply subst"
+  applySubst s t = error $ "Cannot apply substitution '" ++ show s ++ "' on: " ++ show t
 
 class FreeVariables a where
   fv :: a -> Set TyVar -- alias String
