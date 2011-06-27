@@ -142,7 +142,7 @@ SEM MH
         lhs.constraints = UnionConstr (applySubst @loc.theta2 @e1.constraints) @e2.constraints
 
         e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-                                 ty'    = generalise newEnv @e1.ty
+                                 ty'    = snd (generalise newEnv @e1.ty @e1.constraints) -- TODO: does the constraint here make sense (specifically, is e1 right?)
                              in  DM.insert @x ty' newEnv
 
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
@@ -183,7 +183,7 @@ SEM MH
             Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
-                           ty' = generalise newEnv ty
+                           ty' = snd $ generalise newEnv ty @e2.constraints
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (Ty $ @loc.alpha2') newEnv
 
@@ -219,12 +219,19 @@ type SAnn = Set SAnnElem
 -- "foreach [those variables] T."
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in a Tm with type lambdas at the right spots.
-generalise :: TyEnv -> Ty -> TyScheme
-generalise env tau = let free      = fv tau DS.\\ fv env
-                         genTyVars = DS.fold Forall (Ty tau) free
-                         annots    = fav tau -- TODO: exclude anything?
-                     in  {- trace (show annots) $ -}
-                         DS.fold AnnSig genTyVars annots
+generalise :: TyEnv -> Ty -> Constraint -> (Constraint, TyScheme) -- I'm assuming there's no need for Annotations here?
+generalise env     tau c = let (c', c'')   = simplify c
+                               freeAlpha   = fv  tau DS.\\ fv  env
+                               freeBeta    = fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
+                               freeBeta'   = fav c'  DS.\\ fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
+                               genTyVars   = DS.fold Forall (Ty tau) freeAlpha
+                               --genAnnVars  = DS.fold Forall (genTyVars) (freeBeta `DS.union` freeBeta')
+                           in  {- trace (show annots) $ -}
+                               (c'', DS.fold AnnSig genTyVars (freeBeta `DS.union` freeBeta'))
+
+-- | Simplify constraints. 
+simplify :: Constraint -> (Constraint, Constraint)
+simplify = undefined
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
@@ -279,8 +286,8 @@ getVar :: Var -> TyEnv -> TyScheme
 getVar x env =
   case DM.lookup x env of
     Just scheme -> scheme
-    _           -> error ("This shouldn't happen. " ++ x ++
-                          " wasn't found in the environment.")
+    _           -> error ("This shouldn't happen. '" ++ x ++
+                          "'\nwasn't found in the environment.")
 
 annVar :: Int -> SAnn
 annVar = DS.singleton . AnnVar . ("b" ++) . show
@@ -348,6 +355,7 @@ class Ord a => Lattice a where
   bottom  :: a
   join    :: a -> a -> a
 
+{-
 absWl :: Lattice a => Set ConstrPair -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
 absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
   where mkMap  s = let mf (ConstrPair x _) xs = DM.insert x s xs
@@ -357,6 +365,7 @@ absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
         inflx_ cxt@(ConstrPair _ t) =
           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
+          -}
 
 iterAbsWl :: Lattice a => 
              Map SAnn (Set ConstrPair) 
