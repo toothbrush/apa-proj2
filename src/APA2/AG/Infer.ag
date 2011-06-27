@@ -236,9 +236,13 @@ simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.un
                      in  partition env c'
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
-pseudoActive active c = let vars = DS.fromList [ u | Constraint l u <- DS.toList c, l `DS.member` active ] `DS.union` active
-                        in  if (DS.null (vars `DS.intersection` active)) then pseudoActive vars c
-                            else DS.map (\(AnnVar x)->x) vars
+pseudoActive active c =
+  let vars = DS.fromList [ u | Constraint l u <- DS.toList c, l `DS.member` active ] `DS.union` active
+  in  if DS.null (vars `DS.intersection` active)
+        then pseudoActive vars c
+        else let f (AnnVar x) xs = DS.insert x xs
+                 f _          xs = xs
+             in DS.fold f DS.empty vars
 
 range = error "no range"
 satisfiable = error "no satisfiable"
