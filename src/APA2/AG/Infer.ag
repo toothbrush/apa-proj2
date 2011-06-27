@@ -242,7 +242,16 @@ pseudoActive active c = let vars = DS.fromList [ u | Constraint l u <- DS.toList
 
 range = error "no range"
 satisfiable = error "no satisfiable"
-partition = error "no partition"
+
+--partition :: TyEnv -> Constraints -> ( , )
+partition env cs = 
+                    (cs,DS.empty)
+{- for this we need (instance (FreeAnnVars TyEnv)), but that doesn't make sense, right?
+                   let active = DS.map AnnVar $ fav env
+                       prop   = DS.fromList [ Constraint l u | Constraint l u <- cs, l `DS.member` active || u `DS.member` active ]
+                       qual   = DS.fromList [ pi | pi <- cs, pi `DS.notMember` prop]
+                   in  (prop, qual)
+                   -}
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
