@@ -39,8 +39,8 @@ DERIVING TyScheme: Show, Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty ty2 : Ty     ann : {SAnn}
-  | List  ty  : Ty ann : {SAnn} -- builtin List is an addition
+  | Arr   ty1 : Ty ty2 : Ty     ann : SAnn
+  | List  ty  : Ty ann : SAnn -- builtin List is an addition
   | Nat
   | Bool
 
@@ -49,7 +49,7 @@ DERIVING Ty: Eq
 -- | We need to make the set operations explicit, since it is also possible to
 -- have something like β∪{h}
 
-DATA SAnn 
+DATA SAnn
   | AnnVar   var    : {AnnVar}
   | AnnUnion a1     : SAnn        a2 : SAnn
   | AnnEmpty

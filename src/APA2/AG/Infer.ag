@@ -346,43 +346,39 @@ class Ord a => Lattice a where
   bottom  :: a
   join    :: a -> a -> a
 
-{-
-absWl :: Set ConstrPair -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
-absWl constraints eval = iterAbsWl infl eval (DMS.fromSet constraints) initialAna'
-  where 
-  initialAna = DS.fold o DM.empty (favConstraints constraints)
-    where o annVar = DM.union (DM.singleton annVar bottom)
 
-  infl       = DS.fold o DM.empty constraints
-    where o (ConstrPair _ b@(AnnSet _)) = DM.union DM.empty
-          o (ConstrPair a b)            = DM.union (DM.singleton a b)
+{- absWl :: Set Constraint -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn-}
+{- absWl constraints eval = iterAbsWl infl eval (DMS.fromSet constraints) initialAna'-}
+{-   where-}
+{-   initialAna = DS.fold o DM.empty (fav constraints)-}
+{-     where o annVar = DM.union (DM.singleton annVar bottom)-}
 
-  initialAna' = DS.fold o DM.empty constraints
-    where o (ConstrPair (AnnVar v) p@(AnnSet _)) = DM.union (DM.insert v p initialAna')
-          o _                                    = DM.union DM.empty
+{-   infl       = DS.fold o DM.empty constraints-}
+{-     where o (Constraint _ b@(AnnSet _)) = DM.union DM.empty-}
+{-           o (Constraint a b)            = DM.union (DM.singleton a b)-}
 
-iterAbsWl :: Map SAnn (Set ConstrPair) 
-          -> (SAnn -> Map AnnVar SAnn -> SAnn) 
-          -> MultiSet ConstrPair 
-          -> Map AnnVar SAnn
-          -> Map AnnVar SAnn
-iterAbsWl infl eval wlst ana
- | DMS.null wlst      = ana
- | not $ anaLU >= new = iter (wltl `DMS.union` inflx x) newAna
- | otherwise          = iter wltl ana
-  where 
-  new     = eval t ana
-  inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl
-  anaLU   = DM.fromJust $ DM.lookup x ana
-  newAna  = DM.insert x newAnax ana
-  newAnax = anaLU `join` new
-  iter    = iterAbsWl infl eval
-  wltl    = DMS.delete cp wlst
-  cp@(ConstrPair x t) = DMS.findMin wlst
--}
-favConstraints :: Constraints -> Set AnnVar
-favConstraints = DS.fold DS.union DS.empty . 
-                 DS.map (\(Constraint a b) -> fav a `DS.union` fav b)
+{-   initialAna' = DS.fold o DM.empty constraints-}
+{-     where o (Constraint (AnnVar v) p@(AnnSet _)) = DM.union (DM.insert v p initialAna')-}
+{-           o _                                    = DM.union DM.empty-}
+
+{- iterAbsWl :: Map SAnn (Set Constraint)-}
+{-           -> (SAnn -> Map AnnVar SAnn -> SAnn)-}
+{-           -> MultiSet Constraint-}
+{-           -> Map AnnVar SAnn-}
+{-           -> Map AnnVar SAnn-}
+{- iterAbsWl infl eval wlst ana-}
+{-  | DMS.null wlst      = ana-}
+{-  | not $ anaLU >= new = iter (wltl `DMS.union` inflx x) newAna-}
+{-  | otherwise          = iter wltl ana-}
+{-   where -}
+{-   new     = eval t ana-}
+{-   inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl-}
+{-   anaLU   = DM.fromJust $ DM.lookup x ana-}
+{-   newAna  = DM.insert x newAnax ana-}
+{-   newAnax = anaLU `join` new-}
+{-   iter    = iterAbsWl infl eval-}
+{-   wltl    = DMS.delete cp wlst-}
+{-   cp@(Constraint x t) = DMS.findMin wlst-}
 
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
@@ -459,6 +455,11 @@ instance FreeAnnVars SAnn where
   fav (AnnUnion a1 a2) = DS.union (fav a1) (fav a2)
   fav (AnnSet _)       = DS.empty
 
+instance FreeAnnVars Constraints where
+  fav = DS.fold DS.union DS.empty . DS.map fav
+
+instance FreeAnnVars Constraint where
+  fav c = fav_Syn_Constraint (wrap_Constraint (sem_Constraint c) Inh_Constraint)
 }
 
 TYPE TyEnv = MAP {Var} TyScheme
@@ -467,7 +468,7 @@ ATTR TyScheme Ty TyEnv
   [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
   ]
 
-ATTR TyScheme Ty
+ATTR TyScheme Ty Constraint SAnn
   [|| fav USE {`DS.union`} {DS.empty} : {Set AnnVar} -- alias String
   ]
 
@@ -481,3 +482,6 @@ SEM Ty
 SEM TyEnv
   | Entry lhs.fv = @val.fv `DS.union` @tl.fv
   | Nil   lhs.fv = DS.empty
+
+SEM SAnn
+  | AnnVar lhs.fav = DS.singleton @var
