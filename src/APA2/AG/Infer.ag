@@ -218,7 +218,7 @@ SEM MH
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in a Tm with type lambdas at the right spots.
 generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme) -- I'm assuming there's no need for Annotations here?
-generalise env     tau c = let (c', c'')   = simplify c
+generalise env     tau c = let (c', c'')   = simplify env tau c
                                freeAlpha   = fv  tau DS.\\ fv  env
                                freeBeta    = fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
                                freeBeta'   = fav c'  DS.\\ fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
@@ -228,8 +228,21 @@ generalise env     tau c = let (c', c'')   = simplify c
                                (c'', DS.fold AnnSig genTyVars (freeBeta `DS.union` freeBeta'))
 
 -- | Simplify constraints. 
-simplify :: Constraints -> (Constraints, Constraints)
-simplify = undefined
+simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
+simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
+                         ranges = range c
+                         theta  = satisfiable active ranges
+                         c'     = theta c
+                     in  partition env c'
+
+pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
+pseudoActive active c = let vars = DS.fromList [ u | Constraint l u <- DS.toList c, l `DS.member` active ] `DS.union` active
+                        in  if (DS.null (vars `DS.intersection` active)) then pseudoActive vars c
+                            else DS.map (\(AnnVar x)->x) vars
+
+range = error "no range"
+satisfiable = error "no satisfiable"
+partition = error "no partition"
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
