@@ -245,15 +245,17 @@ pseudoActive active c =
              in DS.fold f DS.empty vars
 
 range = error "no range"
-satisfiable active analysis = let act' = DS.map AnnVar active
-                                  substitution = Identity
-                                  func beta (l,u) = if (l <= u) then
-                                                                    if (beta `DS.notMember` act' || l == u)
-                                                                    	then AnnSub beta l
-                                                                        else Identity
-                                                       else error "not satisfiable" 
-                                  substitutionList = DM.mapWithKey func analysis
-                              in DM.fold Dot Identity substitutionList
+
+satisfiable :: Set AnnVar -> Map SAnn (SAnn, SAnn) -> SimpleSubstitution
+satisfiable active analysis =
+  let act'          = DS.map AnnVar active
+      func beta (l, u)
+        | l <= u    = if beta `DS.notMember` act' || l == u
+                        then AnnSub beta l
+                        else Identity
+        | otherwise = error "not satisfiable"
+      substLst      = DM.mapWithKey func analysis
+  in DM.fold Dot Identity substLst
 
 --partition :: TyEnv -> Constraints -> ( , )
 partition env cs = 
