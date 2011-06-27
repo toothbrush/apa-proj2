@@ -6,7 +6,7 @@ import Data.Set (Set)
 {
 type TyVar  = String
 type Var    = String
-type Point  = Int
+type Point  = String
 type AnnVar = String
 type Constraints = Set Constraint
 }

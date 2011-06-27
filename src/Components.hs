@@ -46,12 +46,11 @@ debugInference tm =
     print constraints
 
 {-
-solveConstraints :: Lattice a => Set ConstrPair -> Map SAnn a
-solveConstraints c = absWl c eval 
+solveConstraints :: Lattice a => Constraints -> Map SAnn a
+solveConstraints c = undefined
   where
   eval annVar ana = DM.lookup annVar ana
 -}
-
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
 

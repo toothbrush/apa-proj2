@@ -12,6 +12,7 @@ import qualified  Data.Maybe as DM
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
 import qualified  Data.Set as DS
+import            Data.Maybe
 }
 
 ATTR MH
@@ -95,7 +96,7 @@ SEM MH
            loc.beta    : UNIQUEREF counter
 
            loc.beta' = mkAnnVar @loc.beta
-           loc.pi    = AnnSet $ DS.singleton @loc.ppoint
+           loc.pi    = mkProgramPoint @x @loc.ppoint
 
            lhs.substitution = @e.substitution
 
@@ -142,7 +143,7 @@ SEM MH
         lhs.constraints = DS.union (applySubst @loc.theta2 @e1.constraints) @e2.constraints
 
         e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-                                 ty'    = snd (generalise newEnv @e1.ty @e1.constraints) -- TODO: does the constraint here make sense (specifically, is e1 right?)
+                                 ty'    = generalise newEnv @e1.ty -- TODO: does the constraint here make sense (specifically, is e1 right?)
                              in  DM.insert @x ty' newEnv
 
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
@@ -156,7 +157,7 @@ SEM MH
       loc.alpha1' = freshVar @loc.alpha1
       loc.alpha2' = freshVar @loc.alpha2
       loc.beta'   = mkAnnVar @loc.beta
-      loc.pi      = AnnSet $ DS.singleton @loc.ppoint
+      loc.pi      = mkProgramPoint @f @loc.ppoint
 
       loc.theta0 = @e1.substitution
       loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alpha2')
@@ -167,7 +168,7 @@ SEM MH
       lhs.substitution = @loc.theta
 
       lhs.constraints = DS.union (applySubst @loc.theta1 @e1.constraints)
-                                 (applySubst @loc.theta (DS.singleton (@loc.beta' `constrain` @loc.pi)))
+                                 (DS.singleton ((applySubst @loc.theta @loc.beta') `constrain` @loc.pi))
 
       e1.typeEnvironment =
         case @x of
@@ -183,7 +184,7 @@ SEM MH
             Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
-                           ty' = snd $ generalise newEnv ty @e2.constraints
+                           ty' = generalise newEnv ty
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (Ty $ @loc.alpha2') newEnv
 
@@ -217,6 +218,12 @@ SEM MH
 -- "foreach [those variables] T."
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in a Tm with type lambdas at the right spots.
+generalise :: TyEnv -> Ty -> TyScheme
+generalise env tau = let free      = fv tau DS.\\ fv env
+                         genTyVars = DS.fold Forall (Ty tau) free
+                         annots    = fav tau -- TODO: exclude anything?
+                     in DS.fold AnnSig genTyVars annots
+{-
 generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme) -- I'm assuming there's no need for Annotations here?
 generalise env     tau c = let (c', c'')   = simplify c
                                freeAlpha   = fv  tau DS.\\ fv  env
@@ -226,10 +233,10 @@ generalise env     tau c = let (c', c'')   = simplify c
                                --genAnnVars  = DS.fold Forall (genTyVars) (freeBeta `DS.union` freeBeta')
                            in  {- trace (show annots) $ -}
                                (c'', DS.fold AnnSig genTyVars (freeBeta `DS.union` freeBeta'))
-
+-}
 -- | Simplify constraints. 
 simplify :: Constraints -> (Constraints, Constraints)
-simplify = undefined
+simplify c = (c,c)
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
@@ -265,6 +272,9 @@ freshVar i = TyVar $ 'v' : show i
 mkAnnVar :: Int -> SAnn
 mkAnnVar i = AnnVar ("b" ++ show i)
 
+mkProgramPoint :: Var -> Int -> SAnn
+mkProgramPoint v p = AnnSet (DS.singleton (v ++ (show p))) 
+
 -- | Unrolls a type, and returns all the variables
 -- which are in "forall". This is useful for instantiation,
 -- since these variables will need concrete values.
@@ -291,7 +301,7 @@ getVar x env =
                           "'\nwasn't found in the environment.")
 
 constrain :: SAnn -> SAnn -> Constraint
-constrain var@(AnnVar _) p = Constraint p var
+constrain var@(AnnVar _) p = Constraint var p
 constrain _              _ = error "invalid constraint"
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
@@ -353,41 +363,76 @@ class Ord a => Lattice a where
   bottom  :: a
   join    :: a -> a -> a
 
-{- absWl :: Set Constraint -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn-}
-{- absWl constraints eval = iterAbsWl infl eval (DMS.fromSet constraints) initialAna'-}
-{-   where-}
-{-   initialAna = DS.fold o DM.empty (fav constraints)-}
-{-     where o annVar = DM.union (DM.singleton annVar bottom)-}
+worklist :: Constraints -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
+worklist constraints eval = repeatStep w initialAna
+  where
+  initialAna = DS.fold o DM.empty constraints
+    where o c@(Constraint (AnnVar v) a@(AnnSet _)) = DM.union (DM.singleton v a)
+          o c@(Constraint (AnnVar v) x) = DM.union (DM.singleton v (bottom :: SAnn))
+          o _                           = DM.union DM.empty
+{-
+  initialAna = DS.fold o DM.empty constraints
+    where o c@(Constraint (AnnVar v) x) = DM.union (DM.singleton v (bottom :: SAnn))
+          o _                           = DM.union DM.empty
+-}
+  w = DS.fold o DMS.empty constraints
+    where o c@(Constraint (AnnVar v) x) = DMS.union (DMS.singleton c)
+          o _                           = DMS.union DMS.empty
 
-{-   infl       = DS.fold o DM.empty constraints-}
-{-     where o (Constraint _ b@(AnnSet _)) = DM.union DM.empty-}
-{-           o (Constraint a b)            = DM.union (DM.singleton a b)-}
+  infl = DS.fold o DM.empty constraints
+    where o c@(Constraint (AnnVar v) _) = DM.union (DM.singleton v DS.empty)
+          o _                           = DM.union DM.empty
 
-{-   initialAna' = DS.fold o DM.empty constraints-}
-{-     where o (Constraint (AnnVar v) p@(AnnSet _)) = DM.union (DM.insert v p initialAna')-}
-{-           o _                                    = DM.union DM.empty-}
+  infl' = DS.fold o DM.empty constraints
+    where o c@(Constraint (AnnVar _) x) = DM.union (DM.mapWithKey (f (fav x) c) infl)
+          o _                           = DM.union DM.empty
 
+          f freeAnnVars c k x 
+            | k `DS.member` freeAnnVars = x `DS.union` (DS.singleton c)
+            | otherwise                 = DS.empty
 
+  repeatStep w ana 
+    | DMS.null w = ana
+    | otherwise  = let (w', ana') = trace ("step( W: " ++ show w ++ ", ANA: " ++ show ana ++ ")\n\n") step infl' eval w ana
+                   in repeatStep w' ana'
 
-{- iterAbsWl :: Map SAnn (Set Constraint)-}
-{-           -> (SAnn -> Map AnnVar SAnn -> SAnn)-}
-{-           -> MultiSet Constraint-}
-{-           -> Map AnnVar SAnn-}
-{-           -> Map AnnVar SAnn-}
-{- iterAbsWl infl eval wlst ana-}
-{-   | DMS.null wlst      = ana-}
-{-   | not $ anaLU >= new = iter (wltl `DMS.union` inflx x) newAna-}
-{-   | otherwise          = iter wltl ana-}
-{-   where-}
-{-     new     = eval t ana-}
-{-     inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl-}
-{-     anaLU   = DM.fromJust $ DM.lookup x ana-}
-{-     newAna  = DM.insert x newAnax ana-}
-{-     newAnax = anaLU `join` new-}
-{-     iter    = iterAbsWl infl eval-}
-{-     wltl    = DMS.delete cp wlst-}
-{-     cp@(Constraint x t) = DMS.findMin wlst-}
+type Worklist = MultiSet Constraint
+type EvalFunc = SAnn -> Map AnnVar SAnn -> SAnn
+type Influence = Map AnnVar Constraints
+type Analysis = Map AnnVar SAnn
+{-
+eval :: SAnn -> Map AnnVar SAnn -> SAnn
+eval t ana = t -- DS.fold o AnnEmpty (fav t)
+  where o x = annUnion (fromJust $ DM.lookup x ana)
+-}
 
+eval :: SAnn -> Map AnnVar SAnn -> SAnn
+eval a@(AnnVar v) ana = fromJust $ DM.lookup v ana
+eval AnnEmpty _       = AnnEmpty
+eval a@(AnnSet _) _   = a
+eval a@(AnnUnion _ _) ana = annUnion (AnnSet $ annPoints a) (DS.fold o AnnEmpty (fav a))
+  where o x = annUnion (fromJust $ DM.lookup x ana)
+
+step :: Influence
+     -> EvalFunc
+     -> Worklist
+     -> Analysis
+     -> (Worklist, Analysis)
+step infl eval w ana
+  | DMS.null w    = (w, ana)
+  | xInAna /= new = trace "do body" body
+  | otherwise     = (w', ana)
+  where
+  (Constraint (AnnVar v) t, w') = let c = DMS.findMin w
+                                  in (c, DMS.delete c w)
+  new    = eval t ana  
+  xInAna = fromJust $ DM.lookup v ana
+  
+  body = let newAna = DM.insert v (xInAna `join` new) ana
+             w''    = DS.fold o w' (fromJust $ DM.lookup v infl)
+             o c@(Constraint (AnnVar _) _) = DMS.insert c
+             o _                           = id
+         in (w'', newAna)
 
 instance Lattice SAnn where
   top    = undefined
@@ -395,22 +440,31 @@ instance Lattice SAnn where
   join   = annUnion
 
 annUnion :: SAnn -> SAnn -> SAnn
-annUnion (AnnSet s)   (AnnSet s') = AnnSet (DS.union s s')
-annUnion a@(AnnVar v) a'
+annUnion a b = trace (show a ++ "UNION" ++ show b) (annUnion' a b)
+annUnion' AnnEmpty AnnEmpty = AnnEmpty
+annUnion' AnnEmpty x        = x
+annUnion' x AnnEmpty        = x
+annUnion' (AnnSet s) (AnnSet s') = AnnSet (DS.union s s')
+annUnion' a@(AnnSet _) a'        = AnnUnion a a'
+annUnion' a@(AnnVar v) a'
   | containsAnnVar v a' = a'
   | otherwise           = AnnUnion a a'
-annUnion a@(AnnUnion _ _) a'@(AnnVar v)
+annUnion' a@(AnnUnion _ _) a'@(AnnVar v)
   | containsAnnVar v a = a
   | otherwise          = AnnUnion a a'
-annUnion b@(AnnUnion a a') c@(AnnSet _) = AnnUnion b c
-annUnion a@(AnnUnion _ _) b@(AnnUnion _ _) = mkDisjoint a b
+annUnion' b@(AnnUnion a a') c@(AnnSet _) = AnnUnion b c
+annUnion' a@(AnnUnion _ _) b@(AnnUnion _ _) = mkDisjoint a b
 
+annPoints :: SAnn -> Set Point
+annPoints AnnEmpty = DS.empty
+annPoints (AnnSet s) = s
+annPoints (AnnVar _) = DS.empty
+annPoints (AnnUnion a b) = annPoints a `DS.union` annPoints b
 
 containsAnnVar :: AnnVar -> SAnn -> Bool
 containsAnnVar v (AnnVar v')    = v == v'
 containsAnnVar v (AnnUnion a b) = containsAnnVar v a || containsAnnVar v b
 containsAnnVar v (AnnSet _)     = False
-
 
 -- maybe monad?
 mkDisjoint :: SAnn -> SAnn -> SAnn
