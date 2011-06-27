@@ -8,6 +8,7 @@ type TyVar  = String
 type Var    = String
 type Point  = Int
 type AnnVar = String
+type Constraints = Set Constraint
 }
 -------------------------------------------------------------------------------
 -- Syntax
@@ -38,8 +39,8 @@ DERIVING TyScheme: Show, Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty ty2 : Ty     ann : {SAnn}
-  | List  ty  : Ty ann : {SAnn} -- builtin List is an addition
+  | Arr   ty1 : Ty ty2 : Ty     ann : SAnn
+  | List  ty  : Ty ann : SAnn -- builtin List is an addition
   | Nat
   | Bool
 
@@ -48,28 +49,23 @@ DERIVING Ty: Eq
 -- | We need to make the set operations explicit, since it is also possible to
 -- have something like β∪{h}
 
-DATA SAnnElem
-  | AnnVar var : {AnnVar}
-  | AnnPt  pt  : {Point}
+DATA SAnn
+  | AnnVar   var    : {AnnVar}
+  | AnnUnion a1     : SAnn        a2 : SAnn
+  | AnnEmpty
+  | AnnSet   points : {Set Point}
 
-DERIVING SAnnElem: Show, Eq, Ord
-
-DATA ConstrPair
-  | ConstrPair a1 : SAnn a2 : SAnn
-
-DERIVING ConstrPair: Show, Eq, Ord
+DERIVING SAnn: Show, Eq, Ord
 
 DATA Constraint
-  | EmptyConstr
-  | SingleConstr pr : ConstrPair
-  | UnionConstr  c1 : Constraint c2 : Constraint
+  | Constraint a1 : SAnn a2 : SAnn
 
 DERIVING Constraint: Show, Eq, Ord
 
 DATA SimpleSubstitution
   | Identity
   | TySub  tv : {TyVar} t  : Ty
-  | AnnSub a1 : SAnnElem    a2 : SAnnElem -- annotation substitution
+  | AnnSub a1 : SAnn    a2 : SAnn -- annotation substitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
 {
