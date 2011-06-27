@@ -232,7 +232,7 @@ simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
                          ranges = range c
                          theta  = satisfiable active ranges
-                         c'     = theta c
+                         c'     = applySubst theta c
                      in  partition env c'
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
@@ -241,7 +241,15 @@ pseudoActive active c = let vars = DS.fromList [ u | Constraint l u <- DS.toList
                             else DS.map (\(AnnVar x)->x) vars
 
 range = error "no range"
-satisfiable = error "no satisfiable"
+satisfiable active analysis = let act' = DS.map AnnVar active
+                                  substitution = Identity
+                                  func beta (l,u) = if (l <= u) then
+                                                                    if (beta `DS.notMember` act' || l == u)
+                                                                    	then AnnSub beta l
+                                                                        else Identity
+                                                       else error "not satisfiable" 
+                                  substitutionList = DM.mapWithKey func analysis
+                              in DM.fold Dot Identity substitutionList
 
 --partition :: TyEnv -> Constraints -> ( , )
 partition env cs = 
