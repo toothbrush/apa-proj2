@@ -240,9 +240,9 @@ pseudoActive active c = let vars = DS.fromList [ u | Constraint l u <- DS.toList
                         in  if (DS.null (vars `DS.intersection` active)) then pseudoActive vars c
                             else DS.map (\(AnnVar x)->x) vars
 
-range = undefined
-satisfiable = undefined
-partition = undefined
+range = error "no range"
+satisfiable = error "no satisfiable"
+partition = error "no partition"
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
