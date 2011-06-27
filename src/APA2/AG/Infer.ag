@@ -94,7 +94,7 @@ SEM MH
            loc.ppoint  : UNIQUEREF counter
            loc.beta    : UNIQUEREF counter
 
-           loc.beta' = AnnVar (show @loc.beta)
+           loc.beta' = mkAnnVar @loc.beta
            loc.pi    = AnnSet $ DS.singleton @loc.ppoint
 
            lhs.substitution = @e.substitution
@@ -111,7 +111,7 @@ SEM MH
   | App loc.alpha : UNIQUEREF counter
         loc.beta  : UNIQUEREF counter
 
-        loc.beta' = annVar @loc.beta
+        loc.beta' = mkAnnVar @loc.beta
 
         loc.alpha'  = freshVar @loc.alpha
         loc.theta1 = @e1.substitution
@@ -155,7 +155,7 @@ SEM MH
 
       loc.alpha1' = freshVar @loc.alpha1
       loc.alpha2' = freshVar @loc.alpha2
-      loc.beta'   = AnnVar (show @loc.beta)
+      loc.beta'   = mkAnnVar @loc.beta
       loc.pi      = AnnSet $ DS.singleton @loc.ppoint
 
       loc.theta0 = @e1.substitution
@@ -255,6 +255,9 @@ operatorType op
 freshVar :: Int -> Ty
 freshVar i = TyVar $ 'v' : show i
 
+mkAnnVar :: Int -> SAnn
+mkAnnVar i = AnnVar ("b" ++ show i)
+
 -- | Unrolls a type, and returns all the variables
 -- which are in "forall". This is useful for instantiation,
 -- since these variables will need concrete values.
@@ -279,12 +282,6 @@ getVar x env =
     Just scheme -> scheme
     _           -> error ("This shouldn't happen. " ++ x ++
                           " wasn't found in the environment.")
-
-annVar :: Int -> SAnn
-annVar = AnnVar . ("b" ++) . show
-
-mkAnnVar :: Int -> SAnn
-mkAnnVar = AnnVar . show
 
 constrain :: SAnn -> SAnn -> Constraint
 constrain var@(AnnVar _) p = Constraint var p
@@ -434,7 +431,7 @@ instance Substitutable SAnn where
     | b == b''  = AnnVar b'
     | otherwise = a
 
-  applySubst s t = error $ "Cannot apply substitution '" ++ show s ++ "' on: " ++ show t
+  applySubst s a = a
 
 class FreeVariables a where
   fv :: a -> Set TyVar -- alias String
