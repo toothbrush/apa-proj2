@@ -365,6 +365,7 @@ class Ord a => Lattice a where
   top     :: a
   bottom  :: a
   join    :: a -> a -> a
+  pord    :: a -> a -> Bool
 
 absWl :: Lattice a => Set Constraint -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
 absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
@@ -377,12 +378,12 @@ absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
 
 iterAbsWl :: Lattice a => Map SAnn (Set Constraint)
-          -> (SAnn -> Map SAnn a -> a) -> MultiSet Constraint -> Map SAnn a
-          -> Map SAnn a
+          -> (SAnn -> Map SAnn a -> a) -> Data.MultiSet.MultiSet Constraint
+          -> Map SAnn a -> Map SAnn a
 iterAbsWl infl eval wlst ana
-  | DMS.null wlst      = ana
-  | not $ anaLU >= new = iter (wltl `DMS.union` inflx x) newAna
-  | otherwise          = iter wltl ana
+  | DMS.null wlst          = ana
+  | not $ anaLU `pord` new = iter (wltl `DMS.union` inflx x) newAna
+  | otherwise              = iter wltl ana
   where
     new     = eval t ana
     inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl
@@ -398,6 +399,7 @@ instance Lattice SAnn where
   top    = error "SAnn does not have a concrete Top value"
   bottom = AnnSet DS.empty
   join   = annUnion
+  pord   = (>=)
 
 annUnion :: SAnn -> SAnn -> SAnn
 annUnion (AnnSet s)   (AnnSet s') = AnnSet (DS.union s s')
