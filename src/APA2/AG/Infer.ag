@@ -345,7 +345,7 @@ unify (Arr t11 t12 an) (Arr t21 t22 an') =
   let theta1 = unify t11 t21
       theta2 = unify (applySubst theta1 t12)
                      (applySubst theta1 t22)
-      theta3 = let th21 = theta2 `dot` theta1 
+      theta3 = let th21 = theta2 `dot` theta1
                in unifyAnn (applySubst th21 an) (applySubst th21 an')
   in theta3 `dot` theta2 `dot` theta1
 
@@ -354,12 +354,12 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t2
 
 unifyAnn :: SAnn -> SAnn -> SimpleSubstitution
-unifyAnn a@(AnnVar v) b@(AnnVar v') 
+unifyAnn a@(AnnVar v) b@(AnnVar v')
   | v == v'   = Identity
   | otherwise = AnnSub a b
 unifyAnn a1 a2 = error $ "Annotation unification failure. \na_1 = " ++
                       show a1 ++ "\na_2 = " ++
-                      show a2  
+                      show a2
 
 class Ord a => Lattice a where
   top     :: a
@@ -367,7 +367,7 @@ class Ord a => Lattice a where
   join    :: a -> a -> a
   pord    :: a -> a -> Bool
 
-absWl :: Lattice a => Set Constraint -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
+absWl :: Lattice a => Constraints -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
 absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
   where mkMap  s = let mf (Constraint x _) xs = DM.insert x s xs
                    in  DS.fold mf DM.empty cstr
