@@ -284,7 +284,7 @@ getVar x env =
                           " wasn't found in the environment.")
 
 constrain :: SAnn -> SAnn -> Constraint
-constrain var@(AnnVar _) p = Constraint var p
+constrain var@(AnnVar _) p = Constraint p var
 constrain _              _ = error "invalid constraint"
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
@@ -345,28 +345,28 @@ class Ord a => Lattice a where
   top     :: a
   bottom  :: a
   join    :: a -> a -> a
-
 {-
-absWl :: Set ConstrPair -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
-absWl constraints eval = iterAbsWl infl eval (DMS.fromSet constraints) initialAna'
+worklist :: Constraints -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
+worklist cs eval = step infl eval (DMS.fromSet cs) initialAna'
   where 
-  initialAna = DS.fold o DM.empty (favConstraints constraints)
+  initialAna = DS.fold o DM.empty (favConstraints cs)
     where o annVar = DM.union (DM.singleton annVar bottom)
 
-  infl       = DS.fold o DM.empty constraints
-    where o (ConstrPair _ b@(AnnSet _)) = DM.union DM.empty
-          o (ConstrPair a b)            = DM.union (DM.singleton a b)
+  buildConstraintGraph = 
+  infl       = DS.fold o DM.empty cs
+    where o (Constraint _ b@(AnnSet _)) = DM.union DM.empty
+          o (Constraint a b)            = DM.union (DM.singleton a b)
 
-  initialAna' = DS.fold o DM.empty constraints
-    where o (ConstrPair (AnnVar v) p@(AnnSet _)) = DM.union (DM.insert v p initialAna')
+  initialAna' = DS.fold o DM.empty cs
+    where o (Constraint (AnnVar v) p@(AnnSet _)) = DM.union (DM.insert v p initialAna')
           o _                                    = DM.union DM.empty
 
-iterAbsWl :: Map SAnn (Set ConstrPair) 
-          -> (SAnn -> Map AnnVar SAnn -> SAnn) 
-          -> MultiSet ConstrPair 
-          -> Map AnnVar SAnn
-          -> Map AnnVar SAnn
-iterAbsWl infl eval wlst ana
+step :: Map SAnn (Set Constraint) 
+    -> (SAnn -> Map AnnVar SAnn -> SAnn) 
+    -> MultiSet Constraint 
+    -> Map AnnVar SAnn
+    -> Map AnnVar SAnn
+step infl eval wlst ana
  | DMS.null wlst      = ana
  | not $ anaLU >= new = iter (wltl `DMS.union` inflx x) newAna
  | otherwise          = iter wltl ana
@@ -376,9 +376,9 @@ iterAbsWl infl eval wlst ana
   anaLU   = DM.fromJust $ DM.lookup x ana
   newAna  = DM.insert x newAnax ana
   newAnax = anaLU `join` new
-  iter    = iterAbsWl infl eval
+  iter    = step infl eval
   wltl    = DMS.delete cp wlst
-  cp@(ConstrPair x t) = DMS.findMin wlst
+  cp@(Constraint x t) = DMS.findMin wlst
 -}
 favConstraints :: Constraints -> Set AnnVar
 favConstraints = DS.fold DS.union DS.empty . 
