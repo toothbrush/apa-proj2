@@ -401,8 +401,8 @@ absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
 
 iterAbsWl :: Lattice a => Map SAnn (Set Constraint)
-          -> (SAnn -> Map SAnn a -> a) -> Data.MultiSet.MultiSet Constraint
-          -> Map SAnn a -> Map SAnn a
+          -> (SAnn -> Map SAnn a -> a) -> MultiSet Constraint -> Map SAnn a
+          -> Map SAnn a
 iterAbsWl infl eval wlst ana
   | DMS.null wlst          = ana
   | not $ anaLU `pord` new = iter (wltl `DMS.union` inflx x) newAna
