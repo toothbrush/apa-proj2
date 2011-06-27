@@ -1,9 +1,11 @@
+{-# LANGUAGE TypeSynonymInstances #-}
 module Components where
 import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
 import           Data.Map (Map)
 import qualified Data.Map as DM
 import           Data.Set (Set)
+import qualified Data.Set as DS
 import APA2.AG
 import Data.Generics.Schemes
 import Data.Generics.Aliases
