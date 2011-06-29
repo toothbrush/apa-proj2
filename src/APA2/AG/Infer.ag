@@ -264,7 +264,7 @@ satisfiable active analysis =
         | l <= u    = if beta `DS.notMember` act' || l == u
                         then AnnSub beta l
                         else Identity
-        | otherwise = error "not satisfiable"
+        | otherwise = error "lower bound is larger than upper bound"
       substLst      = DM.mapWithKey func analysis
   in DM.fold Dot Identity substLst
 
