@@ -1,6 +1,7 @@
 imports
 {
-import Data.Set (Set)
+import Data.Set (Set, toList)
+import Data.List (intersperse)
 }
 
 {
@@ -55,12 +56,12 @@ DATA SAnn
   | AnnEmpty
   | AnnSet   points : {Set Point}
 
-DERIVING SAnn: Show, Eq, Ord
+DERIVING SAnn: Eq, Ord
 
 DATA Constraint
   | Constraint a1 : SAnn a2 : SAnn
 
-DERIVING Constraint: Show, Eq, Ord
+DERIVING Constraint: Eq, Ord
 
 DATA SimpleSubstitution
   | Identity
@@ -69,15 +70,24 @@ DATA SimpleSubstitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
 {
+instance Show Constraint where
+  show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2
+
+instance Show SAnn where
+  show (AnnVar var    ) = var
+  show (AnnUnion a1 a2) = show a1 ++ " ∪ " ++ show a2
+  show (AnnEmpty      ) = "{}"
+  show (AnnSet ps     ) = "{" ++  concat (intersperse ", " (toList ps)) ++  "}"
+
 instance Show MH where
   show (VBool  v          ) = show v
   show (VInt   v          ) = show v
   show (Var    x          ) =      x
   show (Op     op e1 e2   ) = show e1 ++ op ++ show e2
-  show (Lambda x  e       ) = "\\ "++x++" -> " ++ show e
+  show (Lambda x  e       ) = "λ "++x++" → " ++ show e
   show (App    e1 e2      ) = show e1 ++ show e2
   show (Let    x  e1 e2   ) = "let "++ x ++" = " ++ show e1 ++ " in " ++ show e2
-  show (LetRec f  x  e1 e2) = "mu " ++ show f ++ ".let "++ fromMaybe "undef" x ++" = " ++ show e1 ++ " in " ++ show e2
+  show (LetRec f  x  e1 e2) = "μ " ++ show f ++ ".let "++ fromMaybe "undef??FIXME" x ++" = " ++ show e1 ++ " in " ++ show e2
   show (If     c  e1 e2   ) = "if "++show c++" then " ++ show e1 ++ " else " ++ show e2
   show (Cons   e1 e2      ) = show e1 ++ ":"++show e2
   show (Nil               ) = "[]"
@@ -91,8 +101,8 @@ instance Show Ty where
 
 instance Show SimpleSubstitution where
   show Identity      = ""
-  show (TySub v t)   = v ++ " |-> " ++ show t
-  show (AnnSub a a') = show a ++ " |-> " ++ show a'
+  show (TySub v t)   = v ++ "\t|-> " ++ show t
+  show (AnnSub a a') = show a ++ "\t|-> " ++ show a'
   show (Dot s Identity) = show s
   show (Dot s s')       = show s ++ "\n" ++ show s'
 
