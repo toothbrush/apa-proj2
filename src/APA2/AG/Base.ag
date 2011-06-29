@@ -85,7 +85,7 @@ instance Show MH where
   show (Var    x          ) =      x
   show (Op     op e1 e2   ) = show e1 ++ op ++ show e2
   show (Lambda x  e       ) = "λ "++x++" → " ++ show e
-  show (App    e1 e2      ) = show e1 ++ show e2
+  show (App    e1 e2      ) = show e1 ++ " " ++ show e2
   show (Let    x  e1 e2   ) = "let "++ x ++" = " ++ show e1 ++ " in " ++ show e2
   show (LetRec f  x  e1 e2) = "μ " ++ show f ++ ".let "++ fromMaybe "undef??FIXME" x ++" = " ++ show e1 ++ " in " ++ show e2
   show (If     c  e1 e2   ) = "if "++show c++" then " ++ show e1 ++ " else " ++ show e2
