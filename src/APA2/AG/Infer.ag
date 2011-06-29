@@ -26,124 +26,167 @@ ATTR MH
     -- of the type environment.
     substitution : {SimpleSubstitution}
     constraints  : {Constraints}
+    annotation   : {Maybe SAnn}
   ]
 
 SEM MH
-  | VBool lhs.ty = Bool
-          lhs.substitution = Identity
-          lhs.constraints = DS.empty
+  | VBool 
+    lhs.ty = Bool
+    lhs.substitution = Identity
+    lhs.constraints = DS.empty
+    lhs.annotation = Nothing
 
-  | VInt  lhs.ty = Nat
-          lhs.substitution = Identity
-          lhs.constraints = DS.empty
+  | VInt  
+    lhs.ty = Nat
+    lhs.substitution = Identity
+    lhs.constraints = DS.empty
+    lhs.annotation = Nothing
 
-  | Nil   loc.num : UNIQUEREF counter
+  | Nil   
+    loc.alpha : UNIQUEREF counter
+    loc.beta : UNIQUEREF counter 
 
-          lhs.ty = List (TyVar $ show @loc.num) (AnnVar "g")
+    loc.alpha' = freshVar @loc.alpha         
+    loc.beta' = mkAnnVar @loc.beta
 
-          lhs.substitution = Identity
+    lhs.ty = List @loc.alpha' @loc.beta'
 
-          lhs.constraints = DS.empty
+    lhs.substitution = Identity
 
-  | Cons  lhs.ty = let tau1   = @e1.ty
-                       theta1 = @e1.substitution
-                       tau2   = @e2.ty
-                       theta2 = @e2.substitution
-                       theta3 = unify tau2 (applySubst theta2 (List tau1 (AnnVar "g")))
-                       theta  = theta3 `dot` theta2 `dot` theta1
-                   in applySubst theta (List tau1 (AnnVar "g"))
+    lhs.constraints = DS.empty
 
-          lhs.constraints = DS.empty
+    lhs.annotation = Just @loc.beta'
 
-          e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
+  | Cons  
+    loc.beta : UNIQUEREF counter 
 
-  | Op    loc.alpha1 : UNIQUEREF counter
-          loc.alpha2 : UNIQUEREF counter
+    loc.beta' = mkAnnVar @loc.beta
 
-          loc.alpha1' = freshVar @loc.alpha1
-          loc.alpha2' = freshVar @loc.alpha2
+    lhs.ty = let tau1   = @e1.ty
+                 theta1 = @e1.substitution
+                 tau2   = @e2.ty
+                 theta2 = @e2.substitution
+                 listTy = List tau1 @loc.beta'
+                 theta3 = unify tau2 (applySubst theta2 listTy)
+                 theta  = theta3 `dot` theta2 `dot` theta1
+             in applySubst theta listTy
 
-          loc.(ty,ty',r) = operatorType @op
+    lhs.constraints = DS.empty
+    
+    lhs.annotation = Just @loc.beta'
 
-          loc.theta1 = @e1.substitution
-          loc.theta2 = @e2.substitution
-          loc.theta3 = unify (applySubst @loc.theta2 @e1.ty) @loc.ty
-          loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) @loc.ty'
+    e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
-          lhs.ty = @loc.r
+  | Op    
+      loc.alpha1 : UNIQUEREF counter
+      loc.alpha2 : UNIQUEREF counter
+      loc.beta   : UNIQUEREF counter
 
-          lhs.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
+      loc.alpha1' = freshVar @loc.alpha1
+      loc.alpha2' = freshVar @loc.alpha2
+      loc.beta'   = mkAnnVar @loc.beta
 
-          lhs.constraints = let th43 = @loc.theta4 `dot` @loc.theta3
-                            in DS.union (applySubst (th43 `dot` @loc.theta2) @e1.constraints)
-                                        (applySubst th43 @e2.constraints)
+      loc.(ty,ty',r) = operatorType @op
 
-          e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
+      loc.theta1 = @e1.substitution
+      loc.theta2 = @e2.substitution
+      loc.theta3 = unify (applySubst @loc.theta2 @e1.ty) @loc.ty
+      loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) @loc.ty'
 
-  | Var loc.num : UNIQUEREF counter
+      lhs.ty = @loc.r
 
-        lhs.ty = if @x `DM.member` @lhs.typeEnvironment
-                     then instantiate $ getVar @x @lhs.typeEnvironment
-                     else error ("Variable "++ @x ++" not found in environment (out of scope).")
+      lhs.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
-        lhs.constraints = DS.empty
+      lhs.constraints = let th43 = @loc.theta4 `dot` @loc.theta3
+                        in DS.union (applySubst (th43 `dot` @loc.theta2) @e1.constraints)
+                                    (applySubst th43 @e2.constraints)
 
-        lhs.substitution = Identity
+      e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
 
-  | Lambda loc.num     : UNIQUEREF counter
-           loc.ppoint  : UNIQUEREF counter
-           loc.beta    : UNIQUEREF counter
+      lhs.annotation = Just @loc.beta'
 
-           loc.beta' = mkAnnVar @loc.beta
-           loc.pi    = mkProgramPoint @x @loc.ppoint
-           loc.alpha = freshVar @loc.num
+  | Var 
+      loc.num : UNIQUEREF counter
+      loc.beta : UNIQUEREF counter
 
-           lhs.substitution = @e.substitution
+      loc.beta' = mkAnnVar @loc.beta
 
-           lhs.ty = let theta1 = @e.substitution
-                        tau2   = @e.ty
-                    in Arr (applySubst theta1 @loc.alpha) tau2 @loc.beta'
+      loc.ty = if @x `DM.member` @lhs.typeEnvironment
+                   then instantiate $ getVar @x @lhs.typeEnvironment
+                   else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
-           lhs.constraints = DS.union @e.constraints (DS.singleton (@loc.beta' `constrain` @loc.pi))
+      lhs.ty = @loc.ty
 
-           e.typeEnvironment = DM.insert @x (Ty $ @loc.alpha) @lhs.typeEnvironment
+      lhs.constraints = DS.empty
 
-  | App loc.alpha : UNIQUEREF counter
-        loc.beta  : UNIQUEREF counter
+      lhs.substitution = Identity
 
-        loc.beta' = mkAnnVar @loc.beta
+      lhs.annotation = Just @loc.beta'
 
-        loc.alpha'  = freshVar @loc.alpha
-        loc.theta1 = @e1.substitution
-        loc.theta2 = @e2.substitution
-        loc.theta3 = unify (applySubst @loc.theta2 @e1.ty)
-                           (Arr @e2.ty @loc.alpha' @loc.beta')
-        loc.theta = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
+  | Lambda 
+      loc.num     : UNIQUEREF counter
+      loc.ppoint  : UNIQUEREF counter
+      loc.beta    : UNIQUEREF counter
 
-        lhs.substitution = @loc.theta
+      loc.beta' = mkAnnVar @loc.beta
+      loc.pi    = mkProgramPoint @x @loc.ppoint
+      loc.alpha = freshVar @loc.num
 
-        lhs.ty = applySubst @loc.theta3 @loc.alpha'
+      lhs.substitution = @e.substitution
 
-        lhs.constraints = DS.union (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.constraints)
-                                   (applySubst @loc.theta3 @e2.constraints)
+      lhs.ty = let theta1 = @e.substitution
+                   tau2   = @e.ty
+               in Arr (applySubst theta1 @loc.alpha) tau2 @loc.beta'
 
-        e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
+      lhs.constraints = DS.union @e.constraints (DS.singleton (@loc.beta' `constrain` @loc.pi))
 
-  | Let loc.num : UNIQUEREF counter
+      lhs.annotation = Just @loc.beta'
 
-        loc.theta1 = @e1.substitution
-        loc.theta2 = @e2.substitution
-        loc.theta  = @loc.theta2 `dot` @loc.theta1
+      e.typeEnvironment = DM.insert @x (Ty $ @loc.alpha) @lhs.typeEnvironment
 
-        lhs.substitution = @loc.theta
+  | App 
+      loc.alpha : UNIQUEREF counter
+      loc.beta  : UNIQUEREF counter
 
-        lhs.ty = @e2.ty
+      loc.beta' = mkAnnVar @loc.beta
 
-        lhs.constraints = DS.union (applySubst @loc.theta2 @e1.constraints) @e2.constraints
+      loc.alpha'  = freshVar @loc.alpha
+      loc.theta1 = @e1.substitution
+      loc.theta2 = @e2.substitution
+      loc.theta3 = unify (applySubst @loc.theta2 @e1.ty)
+                         (Arr @e2.ty @loc.alpha' @loc.beta')
+      loc.theta = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
-        e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-                                 ty'    = generalise newEnv @e1.ty -- TODO: does the constraint here make sense (specifically, is e1 right?)
-                             in  DM.insert @x ty' newEnv
+      lhs.substitution = @loc.theta
+
+      lhs.ty = applySubst @loc.theta3 @loc.alpha'
+
+      lhs.constraints = DS.union (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.constraints)
+                                 (applySubst @loc.theta3 @e2.constraints)
+
+      lhs.annotation = Just @loc.beta'
+
+      e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
+
+  | Let 
+      loc.beta : UNIQUEREF counter
+        
+      loc.beta'  = mkAnnVar @loc.beta
+      loc.theta1 = @e1.substitution
+      loc.theta2 = @e2.substitution
+      loc.theta  = @loc.theta2 `dot` @loc.theta1
+
+      lhs.substitution = @loc.theta
+
+      lhs.ty = @e2.ty
+
+      lhs.constraints = DS.union (applySubst @loc.theta2 @e1.constraints) @e2.constraints
+
+      lhs.annotation = Just @loc.beta'
+
+      e2.typeEnvironment = let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
+                               ty'    = generalise newEnv @e1.ty -- TODO: does the constraint here make sense (specifically, is e1 right?)
+                           in  DM.insert @x ty' newEnv
 
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
 -- but is can be passed into a function..
@@ -152,10 +195,12 @@ SEM MH
       loc.alpha2 : UNIQUEREF counter
       loc.ppoint : UNIQUEREF counter
       loc.beta   : UNIQUEREF counter
+      loc.beta1  : UNIQUEREF counter
 
       loc.alpha1' = freshVar @loc.alpha1
       loc.alpha2' = freshVar @loc.alpha2
       loc.beta'   = mkAnnVar @loc.beta
+      loc.beta''  = mkAnnVar @loc.beta1
       loc.pi      = mkProgramPoint @f @loc.ppoint
 
       loc.theta0 = @e1.substitution
@@ -168,6 +213,9 @@ SEM MH
 
       lhs.constraints = DS.union (applySubst @loc.theta1 @e1.constraints)
                                  (DS.singleton ((applySubst @loc.theta @loc.beta') `constrain` @loc.pi))
+
+
+      lhs.annotation = Just @loc.beta''
 
       e1.typeEnvironment =
         case @x of
@@ -187,21 +235,25 @@ SEM MH
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (Ty $ @loc.alpha2') newEnv
 
-  | If loc.theta0 = @c.substitution
-       loc.theta1 = @e1.substitution
-       loc.theta2 = @e2.substitution
-       loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @loc.tau0) Bool
-       loc.theta4 = unify (applySubst @loc.theta3 @loc.tau2)
-                          (applySubst (@loc.theta3 `dot` @loc.theta2) @loc.tau1)
-       loc.theta = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+  | If 
+      loc.beta   : UNIQUEREF counter
 
-       loc.tau0 = @c.ty
-       loc.tau1 = @e1.ty
-       loc.tau2 = @e2.ty
+      loc.beta'  = mkAnnVar @loc.beta
+      loc.theta0 = @c.substitution
+      loc.theta1 = @e1.substitution
+      loc.theta2 = @e2.substitution
+      loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @loc.tau0) Bool
+      loc.theta4 = unify (applySubst @loc.theta3 @loc.tau2)
+                        (applySubst (@loc.theta3 `dot` @loc.theta2) @loc.tau1)
+      loc.theta = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
-       lhs.ty = applySubst @loc.theta @loc.tau2
+      loc.tau0 = @c.ty
+      loc.tau1 = @e1.ty
+      loc.tau2 = @e2.ty
 
-       lhs.constraints = 
+      lhs.ty = applySubst @loc.theta @loc.tau2
+
+      lhs.constraints = 
         let th43  = @loc.theta4 `dot` @loc.theta3
             th432 = th43 `dot` @loc.theta2
             c0 = applySubst (th432 `dot` @loc.theta1) @c.constraints
@@ -209,7 +261,9 @@ SEM MH
             c2 = applySubst th43 @e1.constraints
         in DS.union c0 (DS.union c1 c2)
 
-       lhs.substitution = @loc.theta
+      lhs.substitution = @loc.theta
+
+      lhs.annotation = Just @loc.beta'
 
 {
 -- | Generalise function. Finds all unbound type variables in
