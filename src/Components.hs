@@ -82,10 +82,18 @@ translate = hExpr
 
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) (H.List [])) = Cons (hExpr e) Nil
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) e') = Cons (hExpr e) (hExpr e')
-
   hExpr (H.InfixApp e (H.QVarOp (H.UnQual (H.Symbol op))) e') = Op op (hExpr e) (hExpr e') 
 
+  hExpr (H.Case e as) = CaseBlck (hExpr e) (map mkCaseBlck as)
+
   hExpr e = notSupported e
+
+  mkCaseBlck (H.Alt _ pat (H.UnGuardedAlt exp) _) = CaseAlt (mkPat pat) (hExpr exp)
+  mkPat (H.PLit (H.Int n)) = VInt n
+  mkPat _ = undefined -- TODO: Nice error?
+  mkPat (H.PApp (H.UnQual (H.Ident n)) _) = VBool $ case n of
+                                                      "True"  -> True
+                                                      "False" -> False
 
   hQName (H.UnQual (H.Ident x)) = x
   hQName e = notSupported e
