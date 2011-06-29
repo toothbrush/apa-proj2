@@ -14,7 +14,7 @@ import qualified  Data.Set as DS
 import            Data.Maybe
 }
 
-ATTR MH
+ATTR MH Cases
   [-- The type environment should start empty, then grow as more lambdas
     -- etc. are encountered.
     typeEnvironment : {TyEnv}

@@ -28,8 +28,12 @@ DATA MH
   | If     c  : MH     e1 : MH          e2 : MH
   | Cons   e1 : MH     e2 : MH
   | Nil
+  | CaseBlck ex  : MH cs   : Cases
+  | CaseAlt  pat : MH bnds : MH
 
 DERIVING MH: Eq
+
+TYPE Cases = [MH]
 
 DATA TyScheme
   | Ty     ty : Ty
