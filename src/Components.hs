@@ -34,7 +34,7 @@ debugInference :: MH -> IO ()
 debugInference tm =
   do
     let (ty, subst, constraints) = w tm
-    putStrLn ("Program: " ++ show tm)
+    putStrLn ("Program: \n    " ++ show tm)
     putStrLn "Substitution:"
     print subst
     putStrLn "Ty:"

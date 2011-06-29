@@ -5,4 +5,5 @@ import Components
 main :: IO ()
 main = do
   input <- getContents
-  print $ (inferTypes . parseProgram) input
+  (debugInference . parseProgram) input
+  --print $ (inferTypes . parseProgram) input
