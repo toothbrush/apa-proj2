@@ -427,28 +427,28 @@ worklist :: Constraints -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
 worklist constraints eval = repeatStep w initialAna
   where
   initialAna = DS.fold o DM.empty constraints
-    where o c@(Constraint (AnnVar v) a@(AnnSet _)) = DM.union (DM.singleton v a)
-          o c@(Constraint (AnnVar v) x) = DM.union (DM.singleton v (bottom :: SAnn))
-          o _                           = DM.union DM.empty
+    where o c@(Constraint (AnnVar v) a@(AnnSet _)) xs = DM.singleton v a `DM.union` xs
+          o c@(Constraint (AnnVar v) x) xs = DM.singleton v (bottom :: SAnn) `DM.union` xs
+          o _                           xs = xs
 {-
   initialAna = DS.fold o DM.empty constraints
     where o c@(Constraint (AnnVar v) x) = DM.union (DM.singleton v (bottom :: SAnn))
           o _                           = DM.union DM.empty
 -}
   w = DS.fold o DMS.empty constraints
-    where o c@(Constraint (AnnVar v) x) = DMS.union (DMS.singleton c)
-          o _                           = DMS.union DMS.empty
+    where o c@(Constraint (AnnVar v) x) xs = DMS.singleton c `DMS.union` xs
+          o _                           xs = xs
 
   infl = DS.fold o DM.empty constraints
-    where o c@(Constraint (AnnVar v) _) = DM.union (DM.singleton v DS.empty)
-          o _                           = DM.union DM.empty
+    where o c@(Constraint (AnnVar v) _) xs = DM.singleton v DS.empty `DM.union` xs
+          o _                           xs = xs
 
   infl' = DS.fold o DM.empty constraints
-    where o c@(Constraint (AnnVar _) x) = DM.union (DM.mapWithKey (f (fav x) c) infl)
-          o _                           = DM.union DM.empty
+    where o c@(Constraint (AnnVar _) x) xs = DM.mapWithKey (f (fav x) c) infl `DM.union` xs
+          o _                           xs = xs
 
           f freeAnnVars c k x 
-            | k `DS.member` freeAnnVars = x `DS.union` (DS.singleton c)
+            | k `DS.member` freeAnnVars = x `DS.union` DS.singleton c
             | otherwise                 = DS.empty
 
   repeatStep w ana 
