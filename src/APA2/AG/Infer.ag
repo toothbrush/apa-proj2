@@ -97,17 +97,17 @@ SEM MH
 
            loc.beta' = mkAnnVar @loc.beta
            loc.pi    = mkProgramPoint @x @loc.ppoint
+           loc.alpha = freshVar @loc.num
 
            lhs.substitution = @e.substitution
 
            lhs.ty = let theta1 = @e.substitution
-                        alpha1 = freshVar @loc.num
                         tau2   = @e.ty
-                    in Arr (applySubst theta1 alpha1) tau2 @loc.beta'
+                    in Arr (applySubst theta1 @loc.alpha) tau2 @loc.beta'
 
            lhs.constraints = DS.union @e.constraints (DS.singleton (@loc.beta' `constrain` @loc.pi))
 
-           e.typeEnvironment = DM.insert @x (Ty $ freshVar @loc.num) @lhs.typeEnvironment
+           e.typeEnvironment = DM.insert @x (Ty $ @loc.alpha) @lhs.typeEnvironment
 
   | App loc.alpha : UNIQUEREF counter
         loc.beta  : UNIQUEREF counter
@@ -353,7 +353,7 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
 unifyAnn :: SAnn -> SAnn -> SimpleSubstitution
 unifyAnn a@(AnnVar v) b@(AnnVar v') 
   | v == v'   = Identity
-  | otherwise = AnnSub a b
+  | otherwise = AnnSub b a
 unifyAnn a1 a2 = error $ "Annotation unification failure. \na_1 = " ++
                       show a1 ++ "\na_2 = " ++
                       show a2  
@@ -440,20 +440,19 @@ instance Lattice SAnn where
   join   = annUnion
 
 annUnion :: SAnn -> SAnn -> SAnn
-annUnion a b = trace (show a ++ "UNION" ++ show b) (annUnion' a b)
-annUnion' AnnEmpty AnnEmpty = AnnEmpty
-annUnion' AnnEmpty x        = x
-annUnion' x AnnEmpty        = x
-annUnion' (AnnSet s) (AnnSet s') = AnnSet (DS.union s s')
-annUnion' a@(AnnSet _) a'        = AnnUnion a a'
-annUnion' a@(AnnVar v) a'
+annUnion AnnEmpty AnnEmpty = AnnEmpty
+annUnion AnnEmpty x        = x
+annUnion x AnnEmpty        = x
+annUnion (AnnSet s) (AnnSet s') = AnnSet (DS.union s s')
+annUnion a@(AnnSet _) a'        = AnnUnion a a'
+annUnion a@(AnnVar v) a'
   | containsAnnVar v a' = a'
   | otherwise           = AnnUnion a a'
-annUnion' a@(AnnUnion _ _) a'@(AnnVar v)
+annUnion a@(AnnUnion _ _) a'@(AnnVar v)
   | containsAnnVar v a = a
   | otherwise          = AnnUnion a a'
-annUnion' b@(AnnUnion a a') c@(AnnSet _) = AnnUnion b c
-annUnion' a@(AnnUnion _ _) b@(AnnUnion _ _) = mkDisjoint a b
+annUnion b@(AnnUnion a a') c@(AnnSet _) = AnnUnion b c
+annUnion a@(AnnUnion _ _) b@(AnnUnion _ _) = mkDisjoint a b
 
 annPoints :: SAnn -> Set Point
 annPoints AnnEmpty = DS.empty
@@ -491,6 +490,7 @@ mkDisjoint c@(AnnUnion a a') d@(AnnUnion b b') =
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
 
+-- TODO: check whether bound variables are not being substituted
 instance Substitutable TyScheme where
   applySubst Identity     t = t
   applySubst (AnnSub _ _) t = t
