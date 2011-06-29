@@ -407,13 +407,21 @@ eval :: SAnn -> Map AnnVar SAnn -> SAnn
 eval t ana = t -- DS.fold o AnnEmpty (fav t)
   where o x = annUnion (fromJust $ DM.lookup x ana)
 -}
-
+{-
 eval :: SAnn -> Map AnnVar SAnn -> SAnn
 eval a@(AnnVar v) ana = fromJust $ DM.lookup v ana
 eval AnnEmpty _       = AnnEmpty
 eval a@(AnnSet _) _   = a
 eval a@(AnnUnion _ _) ana = annUnion (AnnSet $ annPoints a) (DS.fold o AnnEmpty (fav a))
   where o x = annUnion (fromJust $ DM.lookup x ana)
+-}
+
+eval :: SAnn -> Map AnnVar SAnn -> SAnn
+eval (AnnVar v) ana = v ? ana
+eval _          _   = AnnEmpty
+
+(?) :: Ord a => a -> Map a b -> b
+a ? m = fromJust $ DM.lookup a m 
 
 worklist :: Constraints -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
 worklist constraints eval = repeatStep w initialAna
@@ -466,10 +474,10 @@ step infl eval w ana
   (Constraint (AnnVar v) t, w') = let c = DMS.findMin w
                                   in (c, DMS.delete c w)
   new    = eval t ana  
-  xInAna = fromJust $ DM.lookup v ana
+  xInAna = v ? ana
   
   body = let newAna = DM.insert v (xInAna `join` new) ana
-             w''    = DS.fold o w' (fromJust $ DM.lookup v infl)
+             w''    = DS.fold o w' (v ? infl)
              o c@(Constraint (AnnVar _) _) = DMS.insert c
              o _                           = id
          in (w'', newAna)
