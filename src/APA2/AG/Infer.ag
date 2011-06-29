@@ -424,37 +424,27 @@ eval _          _   = AnnEmpty
 a ? m = fromJust $ DM.lookup a m 
 
 worklist :: Constraints -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
-worklist constraints eval = repeatStep w initialAna
+worklist constraints eval = trace ("INFL: " ++ show infl' ++ "\n") repeatStep w ana
   where
-  initialAna = DS.fold o DM.empty constraints
-    where o c@(Constraint (AnnVar v) a@(AnnSet _)) xs = DM.singleton v a `DM.union` xs
-          o c@(Constraint (AnnVar v) x) xs = DM.singleton v (bottom :: SAnn) `DM.union` xs
-          o _                           xs = xs
-{-
-  initialAna = DS.fold o DM.empty constraints
-    where o c@(Constraint (AnnVar v) x) = DM.union (DM.singleton v (bottom :: SAnn))
-          o _                           = DM.union DM.empty
--}
-  w = DS.fold o DMS.empty constraints
-    where o c@(Constraint (AnnVar v) x) xs = DMS.singleton c `DMS.union` xs
-          o _                           xs = xs
+  (w, ana, infl) = DS.fold o (DMS.empty, DM.empty, DM.empty) constraints 
+    where o c@(Constraint (AnnVar b) _) (w, ana, infl) = (DMS.insert c w
+                                                         ,DM.insert b (bottom :: SAnn) ana
+                                                         ,DM.insert b DS.empty infl
+                                                         )
 
-  infl = DS.fold o DM.empty constraints
-    where o c@(Constraint (AnnVar v) _) xs = DM.singleton v DS.empty `DM.union` xs
-          o _                           xs = xs
-
-  infl' = DS.fold o DM.empty constraints
-    where o c@(Constraint (AnnVar _) x) xs = DM.mapWithKey (f (fav x) c) infl `DM.union` xs
-          o _                           xs = xs
-
-          f freeAnnVars c k x 
-            | k `DS.member` freeAnnVars = x `DS.union` DS.singleton c
-            | otherwise                 = DS.empty
+  infl' = DS.fold o infl constraints
+    where o c@(Constraint (AnnVar v) x) infl = DM.update (Just . DS.insert c) v infl
 
   repeatStep w ana 
     | DMS.null w = ana
-    | otherwise  = let (w', ana') = trace ("step( W: " ++ show w ++ ", ANA: " ++ show ana ++ ")\n\n") step infl' eval w ana
+    | otherwise  = let (w', ana') = trace (debugStep w ana)
+                                          step infl' eval w ana
                    in repeatStep w' ana'
+
+debugStep w ana = 
+  "step: " ++ "\n" ++ 
+  "W: " ++ show w ++ "\n" ++
+  "ANA: " ++ show ana ++ "\n"
 
 type Worklist = MultiSet Constraint
 type EvalFunc = SAnn -> Map AnnVar SAnn -> SAnn
