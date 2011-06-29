@@ -223,9 +223,10 @@ generalise env tau = let free      = fv tau DS.\\ fv env
                          genTyVars = DS.fold Forall (Ty tau) free
                          annots    = fav tau -- TODO: exclude anything?
                      in DS.fold AnnSig genTyVars annots
+
 {-
 generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme) -- I'm assuming there's no need for Annotations here?
-generalise env     tau c = let (c', c'')   = simplify c
+generalise env     tau c = let (c', c'')   = simplify env tau c
                                freeAlpha   = fv  tau DS.\\ fv  env
                                freeBeta    = fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
                                freeBeta'   = fav c'  DS.\\ fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
@@ -234,9 +235,47 @@ generalise env     tau c = let (c', c'')   = simplify c
                            in  {- trace (show annots) $ -}
                                (c'', DS.fold AnnSig genTyVars (freeBeta `DS.union` freeBeta'))
 -}
+
 -- | Simplify constraints. 
-simplify :: Constraints -> (Constraints, Constraints)
-simplify c = (c,c)
+simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
+simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
+                         ranges = range c
+                         theta  = satisfiable active ranges
+                         c'     = applySubst theta c
+                     in  partition env c'
+
+pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
+pseudoActive active c =
+  let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs
+                                  | otherwise            = xs
+      vars = DS.fold extrAnn DS.empty c `DS.union` active
+  in  if DS.null (vars `DS.intersection` active)
+        then pseudoActive vars c
+        else let extrVar (AnnVar x) xs = DS.insert x xs
+                 extrVar _          xs = xs
+             in DS.fold extrVar DS.empty vars
+
+range = error "no range"
+
+satisfiable :: Set AnnVar -> Map SAnn (SAnn, SAnn) -> SimpleSubstitution
+satisfiable active analysis =
+  let act'          = DS.map AnnVar active
+      func beta (l, u)
+        | l <= u    = if beta `DS.notMember` act' || l == u
+                        then AnnSub beta l
+                        else Identity
+        | otherwise = error "not satisfiable"
+      substLst      = DM.mapWithKey func analysis
+  in DM.fold Dot Identity substLst
+
+--partition :: TyEnv -> Constraints -> ( , )
+partition env cs = (cs,DS.empty)
+{- for this we need (instance (FreeAnnVars TyEnv)), but that doesn't make sense, right?
+                   let active = DS.map AnnVar $ fav env
+                       prop   = DS.fromList [ Constraint l u | Constraint l u <- cs, l `DS.member` active || u `DS.member` active ]
+                       qual   = DS.fromList [ pi | pi <- cs, pi `DS.notMember` prop]
+                   in  (prop, qual)
+                   -}
 
 -- | Instantiate. Specialise a given polymorphic type
 -- with fresh variables. A coercion function is also returned, 
@@ -342,7 +381,7 @@ unify (Arr t11 t12 an) (Arr t21 t22 an') =
   let theta1 = unify t11 t21
       theta2 = unify (applySubst theta1 t12)
                      (applySubst theta1 t22)
-      theta3 = let th21 = theta2 `dot` theta1 
+      theta3 = let th21 = theta2 `dot` theta1
                in unifyAnn (applySubst th21 an) (applySubst th21 an')
   in theta3 `dot` theta2 `dot` theta1
 
@@ -351,17 +390,31 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t2
 
 unifyAnn :: SAnn -> SAnn -> SimpleSubstitution
-unifyAnn a@(AnnVar v) b@(AnnVar v') 
+unifyAnn a@(AnnVar v) b@(AnnVar v')
   | v == v'   = Identity
   | otherwise = AnnSub b a
 unifyAnn a1 a2 = error $ "Annotation unification failure. \na_1 = " ++
                       show a1 ++ "\na_2 = " ++
-                      show a2  
+                      show a2
 
 class Ord a => Lattice a where
   top     :: a
   bottom  :: a
   join    :: a -> a -> a
+  pord    :: a -> a -> Bool
+
+{-
+eval :: SAnn -> Map AnnVar SAnn -> SAnn
+eval t ana = t -- DS.fold o AnnEmpty (fav t)
+  where o x = annUnion (fromJust $ DM.lookup x ana)
+-}
+
+eval :: SAnn -> Map AnnVar SAnn -> SAnn
+eval a@(AnnVar v) ana = fromJust $ DM.lookup v ana
+eval AnnEmpty _       = AnnEmpty
+eval a@(AnnSet _) _   = a
+eval a@(AnnUnion _ _) ana = annUnion (AnnSet $ annPoints a) (DS.fold o AnnEmpty (fav a))
+  where o x = annUnion (fromJust $ DM.lookup x ana)
 
 worklist :: Constraints -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
 worklist constraints eval = repeatStep w initialAna
@@ -400,18 +453,6 @@ type Worklist = MultiSet Constraint
 type EvalFunc = SAnn -> Map AnnVar SAnn -> SAnn
 type Influence = Map AnnVar Constraints
 type Analysis = Map AnnVar SAnn
-{-
-eval :: SAnn -> Map AnnVar SAnn -> SAnn
-eval t ana = t -- DS.fold o AnnEmpty (fav t)
-  where o x = annUnion (fromJust $ DM.lookup x ana)
--}
-
-eval :: SAnn -> Map AnnVar SAnn -> SAnn
-eval a@(AnnVar v) ana = fromJust $ DM.lookup v ana
-eval AnnEmpty _       = AnnEmpty
-eval a@(AnnSet _) _   = a
-eval a@(AnnUnion _ _) ana = annUnion (AnnSet $ annPoints a) (DS.fold o AnnEmpty (fav a))
-  where o x = annUnion (fromJust $ DM.lookup x ana)
 
 step :: Influence
      -> EvalFunc
@@ -419,9 +460,9 @@ step :: Influence
      -> Analysis
      -> (Worklist, Analysis)
 step infl eval w ana
-  | DMS.null w    = (w, ana)
-  | xInAna /= new = trace "do body" body
-  | otherwise     = (w', ana)
+  | DMS.null w              = (w, ana)
+  | not $ xInAna `pord` new = trace "do body" body
+  | otherwise               = (w', ana)
   where
   (Constraint (AnnVar v) t, w') = let c = DMS.findMin w
                                   in (c, DMS.delete c w)
@@ -435,9 +476,10 @@ step infl eval w ana
          in (w'', newAna)
 
 instance Lattice SAnn where
-  top    = undefined
+  top    = error "SAnn does not have a concrete Top value"
   bottom = AnnSet DS.empty
   join   = annUnion
+  pord   = (>=)
 
 annUnion :: SAnn -> SAnn -> SAnn
 annUnion AnnEmpty AnnEmpty = AnnEmpty
@@ -451,7 +493,7 @@ annUnion a@(AnnVar v) a'
 annUnion a@(AnnUnion _ _) a'@(AnnVar v)
   | containsAnnVar v a = a
   | otherwise          = AnnUnion a a'
-annUnion b@(AnnUnion a a') c@(AnnSet _) = AnnUnion b c
+annUnion b@(AnnUnion _ _) c@(AnnSet _)     = AnnUnion b c
 annUnion a@(AnnUnion _ _) b@(AnnUnion _ _) = mkDisjoint a b
 
 annPoints :: SAnn -> Set Point
@@ -467,18 +509,19 @@ containsAnnVar v (AnnSet _)     = False
 
 -- maybe monad?
 mkDisjoint :: SAnn -> SAnn -> SAnn
-mkDisjoint c@(AnnUnion a a') d@(AnnUnion b b') =
-  let traverse a@(AnnVar v) | v `DS.member` fav c = Nothing
-                            | otherwise           = Just a
-      traverse a@(AnnSet _) = Just a
-      traverse b@(AnnUnion a a') =
-        case traverse a of
-          Nothing -> case traverse a' of
+mkDisjoint c@(AnnUnion _ _) (AnnUnion b b') =
+  let traverse x@(AnnVar v) | v `DS.member` fav c = Nothing
+                            | otherwise           = Just x
+      traverse x@(AnnSet _) = Just x
+      traverse (AnnUnion y y') =
+        case traverse y of
+          Nothing -> case traverse y' of
                        Nothing -> Just AnnEmpty
                        Just x  -> Just x
-          Just x  -> case traverse a' of
+          Just x  -> case traverse y' of
                        Nothing -> Just AnnEmpty
                        Just x' -> Just $ AnnUnion x x'
+      traverse AnnEmpty = Just AnnEmpty
   in case traverse b of
        Nothing -> case traverse b' of
                     Nothing -> c
@@ -486,6 +529,7 @@ mkDisjoint c@(AnnUnion a a') d@(AnnUnion b b') =
        Just x  -> case traverse b' of
                     Nothing -> AnnUnion c x
                     Just x' -> AnnUnion c (AnnUnion x x')
+mkDisjoint a b = error $ "Cannot mkDisjoint " ++ show a ++ " and " ++ show b
 
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
@@ -535,7 +579,7 @@ instance Substitutable SAnn where
     | b == b''  = AnnVar b'
     | otherwise = a
 
-  applySubst s a = a
+  applySubst _ a = a
 
 class FreeVariables a where
   fv :: a -> Set TyVar -- alias String
@@ -561,7 +605,7 @@ instance FreeAnnVars TyScheme where
 instance FreeAnnVars SAnn where
   fav (AnnVar v)       = DS.singleton v
   fav (AnnUnion a1 a2) = DS.union (fav a1) (fav a2)
-  fav (AnnSet _)       = DS.empty
+  fav _                = DS.empty
 
 instance FreeAnnVars Constraints where
   fav = DS.fold DS.union DS.empty . DS.map fav
