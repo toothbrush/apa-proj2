@@ -1,0 +1,8 @@
+Case statement implementeren
+Subeffecting werkende krijgen
+- W aanpassen om ann vars terug te geven
+- Constraints aanpassen zodat er in de if extra constraints gegenereerd worden
+Constraints moeten op een of andere manier opgelost worden. (mogelijk eerst met monovarience)
+Polyvarience implementen
+- Simplify moet getest worden (moet dus gebruikt gaan worden)
+- 
