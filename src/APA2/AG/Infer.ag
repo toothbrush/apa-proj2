@@ -216,7 +216,7 @@ SEM MH
 
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = generalise newEnv @e1.ty
+            ty'    = snd $ generalise newEnv @e1.ty @e1.constraints
         in DM.insert @x ty' newEnv
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
@@ -267,7 +267,7 @@ SEM MH
             Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
-                           ty' = generalise newEnv ty
+                           ty' = snd $ generalise newEnv ty @e1.constraints
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (Ty $ @loc.alpha2') newEnv
 
@@ -316,34 +316,20 @@ SEM MH
 -- "foreach [those variables] T."
 -- Also returns a coercion. This is to be applied to the term, 
 -- resulting in a Tm with type lambdas at the right spots.
-generalise :: TyEnv -> Ty -> TyScheme
-generalise env tau = let free      = fv tau DS.\\ fv env
-                         genTyVars = DS.fold Forall (Ty tau) free
-                     in genTyVars
-{-
-generalise :: TyEnv -> Ty -> TyScheme
-generalise env tau = let free      = fv tau DS.\\ fv env
-                         genTyVars = DS.fold Forall (Ty tau) free
-                         annots    = fav tau -- TODO: exclude anything?
-                     in DS.fold AnnSig genTyVars annots
--}
-
-{-
 generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme) -- I'm assuming there's no need for Annotations here?
 generalise env     tau c = let (c', c'')   = simplify env tau c
                                freeAlpha   = fv  tau DS.\\ fv  env
-                               freeBeta    = fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
-                               freeBeta'   = fav c'  DS.\\ fav tau -- onzin? : DS.\\ fav env -- DS.\\ fav ann
+                               freeBeta'   = fav c'   -- ??? DS.\\ fav env -- onzin? : DS.\\ fav tau -- DS.\\ fav ann
                                genTyVars   = DS.fold Forall (Ty tau) freeAlpha
                                --genAnnVars  = DS.fold Forall (genTyVars) (freeBeta `DS.union` freeBeta')
                            in  {- trace (show annots) $ -}
-                               (c'', DS.fold AnnSig genTyVars (freeBeta `DS.union` freeBeta'))
--}
+                               (c'', DS.fold AnnSig genTyVars (freeBeta'))
 
 -- | Simplify constraints. 
+-- Seems reasonable.
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
-                         ranges = range c
+                         ranges = trace ("active vars: "++show active++"\n") $ range c
                          theta  = satisfiable active ranges
                          c'     = applySubst theta c
                      in  partition env c'
@@ -359,17 +345,20 @@ pseudoActive active c =
                  extrVar _          xs = xs
              in DS.fold extrVar DS.empty vars
 
-range = error "no range"
+--range :: Constraints -> ?
+range c = worklist c eval
 
-satisfiable :: Set AnnVar -> Map SAnn (SAnn, SAnn) -> SimpleSubstitution
+satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
+--satisfiable is incorrect: this is still the security analysis version! no range here!
 satisfiable active analysis =
   let act'          = DS.map AnnVar active
-      func beta (l, u)
-        | l <= u    = if beta `DS.notMember` act' || l == u
+      ana'          = DM.mapKeys AnnVar analysis
+      func beta l
+        | beta <= l = if beta `DS.notMember` act' || l == beta
                         then AnnSub beta l
                         else Identity
         | otherwise = error "lower bound is larger than upper bound"
-      substLst      = DM.mapWithKey func analysis
+      substLst      = DM.mapWithKey func ana'
   in DM.fold Dot Identity substLst
 
 --partition :: TyEnv -> Constraints -> ( , )
