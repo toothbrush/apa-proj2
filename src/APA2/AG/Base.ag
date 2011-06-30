@@ -1,7 +1,7 @@
 imports
 {
 import Data.Set (Set, toList)
-import Data.List (intersperse)
+import Data.List (intercalate)
 }
 
 {
@@ -81,7 +81,7 @@ instance Show SAnn where
   show (AnnVar var    ) = var
   show (AnnUnion a1 a2) = show a1 ++ " ∪ " ++ show a2
   show (AnnEmpty      ) = "{}"
-  show (AnnSet ps     ) = "{" ++  concat (intersperse ", " (toList ps)) ++  "}"
+  show (AnnSet ps     ) = "{" ++  intercalate ", " (toList ps) ++  "}"
 
 instance Show MH where
   show (VBool  v          ) = show v
@@ -95,8 +95,8 @@ instance Show MH where
   show (If     c  e1 e2   ) = "if "++show c++" then " ++ show e1 ++ " else " ++ show e2
   show (Cons   e1 e2      ) = show e1 ++ ":"++show e2
   show (Nil               ) = "[]"
-  show (CaseBlck ex  cs   ) = "case " ++ show ex ++ " of\n" ++ concatMap show cs
-  show (CaseAlt  pat bnds ) = "        "++show pat ++ "\t → " ++ show bnds ++ "\n"
+  show (CaseBlck ex  cs   ) = "case "   ++ show ex  ++ " of\n" ++ concatMap show cs
+  show (CaseAlt  pat bnds ) = "        "++ show pat ++ "\t → " ++ show bnds ++ "\n"
 
 instance Show Ty where
   show (TyVar a)    = a
