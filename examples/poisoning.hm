@@ -1,6 +1,1 @@
-let f = \x -> x + 1
-in  let g = \y -> y * 2
-    in  let h = \z -> if z == 0
-                        then f
-                        else g
-in f
+let f = \x -> x + 1 in  let g = \y -> y * 2 in  let h = \z -> if z == 0 then f else g in f
