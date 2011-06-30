@@ -368,7 +368,7 @@ pseudoActive active c =
                  extrVar _          xs = xs
              in DS.fold extrVar DS.empty vars
 
---range :: Constraints -> ?
+range :: Constraints -> Map AnnVar SAnn
 range c = worklist c eval
 
 satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
