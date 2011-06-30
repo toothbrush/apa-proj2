@@ -137,14 +137,14 @@ SEM MH
           then instantiate $ getVar @x @lhs.typeEnvironment
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
       
-      loc.ann = fromJust $ DM.lookup @x @lhs.annEnvironment
+      --loc.ann = fromJust $ DM.lookup @x @lhs.annEnvironment
 
-      lhs.ty = @loc.ty
+      lhs.ty = trace (show @lhs.typeEnvironment) @loc.ty
 
       -- | still needs constraint from instantiate
-      lhs.constraints = @loc.beta' <:? @loc.ann
+      lhs.constraints = DS.empty
 
-      lhs.annotation = Just @loc.beta'
+      lhs.annotation = topLevelAnn @loc.ty
 
       lhs.substitution = Identity
 
@@ -161,43 +161,43 @@ SEM MH
 
       lhs.substitution = @e.substitution
 
-      lhs.ty = Arr (applySubst @e.substitution @loc.alpha') @e.ty (fromJust @e.annotation)
+      lhs.ty = Arr (applySubst @e.substitution @loc.alpha') @e.ty @loc.beta'
 
-      lhs.constraints = @e.constraints
+      lhs.constraints = @e.constraints `DS.union` (@loc.beta' <:? (Just @loc.pi))
 
       lhs.annotation = Just @loc.beta'
 
       e.typeEnvironment = DM.insert @x (Ty @loc.alpha') @lhs.typeEnvironment
-      e.annEnvironment  = DM.insert @x (Just @loc.pi) @lhs.annEnvironment
+      e.annEnvironment  = DM.insert @x Nothing @lhs.annEnvironment
 
   | App 
       loc.alpha : UNIQUEREF counter
       loc.beta  : UNIQUEREF counter
-      loc.beta1 : UNIQUEREF counter
 
       loc.beta' = mkAnnVar @loc.beta
-      loc.beta'' = mkAnnVar @loc.beta1
 
-      loc.alpha'  = freshVar @loc.alpha
+      loc.alpha' = freshVar @loc.alpha
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
       loc.theta3 = unify (applySubst @loc.theta2 @e1.ty)
                          (Arr @e2.ty @loc.alpha' @loc.beta')
       loc.theta = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
+      loc.ty = applySubst @loc.theta3 @loc.alpha'
+
       lhs.substitution = @loc.theta
 
-      lhs.ty = applySubst @loc.theta3 @loc.alpha'
+      lhs.ty = @loc.ty
 
       -- | not sure about correctness of subeffecting here..
       lhs.constraints = 
         let c1 = @e1.constraints
             c2 = @e2.constraints
-            c3 = @loc.beta' <:? (Just @loc.beta'')
+            c3 = @loc.beta' <:? (topLevelAnn @e1.ty)
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta cs
 
-      lhs.annotation = Just @loc.beta''
+      lhs.annotation = topLevelAnn @loc.ty
 
       e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
       e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
@@ -210,9 +210,11 @@ SEM MH
       loc.theta2 = @e2.substitution
       loc.theta  = @loc.theta2 `dot` @loc.theta1
 
+      loc.ty = @e2.ty
+
       lhs.substitution = @loc.theta
 
-      lhs.ty = @e2.ty
+      lhs.ty = @loc.ty
 
       lhs.constraints = 
         let c1 = @e1.constraints
@@ -221,7 +223,10 @@ SEM MH
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta2 cs
 
-      lhs.annotation = Just @loc.beta'
+      lhs.annotation = 
+        case @loc.ty of
+          Arr _ _ _ -> Just @loc.beta'
+          otherwise -> Nothing
 
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
@@ -299,7 +304,8 @@ SEM MH
                          (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.ty)
       loc.theta = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
-      lhs.ty = applySubst @loc.theta @e2.ty
+      loc.ty = applySubst @loc.theta @e2.ty
+      lhs.ty = @loc.ty
 
       lhs.constraints = 
         let c1 = @c.constraints
@@ -312,7 +318,10 @@ SEM MH
 
       lhs.substitution = @loc.theta
 
-      lhs.annotation = Just @loc.beta'
+      lhs.annotation = 
+        case @loc.ty of
+          Arr _ _ _ -> Just @loc.beta'
+          otherwise -> Nothing
 
       e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
       e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
@@ -320,6 +329,11 @@ SEM MH
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
 {
+topLevelAnn :: Ty -> Maybe SAnn
+topLevelAnn (Arr _ _ a) = Just a
+topLevelAnn (List _ a)  = Just a
+topLevelAnn _           = Nothing
+
 -- | Generalise function. Finds all unbound type variables in
 -- a type T, and then makes the type into 
 -- "foreach [those variables] T."
@@ -483,32 +497,33 @@ dotApply _           _ = error "not allowed"
 
 -- | The unification algorithm. If none of the cases match, fail.
 unify :: Ty -> Ty -> SimpleSubstitution
+unify t t' = trace ("Unify(" ++ show t ++ ", " ++ show t' ++ ")") unify' t t'
+ 
+unify' Nat  Nat  = Identity
+unify' Bool Bool = Identity
 
-unify Nat  Nat  = Identity
-unify Bool Bool = Identity
+unify' (List t an) (List t' an') = let theta1 = unify t t'
+                                       theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
+                                   in theta2 `dot` theta1
 
-unify (List t an) (List t' an') = let theta1 = unify t t'
-                                      theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
-                                  in theta2 `dot` theta1
+unify' t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
+                                     | tv1 `DS.notMember` fv t2 = TySub tv1 t2
+                                     | tv2 `DS.notMember` fv t1 = TySub tv2 t1
+                                     | otherwise = error "Cannot unify. Error."
 
-unify t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
-                                    | tv1 `DS.notMember` fv t2 = TySub tv1 t2
-                                    | tv2 `DS.notMember` fv t1 = TySub tv2 t1
-                                    | otherwise = error "Cannot unify. Error."
-
-unify (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
-                    | otherwise = error $ "Occurs check: " ++
+unify' (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
+                     | otherwise = error $ "Occurs check: " ++
                                             show tv1 ++ " = " ++
                                             show t
                                             ++ "\nCannot create infinite type."
 
-unify t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
-                    | otherwise = error $ "Occurs check: " ++
+unify' t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
+                     | otherwise = error $ "Occurs check: " ++
                                             show tv2 ++ " = " ++
                                             show t
                                             ++ "\nCannot create infinite type."
 
-unify (Arr t11 t12 an) (Arr t21 t22 an') =
+unify' (Arr t11 t12 an) (Arr t21 t22 an') =
   let theta1 = unify t11 t21
       theta2 = unify (applySubst theta1 t12)
                      (applySubst theta1 t22)
@@ -516,7 +531,7 @@ unify (Arr t11 t12 an) (Arr t21 t22 an') =
                in unifyAnn (applySubst th21 an) (applySubst th21 an')
   in theta3 `dot` theta2 `dot` theta1
 
-unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
+unify' t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
 
@@ -671,7 +686,7 @@ instance Substitutable TyScheme where
   applySubst s@(TySub a _) (Forall tv ts) | a == tv   = Forall tv ts
                                           | otherwise = Forall tv (applySubst s ts)
   applySubst sub (Ty t) = Ty $ applySubst sub t
-  applySubst (AnnSub _ _) (Forall _ _) = undefined -- TODO: Implement
+  applySubst s@(AnnSub _ _) (Forall _ t) = applySubst s t
 
 instance Substitutable Ty where
   applySubst Identity       t             = t
@@ -688,7 +703,7 @@ instance Substitutable Ty where
 
   applySubst _ Nat  = Nat
   applySubst _ Bool = Bool
-  applySubst (AnnSub _ _) (TyVar _) = undefined -- TODO: Implement
+  applySubst (AnnSub _ _) t@(TyVar _) = t
 
 instance Substitutable TyEnv where
   applySubst s = DM.map (applySubst s)
