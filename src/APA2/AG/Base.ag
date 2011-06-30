@@ -95,6 +95,8 @@ instance Show MH where
   show (If     c  e1 e2   ) = "if "++show c++" then " ++ show e1 ++ " else " ++ show e2
   show (Cons   e1 e2      ) = show e1 ++ ":"++show e2
   show (Nil               ) = "[]"
+  show (CaseBlck ex  cs   ) = "case " ++ show ex ++ " of\n" ++ concatMap show cs
+  show (CaseAlt  pat bnds ) = "        "++show pat ++ "\t → " ++ show bnds ++ "\n"
 
 instance Show Ty where
   show (TyVar a)    = a
