@@ -386,7 +386,7 @@ satisfiable active analysis =
       substLst      = DM.mapWithKey func ana'
   in DM.fold Dot Identity substLst
 
---partition :: TyEnv -> Constraints -> ( , )
+partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs = (cs,DS.empty)
 {- for this we need (instance (FreeAnnVars TyEnv)), but that doesn't make sense, right?
                    let active = DS.map AnnVar $ fav env
