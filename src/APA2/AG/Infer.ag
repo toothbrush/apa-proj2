@@ -636,7 +636,7 @@ annPoints (AnnUnion a b) = annPoints a `DS.union` annPoints b
 containsAnnVar :: AnnVar -> SAnn -> Bool
 containsAnnVar v (AnnVar v')    = v == v'
 containsAnnVar v (AnnUnion a b) = containsAnnVar v a || containsAnnVar v b
-containsAnnVar v (AnnSet _)     = False
+containsAnnVar _ _              = False
 
 mkDisjoint :: SAnn -> SAnn -> SAnn
 mkDisjoint c@(AnnUnion _ _) (AnnUnion b b') =
@@ -671,6 +671,7 @@ instance Substitutable TyScheme where
   applySubst s@(TySub a _) (Forall tv ts) | a == tv   = Forall tv ts
                                           | otherwise = Forall tv (applySubst s ts)
   applySubst sub (Ty t) = Ty $ applySubst sub t
+  applySubst (AnnSub _ _) (Forall _ _) = undefined -- TODO: Implement
 
 instance Substitutable Ty where
   applySubst Identity       t             = t
@@ -687,6 +688,7 @@ instance Substitutable Ty where
 
   applySubst _ Nat  = Nat
   applySubst _ Bool = Bool
+  applySubst (AnnSub _ _) (TyVar _) = undefined -- TODO: Implement
 
 instance Substitutable TyEnv where
   applySubst s = DM.map (applySubst s)
