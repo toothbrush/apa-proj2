@@ -772,11 +772,11 @@ TYPE TyEnv = MAP {Var} TyScheme
 
 TYPE AnnEnv = MAP {Var} {Maybe SAnn}
 
-ATTR TyScheme Ty TyEnv
+ATTR TyScheme Ty TyEnv Qual
   [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
   ]
 
-ATTR TyScheme Ty Constraint SAnn
+ATTR TyScheme Ty Constraint SAnn Qual
   [|| fav USE {`DS.union`} {DS.empty} : {Set AnnVar} -- alias String
   ]
 
