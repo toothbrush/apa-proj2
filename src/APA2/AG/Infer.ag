@@ -30,6 +30,15 @@ ATTR MH Cases
     annotation   : {Maybe SAnn}
   ]
 
+
+-- TODO: Verify that this implementation is correct
+SEM Cases
+  | Nil  loc.alpha : UNIQUEREF counter
+         lhs.annotation   = Nothing
+         lhs.constraints  = DS.empty
+         lhs.substitution = Identity
+         lhs.ty           = freshVar @loc.alpha
+
 SEM MH
   | VBool 
     lhs.ty = Bool
