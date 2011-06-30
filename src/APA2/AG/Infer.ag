@@ -377,7 +377,7 @@ satisfiable active analysis =
   let act'          = DS.map AnnVar active
       ana'          = DM.mapKeys AnnVar analysis
       func beta l
-        | beta <= l = if beta `DS.notMember` act' || l == beta
+        | l <= beta = if beta `DS.notMember` act' || l == beta
                         then AnnSub beta l
                         else Identity
         | otherwise = error "lower bound is larger than upper bound"
