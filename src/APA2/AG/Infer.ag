@@ -387,13 +387,13 @@ partition env cs = (cs,DS.empty)
 -- type instantiations were applied.
 instantiate :: TyScheme -> Ty
 instantiate ts =
-  let (forallVars, forallAVars, ty') = grabForallVars ts
+  let (faVars, forallAVars, ty') = grabForallVars ts
       sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      nzip  c = zipWith (\a b -> c (a ++ b)) forallVars (map show ([0..] :: [Int]))
+      nzip  c = zipWith (\a b -> c (a ++ b)) faVars (map show ([0..] :: [Int]))
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
-      s  = sfold TySub (zip forallVars $ nzip TyVar)
-      -- do kinda the same for annotation variables.
+      s  = sfold TySub (zip faVars $ nzip TyVar)
+      -- TODO: do kinda the same for annotation variables.
   in  {-trace (show finalSub) $ -}
       applySubst s ty'
 {-
@@ -414,9 +414,9 @@ instantiate ts =
 -- | These operators are pretty dull
 operatorType :: String -> (Ty, Ty, Ty)
 operatorType op
-  | op `elem` ["-","+","*"]            = (Nat, Nat, Nat)
-  | op `elem` ["==","<",">","<=",">="] = (Nat, Nat, Bool)
-  | otherwise                          = error $ "Invalid op: " ++ op
+  | op `elem` ["-", "+", "*"]              = (Nat, Nat, Nat)
+  | op `elem` ["==", "<", ">", "<=", ">="] = (Nat, Nat, Bool)
+  | otherwise                              = error $ "Invalid op: " ++ op
 
 -- | Turn a number (the counter's current value) into a type variable.
 -- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program.
@@ -457,9 +457,8 @@ getVar x env =
                           "'\nwasn't found in the environment.")
 
 (<:?) :: SAnn -> Maybe SAnn -> Constraints
-_               <:? Nothing         = DS.empty
-_               <:? (Just AnnEmpty) = DS.empty
-beta@(AnnVar _) <:? (Just phi)      = DS.singleton (constrain beta phi)
+beta@(AnnVar _) <:? Just phi = DS.singleton (constrain beta phi)
+_               <:? _        = DS.empty
 
 -- | B superset phi
 constrain :: SAnn -> SAnn -> Constraint
