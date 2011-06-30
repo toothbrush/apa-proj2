@@ -304,7 +304,14 @@ SEM MH
       loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @c.ty) Bool
       loc.theta4 = unify (applySubst @loc.theta3 @e2.ty)
                          (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.ty)
-      loc.theta = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+      loc.theta = trace (
+                        "theta0=" ++ show @loc.theta0 ++ "\n" ++
+                        "theta1=" ++ show @loc.theta1 ++ "\n" ++
+                        "theta2=" ++ show @loc.theta2 ++ "\n" ++
+                        "theta3=" ++ show @loc.theta3 ++ "\n" ++
+                        "theta4=" ++ show @loc.theta4 ++ "\n"
+                            ) $ 
+                                @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
       loc.ty = applySubst @loc.theta @e2.ty
       lhs.ty = @loc.ty
@@ -315,7 +322,7 @@ SEM MH
             c3 = @e2.constraints
             c4 = (@loc.beta' <:? @e1.annotation) `DS.union`
                  (@loc.beta' <:? @e2.annotation)
-            cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
+            cs = trace ("asdfasdfasdfasd===="++show c4 ) $ c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
         in applySubst @loc.theta cs
 
       lhs.substitution = @loc.theta
@@ -374,13 +381,13 @@ range :: Constraints -> Map AnnVar SAnn
 range c = worklist c eval
 
 satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
---satisfiable is incorrect: this is still the security analysis version! no range here!
 satisfiable active analysis =
   let act'          = DS.map AnnVar active
       ana'          = DM.mapKeys AnnVar analysis
       func beta l
-        | l <= beta = if beta `DS.notMember` act' || l == beta
-                        then AnnSub beta l
+        | l <= beta = if beta `DS.notMember` act' -- || l == beta
+        -- doubt: shouldn't l==beta be removed from the list too?
+                        then if l == beta then Identity else AnnSub beta l
                         else Identity
         | otherwise = error "lower bound is larger than upper bound"
       substLst      = DM.mapWithKey func ana'
@@ -515,11 +522,11 @@ unify' t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
                                             ++ "\nCannot create infinite type."
 
 unify' (Arr t11 t12 an) (Arr t21 t22 an') =
-  let theta1 = unify t11 t21
-      theta2 = unify (applySubst theta1 t12)
-                     (applySubst theta1 t22)
+  let theta1 = unifyAnn an an' 
+      theta2 = unify (applySubst theta1 t11)
+                     (applySubst theta1 t21)
       theta3 = let th21 = theta2 `dot` theta1
-               in unifyAnn (applySubst th21 an) (applySubst th21 an')
+               in unify (applySubst th21 t12) (applySubst th21 t22)
   in theta3 `dot` theta2 `dot` theta1
 
 unify' t1 t2 = error $ "Unification failure. \nt_1 = " ++
