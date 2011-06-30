@@ -39,7 +39,7 @@ DATA Qual
   | Ty   ty : Ty
   | Qual c  : Constraint q : Qual -- TODO: Constraint?
 
-DERIVING Qual: Show, Eq
+DERIVING Qual: Eq
 
 DATA TyScheme
   | QualSig q : Qual
@@ -103,6 +103,10 @@ instance Show MH where
   show (Nil               ) = "[]"
   show (CaseBlck ex  cs   ) = "case "   ++ show ex  ++ " of\n" ++ concatMap show cs
   show (CaseAlt  pat bnds ) = "        "++ show pat ++ "\t → " ++ show bnds ++ "\n"
+
+instance Show Qual where
+  show (Ty t) = show t
+  show (Qual c q) = show c ++ " => " ++ show q
 
 instance Show Ty where
   show (TyVar a)    = a
