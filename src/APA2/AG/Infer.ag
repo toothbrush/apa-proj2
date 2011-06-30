@@ -134,7 +134,7 @@ SEM MH
 
       loc.ty = 
         if @x `DM.member` @lhs.typeEnvironment
-          then instantiate $ getVar @x @lhs.typeEnvironment
+          then instantiate @loc.beta $ getVar @x @lhs.typeEnvironment
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
       
       --loc.ann = fromJust $ DM.lookup @x @lhs.annEnvironment
@@ -397,11 +397,11 @@ partition env cs = (cs,DS.empty)
 -- with fresh variables. A coercion function is also returned, 
 -- which should be used to show where in the original term
 -- type instantiations were applied.
-instantiate :: TyScheme -> Ty
-instantiate ts =
+instantiate :: Int -> TyScheme -> Ty
+instantiate seed ts =
   let (faVars, forallAVars, ty') = grabForallVars ts
       sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      nzip  c = zipWith (\a b -> c (a ++ b)) faVars (map show ([0..] :: [Int]))
+      nzip  c = zipWith (\a b -> {- trace ("fresh="++a++b++"\n") $ -} c (a ++ b)) faVars (map show ([seed..] :: [Int]))
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
       s  = sfold TySub (zip faVars $ nzip TyVar)
