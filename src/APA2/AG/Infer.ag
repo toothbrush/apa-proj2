@@ -132,9 +132,11 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.ty = 
+      loc.ty =
         if @x `DM.member` @lhs.typeEnvironment
-          then instantiate $ getVar @x @lhs.typeEnvironment
+          then let x  = getVar @x @lhs.typeEnvironment 
+                   x' = instantiate x 
+               in trace ("inst("++ @x ++ ")(" ++ show x ++ ", " ++ show x' ++ ")") x'
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
       
       --loc.ann = fromJust $ DM.lookup @x @lhs.annEnvironment
