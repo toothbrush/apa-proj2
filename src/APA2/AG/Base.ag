@@ -35,10 +35,16 @@ DERIVING MH: Eq
 
 TYPE Cases = [MH]
 
+DATA Qual
+  | Ty   ty : Ty
+  | Qual c  : Constraint q : Qual -- TODO: Constraint?
+
+DERIVING Qual: Show, Eq
+
 DATA TyScheme
-  | Ty     ty : Ty
-  | Forall a : {TyVar}  ts : TyScheme
-  | AnnSig a : {AnnVar} ts : TyScheme
+  | QualSig q : Qual
+  | Forall  a : {TyVar}  ts : TyScheme
+  | AnnSig  a : {AnnVar} ts : TyScheme
 
 DERIVING TyScheme: Show, Eq
 
