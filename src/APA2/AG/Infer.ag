@@ -630,20 +630,17 @@ containsAnnVar v (AnnVar v')    = v == v'
 containsAnnVar v (AnnUnion a b) = containsAnnVar v a || containsAnnVar v b
 containsAnnVar v (AnnSet _)     = False
 
--- maybe monad?
 mkDisjoint :: SAnn -> SAnn -> SAnn
 mkDisjoint c@(AnnUnion _ _) (AnnUnion b b') =
   let traverse x@(AnnVar v) | v `DS.member` fav c = Nothing
                             | otherwise           = Just x
       traverse x@(AnnSet _) = Just x
       traverse (AnnUnion y y') =
-        case traverse y of
-          Nothing -> case traverse y' of
-                       Nothing -> Just AnnEmpty
-                       Just x  -> Just x
-          Just x  -> case traverse y' of
-                       Nothing -> Just AnnEmpty
-                       Just x' -> Just $ AnnUnion x x'
+        case traverse y' of
+          Nothing -> Just AnnEmpty
+          Just x  -> case traverse y of
+                       Nothing -> Just x
+                       Just x' -> Just $ AnnUnion x' x
       traverse AnnEmpty = Just AnnEmpty
   in case traverse b of
        Nothing -> case traverse b' of
