@@ -139,7 +139,7 @@ SEM MH
                    x' = instantiate @loc.beta x 
                in trace ("inst("++ @x ++ ")(" ++ show x ++ ", " ++ show x' ++ ")") x'
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
-      
+
       --loc.ann = fromJust $ DM.lookup @x @lhs.annEnvironment
 
       lhs.ty = trace (show @lhs.typeEnvironment) @loc.ty
@@ -229,7 +229,7 @@ SEM MH
       lhs.annotation = 
         case @loc.ty of
           Arr _ _ _ -> Just @loc.beta'
-          otherwise -> Nothing
+          _         -> Nothing
 
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
@@ -331,7 +331,7 @@ SEM MH
       lhs.annotation = 
         case @loc.ty of
           Arr _ _ _ -> Just @loc.beta'
-          otherwise -> Nothing
+          _         -> Nothing
 
       e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
       e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
@@ -546,16 +546,10 @@ unify' t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
                                      | otherwise = error "Cannot unify. Error."
 
 unify' (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
-                     | otherwise = error $ "Occurs check: " ++
-                                            show tv1 ++ " = " ++
-                                            show t
-                                            ++ "\nCannot create infinite type."
+                     | otherwise               = occursCheck tv1 t
 
 unify' t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
-                     | otherwise = error $ "Occurs check: " ++
-                                            show tv2 ++ " = " ++
-                                            show t
-                                            ++ "\nCannot create infinite type."
+                     | otherwise               = occursCheck tv2 t
 
 unify' (Arr t11 t12 an) (Arr t21 t22 an') =
   let theta1 = unifyAnn an an' 
@@ -568,6 +562,10 @@ unify' (Arr t11 t12 an) (Arr t21 t22 an') =
 unify' t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
+
+occursCheck :: (Show a, Show b) => a -> b -> t
+occursCheck tv t = error $ "Occurs check: " ++ show tv ++ " = " ++ show t
+                                            ++ "\nCannot create infinite type."
 
 unifyAnn :: SAnn -> SAnn -> SimpleSubstitution
 unifyAnn a@(AnnVar v) b@(AnnVar v')
