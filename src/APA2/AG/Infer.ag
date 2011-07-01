@@ -41,23 +41,23 @@ SEM Cases
          lhs.ty           = freshVar @loc.alpha
 
 SEM MH
-  | VBool 
+  | VBool
     lhs.ty = Bool
     lhs.substitution = Identity
-    lhs.constraints = DS.empty
-    lhs.annotation = Nothing
+    lhs.constraints  = DS.empty
+    lhs.annotation   = Nothing
 
-  | VInt  
+  | VInt
     lhs.ty = Nat
     lhs.substitution = Identity
-    lhs.constraints = DS.empty
-    lhs.annotation = Nothing
+    lhs.constraints  = DS.empty
+    lhs.annotation   = Nothing
 
-  | Nil   
+  | Nil
     loc.alpha : UNIQUEREF counter
-    loc.beta : UNIQUEREF counter 
+    loc.beta  : UNIQUEREF counter
 
-    loc.alpha' = freshVar @loc.alpha         
+    loc.alpha' = freshVar @loc.alpha
     loc.beta' = mkAnnVar @loc.beta
 
     lhs.ty = List @loc.alpha' @loc.beta'
@@ -68,8 +68,8 @@ SEM MH
 
     lhs.annotation = Just @loc.beta'
 
-  | Cons  
-    loc.beta : UNIQUEREF counter 
+  | Cons
+    loc.beta : UNIQUEREF counter
 
     loc.beta' = mkAnnVar @loc.beta
 
@@ -81,20 +81,20 @@ SEM MH
 
     lhs.ty = applySubst @loc.theta @loc.listTy
 
-    lhs.constraints = 
+    lhs.constraints =
       let c1 = @e1.constraints
           c2 = @e2.constraints
           c3 = (@loc.beta' <:? @e1.annotation) `DS.union`
                (@loc.beta' <:? @e2.annotation)
           cs = c1 `DS.union` c2 `DS.union` c3
-      in applySubst @loc.theta cs 
-    
+      in applySubst @loc.theta cs
+
     lhs.annotation = Just @loc.beta'
 
     e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
-    e2.annEnvironment = applySubst @e1.substitution @lhs.annEnvironment
+    e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
-  | Op    
+  | Op
       loc.alpha1 : UNIQUEREF counter
       loc.alpha2 : UNIQUEREF counter
       loc.beta   : UNIQUEREF counter
@@ -115,7 +115,7 @@ SEM MH
 
       lhs.substitution = @loc.theta
 
-      lhs.constraints = 
+      lhs.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
             c3 = (@loc.beta' <:? @e1.annotation) `DS.union`
@@ -128,15 +128,15 @@ SEM MH
 
       lhs.annotation = Just @loc.beta'
 
-  | Var 
+  | Var
       loc.beta : UNIQUEREF counter
 
       loc.beta' = mkAnnVar @loc.beta
 
       loc.ty =
         if @x `DM.member` @lhs.typeEnvironment
-          then let x  = getVar @x @lhs.typeEnvironment 
-                   x' = instantiate @loc.beta x 
+          then let x  = getVar @x @lhs.typeEnvironment
+                   x' = instantiate @loc.beta x
                in trace ("inst("++ @x ++ ")(" ++ show x ++ ", " ++ show x' ++ ")") x'
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
@@ -147,11 +147,12 @@ SEM MH
       -- | still needs constraint from instantiate
       lhs.constraints = DS.empty
 
-      lhs.annotation = topLevelAnn @loc.ty
-
+      lhs.annotation = @locTy.tlAnn
+      inst.locTy : Ty
+      inst.locTy = @loc.ty
       lhs.substitution = Identity
 
-  | Lambda 
+  | Lambda
       loc.alpha   : UNIQUEREF counter
       loc.ppoint  : UNIQUEREF counter
       loc.beta    : UNIQUEREF counter
@@ -173,7 +174,7 @@ SEM MH
       e.typeEnvironment = DM.insert @x (QualSig $ Ty @loc.alpha') @lhs.typeEnvironment
       e.annEnvironment  = DM.insert @x Nothing @lhs.annEnvironment
 
-  | App 
+  | App
       loc.alpha : UNIQUEREF counter
       loc.beta  : UNIQUEREF counter
 
@@ -193,21 +194,25 @@ SEM MH
       lhs.ty = @loc.ty
 
       -- | not sure about correctness of subeffecting here..
-      lhs.constraints = 
+      lhs.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
-            c3 = @loc.beta' <:? (topLevelAnn @e1.ty)
+            c3 = @loc.beta' <:? @eTy.tlAnn
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta cs
+      inst.eTy : Ty
+      inst.eTy = @e1.ty
 
-      lhs.annotation = topLevelAnn @loc.ty
+      lhs.annotation = @locTy.tlAnn
+      inst.locTy : Ty
+      inst.locTy = @loc.ty
 
       e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
       e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
-  | Let 
+  | Let
       loc.beta : UNIQUEREF counter
-        
+
       loc.beta'  = mkAnnVar @loc.beta
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
@@ -219,19 +224,19 @@ SEM MH
 
       lhs.ty = @loc.ty
 
-      lhs.constraints = 
+      lhs.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
             c3 = @loc.beta' <:? @e2.annotation
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta2 cs
 
-      lhs.annotation = 
+      lhs.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just @loc.beta'
           _         -> Nothing
 
-      e2.typeEnvironment = 
+      e2.typeEnvironment =
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
             ty'    = snd $ generalise newEnv @e1.ty @e1.constraints
         in DM.insert @x ty' newEnv
@@ -240,7 +245,7 @@ SEM MH
 
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
 -- but is can be passed into a function..
-  | LetRec 
+  | LetRec
       loc.alpha1 : UNIQUEREF counter
       loc.alpha2 : UNIQUEREF counter
       loc.ppoint : UNIQUEREF counter
@@ -262,7 +267,7 @@ SEM MH
       lhs.substitution = @loc.theta
 
       -- | not sure about correctness
-      lhs.constraints = 
+      lhs.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
             c3 = applySubst @loc.theta (@loc.beta' <:? @e2.annotation)
@@ -288,14 +293,14 @@ SEM MH
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
-      e2.annEnvironment = 
-        case @x of 
+      e2.annEnvironment =
+        case @x of
           Just x  -> applySubst @e1.substitution 
                                 (DM.insert @f (Just @loc.beta') (DM.insert x @e1.annotation @lhs.annEnvironment))
           Nothing -> applySubst @e1.substitution
                                 (DM.insert @f (Just @loc.beta') @lhs.annEnvironment)
 
-  | If 
+  | If
       loc.beta   : UNIQUEREF counter
 
       loc.beta'  = mkAnnVar @loc.beta
@@ -317,7 +322,7 @@ SEM MH
       loc.ty = applySubst @loc.theta @e2.ty
       lhs.ty = @loc.ty
 
-      lhs.constraints = 
+      lhs.constraints =
         let c1 = @c.constraints
             c2 = @e1.constraints
             c3 = @e2.constraints
@@ -328,7 +333,7 @@ SEM MH
 
       lhs.substitution = @loc.theta
 
-      lhs.annotation = 
+      lhs.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just @loc.beta'
           _         -> Nothing
@@ -374,6 +379,13 @@ ATTR TyScheme Qual
   [|| faVs : {([TyVar], [AnnVar], Ty)}   -- alias String
   ]
 
+ATTR Ty
+  [|| tlAnn USE {`mappend`} {Nothing} : {Maybe SAnn}]
+
+SEM Ty
+  | Arr  lhs.tlAnn = Just @ann.copy
+  | List lhs.tlAnn = Just @ann.copy
+
 SEM TyScheme
   | Forall  lhs.faVs = let (vars, avars, ty) = @ts.faVs
                        in  (@a:vars, avars, ty)
@@ -385,11 +397,6 @@ SEM Qual
 
 
 {
-topLevelAnn :: Ty -> Maybe SAnn
-topLevelAnn (Arr _ _ a) = Just a
-topLevelAnn (List _ a)  = Just a
-topLevelAnn _           = Nothing
-
 -- | Generalise function. Finds all unbound type variables in
 -- a type T, and then makes the type into 
 -- "foreach [those variables] T."
