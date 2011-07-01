@@ -338,6 +338,50 @@ SEM MH
       e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
+
+TYPE TyEnv = MAP {Var} TyScheme
+
+TYPE AnnEnv = MAP {Var} {Maybe SAnn}
+
+ATTR TyScheme Ty TyEnv Qual
+  [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
+  ]
+
+ATTR TyScheme Ty Constraint SAnn Qual
+  [|| fav USE {`DS.union`} {DS.empty} : {Set AnnVar} -- alias String
+  ]
+
+SEM TyScheme
+  | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a
+  | Forall lhs.fv  = @ts.fv  DS.\\ DS.singleton @a
+
+SEM Ty
+  | TyVar lhs.fv = DS.singleton @a
+
+SEM TyEnv
+  | Entry lhs.fv = @val.fv `DS.union` @tl.fv
+  | Nil   lhs.fv = DS.empty
+
+SEM SAnn
+  | AnnVar lhs.fav = DS.singleton @var
+
+ATTR Ty Qual TyScheme Constraint SAnn
+  [ | | copy : SELF]
+
+ATTR TyScheme Qual
+  [|| faVs : {([TyVar], [AnnVar], Ty)}   -- alias String
+  ]
+
+SEM TyScheme
+  | Forall  lhs.faVs = let (vars, avars, ty) = @ts.faVs
+                       in  (@a:vars, avars, ty)
+  | AnnSig  lhs.faVs = let (vars, avars, ty) = @ts.faVs
+                       in  (vars, @a:avars, ty)
+
+SEM Qual
+  | Ty   lhs.faVs = ([], [], @ty.copy)
+
+
 {
 topLevelAnn :: Ty -> Maybe SAnn
 topLevelAnn (Arr _ _ a) = Just a
@@ -456,16 +500,8 @@ mkProgramPoint v p = AnnSet (DS.singleton (v ++ (show p)))
 -- | Unrolls a type, and returns all the variables
 -- which are in "forall". This is useful for instantiation,
 -- since these variables will need concrete values.
--- TODO: Move this to AG?
 grabForallVars :: TyScheme -> ([TyVar], [AnnVar], Ty)
-grabForallVars (QualSig q)     = grabForallVars' q
-  where grabForallVars' (Ty t) = ([], [], t)
-        grabForallVars' (Qual _ q) = grabForallVars' q
-grabForallVars (Forall tv t1)  = let (vars, avars, ty) = grabForallVars t1
-                                 in  (tv:vars, avars, ty)
--- now with Annotation super powers
-grabForallVars (AnnSig tv t1)  = let (vars, avars, ty) = grabForallVars t1
-                                 in  (vars, tv:avars, ty)
+grabForallVars = agTyScheme faVs_Syn_TyScheme
 
 -- | This gives us unique variable numbers, incrementing the seed each time.
 -- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next
@@ -644,11 +680,14 @@ annUnion a@(AnnUnion _ _) a'@(AnnVar v)
 annUnion b@(AnnUnion _ _) c@(AnnSet _)     = AnnUnion b c
 annUnion a@(AnnUnion _ _) b@(AnnUnion _ _) = mkDisjoint a b
 
+{-
+-- TODO: Remove? If not: move to AG
 annPoints :: SAnn -> Set Point
 annPoints AnnEmpty = DS.empty
 annPoints (AnnSet s) = s
 annPoints (AnnVar _) = DS.empty
 annPoints (AnnUnion a b) = annPoints a `DS.union` annPoints b
+-}
 
 containsAnnVar :: AnnVar -> SAnn -> Bool
 containsAnnVar v (AnnVar v')    = v == v'
@@ -742,19 +781,19 @@ class FreeAnnVars a where
   fav :: a -> Set AnnVar -- alias String
 
 instance FreeVariables TyScheme where
-  fv x = fv_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
+  fv = agTyScheme fv_Syn_TyScheme
 
 instance FreeVariables Ty where
-  fv x = fv_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
+  fv = agTy fv_Syn_Ty
 
 instance FreeVariables TyEnv where
   fv x = fv_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
 
 instance FreeAnnVars Ty where
-  fav x = fav_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
+  fav = agTy fav_Syn_Ty
 
 instance FreeAnnVars TyScheme where
-  fav x = fav_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
+  fav = agTyScheme fav_Syn_TyScheme
 
 instance FreeAnnVars SAnn where
   fav (AnnVar v)       = DS.singleton v
@@ -766,30 +805,10 @@ instance FreeAnnVars Constraints where
 
 instance FreeAnnVars Constraint where
   fav c = fav_Syn_Constraint (wrap_Constraint (sem_Constraint c) Inh_Constraint)
+
+agTyScheme :: (Syn_TyScheme -> t) -> TyScheme -> t
+agTyScheme f x = f (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
+
+agTy :: (Syn_Ty -> t) -> Ty -> t
+agTy f x = f (wrap_Ty (sem_Ty x) Inh_Ty)
 }
-
-TYPE TyEnv = MAP {Var} TyScheme
-
-TYPE AnnEnv = MAP {Var} {Maybe SAnn}
-
-ATTR TyScheme Ty TyEnv Qual
-  [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
-  ]
-
-ATTR TyScheme Ty Constraint SAnn Qual
-  [|| fav USE {`DS.union`} {DS.empty} : {Set AnnVar} -- alias String
-  ]
-
-SEM TyScheme
-  | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a
-  | Forall lhs.fv  = @ts.fv  DS.\\ DS.singleton @a
-
-SEM Ty
-  | TyVar lhs.fv = DS.singleton @a
-
-SEM TyEnv
-  | Entry lhs.fv = @val.fv `DS.union` @tl.fv
-  | Nil   lhs.fv = DS.empty
-
-SEM SAnn
-  | AnnVar lhs.fav = DS.singleton @var
