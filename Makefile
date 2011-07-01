@@ -12,18 +12,18 @@ haskell: src/APA2/AG.hs
 	runhaskell Setup.lhs configure $(CABAL-CONFIGURE-FLAGS)
 	runhaskell Setup.lhs build $(CABAL-BUILD-FLAGS)
 
-documentation: latex-doc/main.tex
-	pdflatex -output-directory=latex-doc latex-doc/main.tex 
+doc: doc/main.tex
+	pdflatex -output-directory=doc doc/main.tex
 
 lint:
 	hlint src/*.hs
 
 clean : 
 	-rm src/APA2/AG.hs
-	-rm latex-doc/main.pdf
-	-rm latex-doc/main.aux
-	-rm latex-doc/main.log
-	-rm latex-doc/main.toc
+	-rm doc/main.pdf
+	-rm doc/main.aux
+	-rm doc/main.log
+	-rm doc/main.toc
 	cabal clean
 
-.PHONY : haskell clean
+.PHONY : haskell clean doc
