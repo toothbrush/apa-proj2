@@ -348,7 +348,12 @@ ATTR TyScheme Ty TyEnv Qual
   ]
 
 ATTR TyScheme Ty Constraint SAnn Qual
-  [|| fav USE {`DS.union`} {DS.empty} : {Set AnnVar} -- alias String
+  [||
+      -- | Unrolls a type, and returns all the variables
+      -- which are in "forall". This is useful for instantiation,
+      -- since these variables will need concrete values.
+      fav USE {`DS.union`} {DS.empty} : {Set AnnVar}
+      copy : SELF
   ]
 
 SEM TyScheme
@@ -364,9 +369,6 @@ SEM TyEnv
 
 SEM SAnn
   | AnnVar lhs.fav = DS.singleton @var
-
-ATTR Ty Qual TyScheme Constraint SAnn
-  [ | | copy : SELF]
 
 ATTR TyScheme Qual
   [|| faVs : {([TyVar], [AnnVar], Ty)}   -- alias String
@@ -453,7 +455,7 @@ partition env cs = (cs,DS.empty)
 -- type instantiations were applied.
 instantiate :: Int -> TyScheme -> Ty
 instantiate seed ts =
-  let (faVars, forallAVars, ty') = grabForallVars ts
+  let (faVars, forallAVars, ty') = (agTyScheme faVs_Syn_TyScheme) ts
       sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
       nzip  c = zipWith (\a b -> {- trace ("fresh="++a++b++"\n") $ -} c (a ++ b)) faVars (map show ([seed..] :: [Int]))
       -- first get all "forall" bound variables,
@@ -465,7 +467,7 @@ instantiate seed ts =
 {-
 instantiate :: TyScheme -> Ty
 instantiate ts =
-  let (forallVars, forallAVars, ty') = grabForallVars ts
+  let (forallVars, forallAVars, ty') = (agTyScheme faVs_Syn_TyScheme) ts
       sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
       nzip  c = zipWith (\a b -> c (a ++ b)) forallVars (map show ([0..] :: [Int]))
       -- first get all "forall" bound variables,
@@ -496,12 +498,6 @@ mkAnnVar i = AnnVar ("b" ++ show i)
 
 mkProgramPoint :: Var -> Int -> SAnn
 mkProgramPoint v p = AnnSet (DS.singleton (v ++ (show p))) 
-
--- | Unrolls a type, and returns all the variables
--- which are in "forall". This is useful for instantiation,
--- since these variables will need concrete values.
-grabForallVars :: TyScheme -> ([TyVar], [AnnVar], Ty)
-grabForallVars = agTyScheme faVs_Syn_TyScheme
 
 -- | This gives us unique variable numbers, incrementing the seed each time.
 -- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next
