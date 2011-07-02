@@ -21,12 +21,10 @@ ATTR MH
    -- The algW attribute will contain the type of the term.
     ty : {Ty}
     constraints USE {`DS.union`} {DS.empty} : {Constraints}
-    patTy USE {++} {[]} : {[Ty]}
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution : {SimpleSubstitution}
-    lhsSubst : {SimpleSubstitution}
-    lhsTy : {Ty}
+    lhsTy USE {`mplus`} {Nothing} : {Maybe Ty}
     annotation   : {Maybe SAnn}
   ]
 
@@ -54,11 +52,6 @@ SEM MH
       loc.beta : UNIQUEREF counter
 
       loc.beta' = mkAnnVar @loc.beta
-      {- loc.θ0 = @ex.substitution-}
-      {- loc.θs = foldr1 dot @cs.substs-}
-      {- loc.csubsts = casesSubst (@ex.ty : @cs.patTy)-}
-      {- loc.app1 = applySubst @loc.θs @ex.ty -- TODO: Unify with type of case pattern-}
-      {- loc.θ  = undefined-}
 
       -- TODO: Unify types of case (expression) of and the left-hand sides of
       -- the individual case blocks
@@ -67,56 +60,43 @@ SEM MH
 
       -- TODO: See if we need some substitutions here...
       loc.theta0 = @ex.substitution
-      loc.theta1 = unify @ex.ty @c1.lhsTy
-      loc.theta2 = unify @ex.ty @c2.lhsTy
+      loc.theta1 = unify @ex.ty (applySubst @loc.theta0 $ fromJust @c1.lhsTy)
+      loc.theta2 = unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)
+      loc.lhsTheta = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+
+      loc.theta3 = @c1.substitution
+      loc.theta4 = @c2.substitution
+      loc.theta5 = unify (applySubst @loc.lhsTheta @c1.ty)
+                         (applySubst (@loc.theta3 `dot` @loc.lhsTheta) @c2.ty)
+      loc.theta = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot` @loc.lhsTheta
+
+      loc.ty = applySubst @loc.theta @c1.ty
+      lhs.ty = @loc.ty
+
+      lhs.constraints =
+        let c1 = @ex.constraints
+            c2 = @c1.constraints
+            c3 = @c2.constraints
+            c4 = (@loc.beta' <:? @c1.annotation) `DS.union`
+                 (@loc.beta' <:? @c2.annotation)
+            cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
+        in applySubst @loc.theta cs
 
 
-      {- loc.theta1 = @c1.lhsSubst-}
-      {- loc.theta2 = @c2.lhsSubst-}
-      {- TODO: This one is probably wrong-}
-      {- loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @ex.ty) @ex.ty-}
-      {- loc.theta4 = unify (applySubst @loc.theta3 @c2.lhsTy)-}
-                         {- (applySubst (@loc.theta3 `dot` @loc.theta2) @c1.lhsTy)-}
+      lhs.substitution = @loc.theta
+      lhs.annotation   = case @loc.ty of
+                           Arr _ _ _ -> Just @loc.beta'
+                           _         -> Nothing
 
-      
-      {- loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @c.ty) Bool-}
-      {- loc.theta4 = unify (applySubst @loc.theta3 @c2.ty)-}
-                         {- (applySubst (@loc.theta3 `dot` @loc.theta2) @c1.ty)-}
-      {- loc.theta  = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0-}
-
-      {- loc.τ  = applySubst @loc.θ @cs.ty-}
-      {- lhs.ty = @loc.τ-}
-
-      -- TODO: Take constraint from @loc.beta' to case annotations into account
-      {- lhs.constraints =-}
-        {- let cts = @ex.constraints `DS.union` foldr DS.union DS.empty @cs.cstrLst-}
-        {- in  applySubst @loc.θ cts-}
-      {- lhs.constraints =-}
-      {-   let c1 = @c.constraints-}
-      {-       c2 = @e1.constraints-}
-      {-       c3 = @e2.constraints-}
-      {-       c4 = (@loc.beta' <:? @e1.annotation) `DS.union`-}
-      {-            (@loc.beta' <:? @e2.annotation)-}
-      {-       cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4-}
-      {-   in applySubst @loc.theta cs-}
-
-      {- lhs.substitution = @loc.θ-}
-
-      {- lhs.annotation =-}
-        {- case @loc.τ of-}
-          {- Arr _ _ _ -> Just @loc.β'-}
-          {- _         -> Nothing-}
-      {- e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment-}
-      {- e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment-}
-      {- e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment-}
-      {- e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment-}
+      c1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
+      c1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
+      c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
+      c2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
   | CaseAlt
       loc.beta : UNIQUEREF counter
 
       loc.beta' = mkAnnVar @loc.beta
 
-      -- TODO: Typecheck to make sure that pats match ty caseblck ex
-      lhs.patTy        = [@pat.ty]
       lhs.constraints  = @bnd.constraints
 
       loc.theta0 = @pat.substitution
@@ -126,12 +106,11 @@ SEM MH
       loc.ty = applySubst @loc.theta @bnd.ty
       lhs.ty = @loc.ty
       lhs.substitution = @loc.theta
-      lhs.lhsSubst = @pat.substitution
 
       lhs.annotation = case @loc.ty of
                          Arr _ _ _ -> Just @loc.beta'
                          _         -> Nothing
-      lhs.lhsTy = @pat.ty
+      lhs.lhsTy = Just @pat.ty
 
 
 
