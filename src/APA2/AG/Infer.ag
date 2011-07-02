@@ -5,6 +5,7 @@ optpragmas {
 imports
 {
 import            Control.Monad ()
+import            Debug.Trace
 }
 
 ATTR MH
@@ -25,25 +26,6 @@ ATTR MH
     annotation   : {Maybe SAnn}
   ]
 
-{- ATTR Cases-}
-{-   [|| substs  USE {++} {[]} : {[SimpleSubstitution]}-}
-{-       cstrLst USE {++} {[]} : {[Constraints]}]-}
-
-{- TODO: Verify that this implementation is correct-}
-{- SEM Cases-}
-{-   | Cons lhs.substs = [@hd.substitution]-}
-{-          lhs.ty     = @hd.ty-}
-{-   | Nil  loc.α : UNIQUEREF counter-}
-{-          lhs.ty = freshVar @loc.α-}
-
-{- { -}
-
-{- casesSubst :: [Ty] -> SimpleSubstitution-}
-{- casesSubst []       = Identity-}
-{- casesSubst (x:y:xs) = unify x y `dot` casesSubst (y:xs)-}
-
-{- }-}
-
 SEM MH
   | CaseBlck
       loc.beta : UNIQUEREF counter
@@ -58,11 +40,12 @@ SEM MH
       -- TODO: See if we need some substitutions here...
       loc.theta0 = @ex.substitution
       loc.theta1 = unify @ex.ty (applySubst @loc.theta0 $ fromJust @c1.lhsTy)
-      loc.theta2 = unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)
+      loc.theta2 = trace "theta2" $ unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)
       loc.lhsTheta = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
       loc.theta3 = @c1.substitution
       loc.theta4 = @c2.substitution
+      -- FIXME: This is where shit is currently hitting the fan
       loc.theta5 = unify (applySubst @loc.lhsTheta @c1.ty)
                          (applySubst (@loc.theta3 `dot` @loc.lhsTheta) @c2.ty)
       loc.theta = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot` @loc.lhsTheta
@@ -87,19 +70,16 @@ SEM MH
 
       c1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
       c1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
-      c2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
+      c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.typeEnvironment
+      c2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.annEnvironment
   | CaseAlt
       loc.beta : UNIQUEREF counter
 
       loc.beta' = mkAnnVar @loc.beta
 
-      lhs.constraints  = @bnd.constraints
+      lhs.constraints = @bnd.constraints
 
-      loc.theta0 = @pat.substitution
-      loc.theta1 = @bnd.substitution
-      loc.theta2 = unify (applySubst (@loc.theta1 `dot` @loc.theta0) @pat.ty) @bnd.ty
-      loc.theta  = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+      loc.theta  = @pat.substitution
       loc.ty = applySubst @loc.theta @bnd.ty
       lhs.ty = @loc.ty
       lhs.substitution = @loc.theta
