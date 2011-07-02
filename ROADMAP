@@ -5,4 +5,4 @@ Subeffecting werkende krijgen
 Constraints moeten op een of andere manier opgelost worden. (mogelijk eerst met monovariance)
 Polyvariance implementen
 - Simplify moet getest worden (moet dus gebruikt gaan worden)
-
+Support voor lege lijst assignen ergens

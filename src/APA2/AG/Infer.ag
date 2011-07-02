@@ -4,10 +4,7 @@ optpragmas {
 
 imports
 {
-import            Control.Monad (mplus)
-import            Data.Map (Map)
-import qualified  Data.Map as DM
-import qualified  Data.Map as Map
+import            Control.Monad ()
 }
 
 ATTR MH
