@@ -4,19 +4,13 @@ optpragmas {
 
 imports
 {
-import Debug.Trace
 import            Control.Monad (mplus)
 import            Data.Map (Map)
 import qualified  Data.Map as DM
-import qualified  Data.Map
 import qualified  Data.Map as Map
-import            Data.MultiSet (MultiSet)
-import qualified  Data.MultiSet as DMS
-import qualified  Data.Set as DS
-import            Data.Maybe
 }
 
-ATTR MH Cases
+ATTR MH
   [-- The type environment should start empty, then grow as more lambdas
     -- etc. are encountered.
     typeEnvironment : {TyEnv}
@@ -28,60 +22,75 @@ ATTR MH Cases
     ty : {Ty}
     constraints USE {`DS.union`} {DS.empty} : {Constraints}
     patTy USE {++} {[]} : {[Ty]}
-  ]
-
-ATTR MH
-  [||
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution : {SimpleSubstitution}
+    lhsSubst : {SimpleSubstitution}
+    lhsTy : {Ty}
     annotation   : {Maybe SAnn}
   ]
 
-ATTR Cases
-  [|| substs  USE {++} {[]} : {[SimpleSubstitution]}
-      cstrLst USE {++} {[]} : {[Constraints]}]
+{- ATTR Cases-}
+{-   [|| substs  USE {++} {[]} : {[SimpleSubstitution]}-}
+{-       cstrLst USE {++} {[]} : {[Constraints]}]-}
 
--- TODO: Verify that this implementation is correct
-SEM Cases
-  | Cons lhs.substs = [@hd.substitution]
-         lhs.ty     = @hd.ty
-  | Nil  loc.α : UNIQUEREF counter
-         lhs.ty = freshVar @loc.α
+{- TODO: Verify that this implementation is correct-}
+{- SEM Cases-}
+{-   | Cons lhs.substs = [@hd.substitution]-}
+{-          lhs.ty     = @hd.ty-}
+{-   | Nil  loc.α : UNIQUEREF counter-}
+{-          lhs.ty = freshVar @loc.α-}
 
-{
+{- { -}
 
-casesSubst :: [Ty] -> SimpleSubstitution
-casesSubst []       = Identity
-casesSubst (x:y:xs) = unify x y `dot` casesSubst (y:xs)
+{- casesSubst :: [Ty] -> SimpleSubstitution-}
+{- casesSubst []       = Identity-}
+{- casesSubst (x:y:xs) = unify x y `dot` casesSubst (y:xs)-}
 
-}
+{- }-}
 
 SEM MH
   | CaseBlck
-      loc.β : UNIQUEREF counter
+      loc.beta : UNIQUEREF counter
 
-      loc.β' = mkAnnVar @loc.β
-      loc.θ0 = @ex.substitution
-      loc.θs = foldr1 dot @cs.substs
-      loc.csubsts = casesSubst (@ex.ty : @cs.patTy)
-      loc.app1 = applySubst @loc.θs @ex.ty -- TODO: Unify with type of case pattern
-      loc.θ  = undefined
-      {- loc.theta0 = @c.substitution-}
-      {- loc.theta1 = @e1.substitution-}
-      {- loc.theta2 = @e2.substitution-}
+      loc.beta' = mkAnnVar @loc.beta
+      {- loc.θ0 = @ex.substitution-}
+      {- loc.θs = foldr1 dot @cs.substs-}
+      {- loc.csubsts = casesSubst (@ex.ty : @cs.patTy)-}
+      {- loc.app1 = applySubst @loc.θs @ex.ty -- TODO: Unify with type of case pattern-}
+      {- loc.θ  = undefined-}
+
+      -- TODO: Unify types of case (expression) of and the left-hand sides of
+      -- the individual case blocks
+      -- Then unify the types of the right-hand side of the individual case
+      -- blocks
+
+      -- TODO: See if we need some substitutions here...
+      loc.theta0 = @ex.substitution
+      loc.theta1 = unify @ex.ty @c1.lhsTy
+      loc.theta2 = unify @ex.ty @c2.lhsTy
+
+
+      {- loc.theta1 = @c1.lhsSubst-}
+      {- loc.theta2 = @c2.lhsSubst-}
+      {- TODO: This one is probably wrong-}
+      {- loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @ex.ty) @ex.ty-}
+      {- loc.theta4 = unify (applySubst @loc.theta3 @c2.lhsTy)-}
+                         {- (applySubst (@loc.theta3 `dot` @loc.theta2) @c1.lhsTy)-}
+
+      
       {- loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @c.ty) Bool-}
-      {- loc.theta4 = unify (applySubst @loc.theta3 @e2.ty)-}
-      {-                    (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.ty)-}
+      {- loc.theta4 = unify (applySubst @loc.theta3 @c2.ty)-}
+                         {- (applySubst (@loc.theta3 `dot` @loc.theta2) @c1.ty)-}
       {- loc.theta  = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0-}
 
-      loc.τ  = applySubst @loc.θ @cs.ty
-      lhs.ty = @loc.τ
+      {- loc.τ  = applySubst @loc.θ @cs.ty-}
+      {- lhs.ty = @loc.τ-}
 
       -- TODO: Take constraint from @loc.beta' to case annotations into account
-      lhs.constraints =
-        let cts = @ex.constraints `DS.union` foldr DS.union DS.empty @cs.cstrLst
-        in  applySubst @loc.θ cts
+      {- lhs.constraints =-}
+        {- let cts = @ex.constraints `DS.union` foldr DS.union DS.empty @cs.cstrLst-}
+        {- in  applySubst @loc.θ cts-}
       {- lhs.constraints =-}
       {-   let c1 = @c.constraints-}
       {-       c2 = @e1.constraints-}
@@ -91,24 +100,38 @@ SEM MH
       {-       cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4-}
       {-   in applySubst @loc.theta cs-}
 
-      lhs.substitution = @loc.θ
+      {- lhs.substitution = @loc.θ-}
 
-      lhs.annotation =
-        case @loc.τ of
-          Arr _ _ _ -> Just @loc.β'
-          _         -> Nothing
+      {- lhs.annotation =-}
+        {- case @loc.τ of-}
+          {- Arr _ _ _ -> Just @loc.β'-}
+          {- _         -> Nothing-}
       {- e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment-}
       {- e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment-}
       {- e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment-}
       {- e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment-}
   | CaseAlt
-      -- TODO: Typecheck to make sure that pats match ty caseblck ex
-      lhs.ty           = @bnds.ty
-      lhs.patTy        = [@pat.ty]
-      lhs.constraints  = @bnds.constraints
-      lhs.substitution = @bnds.substitution
-      lhs.annotation   = @bnds.annotation
+      loc.beta : UNIQUEREF counter
 
+      loc.beta' = mkAnnVar @loc.beta
+
+      -- TODO: Typecheck to make sure that pats match ty caseblck ex
+      lhs.patTy        = [@pat.ty]
+      lhs.constraints  = @bnd.constraints
+
+      loc.theta0 = @pat.substitution
+      loc.theta1 = @bnd.substitution
+      loc.theta2 = unify (applySubst (@loc.theta1 `dot` @loc.theta0) @pat.ty) @bnd.ty
+      loc.theta  = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+      loc.ty = applySubst @loc.theta @bnd.ty
+      lhs.ty = @loc.ty
+      lhs.substitution = @loc.theta
+      lhs.lhsSubst = @pat.substitution
+
+      lhs.annotation = case @loc.ty of
+                         Arr _ _ _ -> Just @loc.beta'
+                         _         -> Nothing
+      lhs.lhsTy = @pat.ty
 
 
 
@@ -466,422 +489,3 @@ SEM TyScheme
 
 SEM Qual
   | Ty   lhs.faVs = ([], [], @ty.copy)
-
-
-{
--- | Generalise function. Finds all unbound type variables in
--- a type T, and then makes the type into 
--- "foreach [those variables] T."
--- Also returns a coercion. This is to be applied to the term, 
--- resulting in a Tm with type lambdas at the right spots.
-generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme) -- I'm assuming there's no need for Annotations here?
-generalise env tau c = let (c', c'')   = simplify env tau c
-                           freeAlpha   = fv  tau DS.\\ fv  env
-                           freeBeta'   = fav c'   -- ??? DS.\\ fav env -- onzin? : DS.\\ fav tau -- DS.\\ fav ann
-                           genTyVars   = DS.fold Forall (QualSig $ Ty tau) freeAlpha
-                           --genAnnVars  = DS.fold Forall (genTyVars) (freeBeta `DS.union` freeBeta')
-                       in  {- trace (show annots) $ -}
-                           (c'', DS.fold AnnSig genTyVars (freeBeta'))
-
--- | Simplify constraints.
--- Seems reasonable.
-simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
-simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
-                         ranges = trace ("active vars: "++show active++"\n") $ range c
-                         theta  = satisfiable active ranges
-                         c'     = applySubst theta c
-                     in  partition env c'
-
-pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
-pseudoActive active c =
-  let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs
-                                  | otherwise            = xs
-      vars = DS.fold extrAnn DS.empty c `DS.union` active
-  in  if DS.null (vars `DS.intersection` active)
-        then pseudoActive vars c
-        else let extrVar (AnnVar x) xs = DS.insert x xs
-                 extrVar _          xs = xs
-             in DS.fold extrVar DS.empty vars
-
-range :: Constraints -> Map AnnVar SAnn
-range c = worklist c eval
-
-satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
-satisfiable active analysis =
-  let act'          = DS.map AnnVar active
-      ana'          = DM.mapKeys AnnVar analysis
-      func beta l
-        | l <= beta = if beta `DS.notMember` act' -- || l == beta
-        -- doubt: shouldn't l==beta be removed from the list too?
-                        then if l == beta then Identity else AnnSub beta l
-                        else Identity
-        | otherwise = error "lower bound is larger than upper bound"
-      substLst      = DM.mapWithKey func ana'
-  in DM.fold Dot Identity substLst
-
-partition :: TyEnv -> Constraints -> (Constraints, Constraints)
-partition env cs = (cs,DS.empty)
-{- for this we need (instance (FreeAnnVars TyEnv)), but that doesn't make sense, right?
-                   let active = DS.map AnnVar $ fav env
-                       prop   = DS.fromList [ Constraint l u | Constraint l u <- cs, l `DS.member` active || u `DS.member` active ]
-                       qual   = DS.fromList [ pi | pi <- cs, pi `DS.notMember` prop]
-                   in  (prop, qual)
-                   -}
-
--- | Instantiate. Specialise a given polymorphic type
--- with fresh variables. A coercion function is also returned, 
--- which should be used to show where in the original term
--- type instantiations were applied.
-instantiate :: Int -> TyScheme -> Ty
-instantiate seed ts =
-  let (faVars, forallAVars, ty') = (agTyScheme faVs_Syn_TyScheme) ts
-      sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      nzip  c = zipWith (\a b -> {- trace ("fresh="++a++b++"\n") $ -} c (a ++ b)) faVars (map show ([seed..] :: [Int]))
-      -- first get all "forall" bound variables,
-      -- then replace these with fresh variables
-      s  = sfold TySub (zip faVars $ nzip TyVar)
-      -- TODO: do kinda the same for annotation variables.
-  in  {-trace (show finalSub) $ -}
-      applySubst s ty'
-{-
-instantiate :: TyScheme -> Ty
-instantiate ts =
-  let (forallVars, forallAVars, ty') = (agTyScheme faVs_Syn_TyScheme) ts
-      sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      nzip  c = zipWith (\a b -> c (a ++ b)) forallVars (map show ([0..] :: [Int]))
-      -- first get all "forall" bound variables,
-      -- then replace these with fresh variables
-      s  = sfold TySub (zip forallVars $ nzip TyVar)
-      -- do kinda the same for annotation variables.
-      s' = sfold AnnSub (zip (map AnnVar forallAVars) $ nzip AnnVar)
-  in  {-trace (show finalSub) $ -}
-      applySubst (Dot s s') ty'
--}
-
--- | These operators are pretty dull
-operatorType :: String -> (Ty, Ty, Ty)
-operatorType op
-  | op `elem` ["-", "+", "*"]              = (Nat, Nat, Nat)
-  | op `elem` ["==", "<", ">", "<=", ">="] = (Nat, Nat, Bool)
-  | otherwise                              = error $ "Invalid op: " ++ op
-
--- | Turn a number (the counter's current value) into a type variable.
--- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program.
---       This seems reasonable, given the scope of the assignment, a workaround
---       shouldn't be difficult to implement.
-freshVar :: Int -> Ty
-freshVar i = TyVar $ 'v' : show i
-
-mkAnnVar :: Int -> SAnn
-mkAnnVar i = AnnVar ("b" ++ show i)
-
-mkProgramPoint :: Var -> Int -> SAnn
-mkProgramPoint v p = AnnSet (DS.singleton (v ++ (show p))) 
-
--- | This gives us unique variable numbers, incrementing the seed each time.
--- Automatically invoked by AG system when the keyword 'UNIQUEREF' is used next
--- to an attribute.
-nextUnique :: Int -> (Int, Int)
-nextUnique u = (u+1, u)
-
--- | Look up a variable's type in the given environment.
-getVar :: Var -> TyEnv -> TyScheme
-getVar x env =
-  case DM.lookup x env of
-    Just scheme -> scheme
-    _           -> error ("This shouldn't happen. '" ++ x ++
-                          "'\nwasn't found in the environment.")
-
-(<:?) :: SAnn -> Maybe SAnn -> Constraints
-beta@(AnnVar _) <:? Just phi = DS.singleton (constrain beta phi)
-_               <:? _        = DS.empty
-
--- | B superset phi
-constrain :: SAnn -> SAnn -> Constraint
-constrain beta@(AnnVar _) phi = Constraint beta phi
-constrain _               _   = error "invalid constraint"
-
-dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
-dot = Dot
-
-dotApply :: Substitutable t => SimpleSubstitution -> t -> t
-dotApply (Dot s1 s2) t = applySubst s1 (applySubst s2 t)
-dotApply _           _ = error "not allowed"
-
--- | The unification algorithm. If none of the cases match, fail.
-unify :: Ty -> Ty -> SimpleSubstitution
-unify t t' = trace ("Unify(" ++ show t ++ ", " ++ show t' ++ ")") unify' t t'
-
-unify' Nat  Nat  = Identity
-unify' Bool Bool = Identity
-
-unify' (List t an) (List t' an') = let theta1 = unify t t'
-                                       theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
-                                   in theta2 `dot` theta1
-
-unify' t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
-                                     | tv1 `DS.notMember` fv t2 = TySub tv1 t2
-                                     | tv2 `DS.notMember` fv t1 = TySub tv2 t1
-                                     | otherwise = error "Cannot unify. Error."
-
-unify' (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
-                     | otherwise               = occursCheck tv1 t
-
-unify' t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
-                     | otherwise               = occursCheck tv2 t
-
-unify' (Arr t11 t12 an) (Arr t21 t22 an') =
-  let theta1 = unifyAnn an an'
-      theta2 = unify (applySubst theta1 t11)
-                     (applySubst theta1 t21)
-      theta3 = let th21 = theta2 `dot` theta1
-               in unify (applySubst th21 t12) (applySubst th21 t22)
-  in theta3 `dot` theta2 `dot` theta1
-
-unify' t1 t2 = error $ "Unification failure. \nt_1 = " ++
-                      show t1 ++ "\nt_2 = " ++
-                      show t2
-
-occursCheck :: (Show a, Show b) => a -> b -> t
-occursCheck tv t = error $ "Occurs check: " ++ show tv ++ " = " ++ show t
-                                            ++ "\nCannot create infinite type."
-
-unifyAnn :: SAnn -> SAnn -> SimpleSubstitution
-unifyAnn a@(AnnVar v) b@(AnnVar v')
-  | v == v'   = Identity
-  | otherwise = AnnSub b a
-unifyAnn a1 a2 = error $ "Annotation unification failure. \na_1 = " ++
-                      show a1 ++ "\na_2 = " ++
-                      show a2
-
-class Ord a => Lattice a where
-  top     :: a
-  bottom  :: a
-  join    :: a -> a -> a
-  pord    :: a -> a -> Bool
-
-{-
-eval :: SAnn -> Map AnnVar SAnn -> SAnn
-eval t ana = t -- DS.fold o AnnEmpty (fav t)
-  where o x = annUnion (fromJust $ DM.lookup x ana)
--}
-{-
-eval :: SAnn -> Map AnnVar SAnn -> SAnn
-eval a@(AnnVar v) ana = fromJust $ DM.lookup v ana
-eval AnnEmpty _       = AnnEmpty
-eval a@(AnnSet _) _   = a
-eval a@(AnnUnion _ _) ana = annUnion (AnnSet $ annPoints a) (DS.fold o AnnEmpty (fav a))
-  where o x = annUnion (fromJust $ DM.lookup x ana)
--}
-
-eval :: SAnn -> Map AnnVar SAnn -> SAnn
-eval (AnnVar v) ana = trace ("lookup!! " ++ show v) (v ? ana)
-eval t          _   = t
-
-(?) :: Ord a => a -> Map a b -> b
-a ? m = fromJust $ DM.lookup a m 
-
-worklist :: Constraints -> (SAnn -> Map AnnVar SAnn -> SAnn) -> Map AnnVar SAnn
-worklist constraints eval = trace ("INFL: " ++ show infl' ++ "\n") repeatStep w ana'
-  where
-  (w, ana, infl) = DS.fold o (DMS.empty, DM.empty, DM.empty) constraints 
-    where o c@(Constraint (AnnVar b) _) (w, ana, infl) = (DMS.insert c w
-                                                         ,DM.insert b (bottom :: SAnn) ana
-                                                         ,DM.insert b DS.empty infl
-                                                         )
-  ana' = DS.fold o ana constraints
-    where o c@(Constraint _ t) r = DS.fold (\x -> DM.insert x (bottom :: SAnn)) r (fav t)
-
-  infl' = DS.fold o infl constraints
-    where o c@(Constraint (AnnVar v) x) infl = DM.update (Just . DS.insert c) v infl
-
-  repeatStep w ana 
-    | DMS.null w = ana
-    | otherwise  = let (w', ana') = trace (debugStep w ana)
-                                          step infl' eval w ana
-                   in repeatStep w' ana'
-
-debugStep w ana = 
-  "step: " ++ "\n" ++ 
-  "W: " ++ show w ++ "\n" ++
-  "ANA: " ++ show ana ++ "\n"
-
-type Worklist = MultiSet Constraint
-type EvalFunc = SAnn -> Map AnnVar SAnn -> SAnn
-type Influence = Map AnnVar Constraints
-type Analysis = Map AnnVar SAnn
-
-step :: Influence
-     -> EvalFunc
-     -> Worklist
-     -> Analysis
-     -> (Worklist, Analysis)
-step infl eval w ana
-  | DMS.null w              = (w, ana)
-  | not $ xInAna `pord` new = trace "do body" body
-  | otherwise               = (w', ana)
-  where
-  (Constraint (AnnVar v) t, w') = let c = DMS.findMin w
-                                  in (c, DMS.delete c w)
-  new    = eval t ana  
-  xInAna = v ? ana
-  
-  body = let newAna = DM.insert v (xInAna `join` new) ana
-             w''    = DS.fold o w' (v ? infl)
-             o c@(Constraint (AnnVar _) _) = DMS.insert c
-             o _                           = id
-         in (w'', newAna)
-
-instance Lattice SAnn where
-  top    = error "SAnn does not have a concrete Top value"
-  bottom = AnnSet DS.empty
-  join   = annUnion
-  pord   = (>=)
-
-annUnion :: SAnn -> SAnn -> SAnn
-annUnion AnnEmpty AnnEmpty = AnnEmpty
-annUnion AnnEmpty x        = x
-annUnion x AnnEmpty        = x
-annUnion (AnnSet s) (AnnSet s') = AnnSet (DS.union s s')
-annUnion a@(AnnSet _) a'        = AnnUnion a a'
-annUnion a@(AnnVar v) a'
-  | containsAnnVar v a' = a'
-  | otherwise           = AnnUnion a a'
-annUnion a@(AnnUnion _ _) a'@(AnnVar v)
-  | containsAnnVar v a = a
-  | otherwise          = AnnUnion a a'
-annUnion b@(AnnUnion _ _) c@(AnnSet _)     = AnnUnion b c
-annUnion a@(AnnUnion _ _) b@(AnnUnion _ _) = mkDisjoint a b
-
-{-
--- TODO: Remove? If not: move to AG
-annPoints :: SAnn -> Set Point
-annPoints AnnEmpty = DS.empty
-annPoints (AnnSet s) = s
-annPoints (AnnVar _) = DS.empty
-annPoints (AnnUnion a b) = annPoints a `DS.union` annPoints b
--}
-
-containsAnnVar :: AnnVar -> SAnn -> Bool
-containsAnnVar v (AnnVar v')    = v == v'
-containsAnnVar v (AnnUnion a b) = containsAnnVar v a || containsAnnVar v b
-containsAnnVar _ _              = False
-
-mkDisjoint :: SAnn -> SAnn -> SAnn
-mkDisjoint c@(AnnUnion _ _) (AnnUnion b b') =
-  let traverse x@(AnnVar v) | v `DS.member` fav c = Nothing
-                            | otherwise           = Just x
-      traverse x@(AnnSet _) = Just x
-      traverse (AnnUnion y y') =
-        case traverse y' of
-          Nothing -> Just AnnEmpty
-          Just x  -> case traverse y of
-                       Nothing -> Just x
-                       Just x' -> Just $ AnnUnion x' x
-      traverse AnnEmpty = Just AnnEmpty
-  in case traverse b of
-       Nothing -> case traverse b' of
-                    Nothing -> c
-                    Just x  -> AnnUnion c x
-       Just x  -> case traverse b' of
-                    Nothing -> AnnUnion c x
-                    Just x' -> AnnUnion c (AnnUnion x x')
-mkDisjoint a b = error $ "Cannot mkDisjoint " ++ show a ++ " and " ++ show b
-
-class Substitutable subject where
-  applySubst :: SimpleSubstitution -> subject -> subject
-
--- TODO: check whether bound variables are not being substituted
-instance Substitutable TyScheme where
-  applySubst Identity     t = t
-  applySubst s (QualSig q)  = QualSig $ applySubst s q
-  applySubst d@(Dot _ _)  t = dotApply d t
-  applySubst s             (AnnSig _ t) = applySubst s t
-  applySubst s@(TySub a _) (Forall tv ts) | a == tv   = Forall tv ts
-                                          | otherwise = Forall tv (applySubst s ts)
-  applySubst s@(AnnSub _ _) (Forall _ t) = applySubst s t
-
-instance Substitutable Qual where
-  applySubst Identity t      = t
-  applySubst sub      (Ty t) = Ty $ applySubst sub t
-  applySubst sub      (Qual c q) = Qual c $ applySubst sub q
-
-instance Substitutable Ty where
-  applySubst Identity       t             = t
-  applySubst s@(AnnSub _ _) (Arr a b ann) = Arr a b (applySubst s ann)
-  applySubst d@(Dot _ _)    t             = dotApply d t
-
-  applySubst (TySub a t0) (TyVar t)
-    | a == t    = t0
-    | otherwise = TyVar t
-
-  applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) (applySubst s ann)
-
-  applySubst s (List t ann) = List (applySubst s t) (applySubst s ann)
-
-  applySubst _ Nat  = Nat
-  applySubst _ Bool = Bool
-  applySubst (AnnSub _ _) t@(TyVar _) = t
-
-instance Substitutable TyEnv where
-  applySubst s = DM.map (applySubst s)
-
-instance Substitutable AnnEnv where
-  applySubst s = DM.map (maybe Nothing (Just . applySubst s))
-
-instance Substitutable Constraint where
-  applySubst Identity    cs     = cs
-  applySubst d@(Dot _ _) cs     = dotApply d cs
-  applySubst s (Constraint a b) = Constraint (applySubst s a) (applySubst s b)
-
-instance Substitutable Constraints where
-  applySubst s = DS.map (applySubst s)
-
-instance Substitutable SAnn where
-  applySubst Identity    a            = a
-  applySubst d@(Dot _ _) a@(AnnVar _) = dotApply d a
-
-  applySubst (AnnSub (AnnVar b) (AnnVar b')) a@(AnnVar b'')
-    | b == b''  = AnnVar b'
-    | otherwise = a
-
-  applySubst _ a = a
-
-class FreeVariables a where
-  fv :: a -> Set TyVar -- alias String
-
-class FreeAnnVars a where
-  fav :: a -> Set AnnVar -- alias String
-
-instance FreeVariables TyScheme where
-  fv = agTyScheme fv_Syn_TyScheme
-
-instance FreeVariables Ty where
-  fv = agTy fv_Syn_Ty
-
-instance FreeVariables TyEnv where
-  fv x = fv_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
-
-instance FreeAnnVars Ty where
-  fav = agTy fav_Syn_Ty
-
-instance FreeAnnVars TyScheme where
-  fav = agTyScheme fav_Syn_TyScheme
-
-instance FreeAnnVars SAnn where
-  fav (AnnVar v)       = DS.singleton v
-  fav (AnnUnion a1 a2) = DS.union (fav a1) (fav a2)
-  fav _                = DS.empty
-
-instance FreeAnnVars Constraints where
-  fav = DS.fold DS.union DS.empty . DS.map fav
-
-instance FreeAnnVars Constraint where
-  fav c = fav_Syn_Constraint (wrap_Constraint (sem_Constraint c) Inh_Constraint)
-
-agTyScheme :: (Syn_TyScheme -> t) -> TyScheme -> t
-agTyScheme f x = f (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
-
-agTy :: (Syn_Ty -> t) -> Ty -> t
-agTy f x = f (wrap_Ty (sem_Ty x) Inh_Ty)
-}

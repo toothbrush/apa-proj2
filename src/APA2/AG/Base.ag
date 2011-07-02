@@ -28,12 +28,12 @@ DATA MH
   | If     c  : MH     e1 : MH          e2 : MH
   | Cons   e1 : MH     e2 : MH
   | Nil
-  | CaseBlck ex  : MH cs   : Cases
-  | CaseAlt  pat : MH bnds : MH
+  | CaseBlck ex  : MH c1  : MH c2 : MH
+  | CaseAlt  pat : MH bnd : MH
 
 DERIVING MH: Eq
 
-TYPE Cases = [MH]
+{- TYPE Cases = [MH]-}
 
 DATA Qual
   | Ty   ty : Ty
@@ -101,7 +101,7 @@ instance Show MH where
   show (If     c  e1 e2   ) = "if "++show c++" then " ++ show e1 ++ " else " ++ show e2
   show (Cons   e1 e2      ) = show e1 ++ ":"++show e2
   show (Nil               ) = "[]"
-  show (CaseBlck ex  cs   ) = "case "   ++ show ex  ++ " of\n" ++ concatMap show cs
+  show (CaseBlck ex  c1 c2) = "case "   ++ show ex  ++ " of\n" ++ show c1 ++ show c2
   show (CaseAlt  pat bnds ) = "        "++ show pat ++ "\t → " ++ show bnds ++ "\n"
 
 instance Show Qual where

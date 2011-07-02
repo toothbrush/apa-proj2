@@ -15,4 +15,5 @@
 MODULE {APA2.AG} {} {}
 
 INCLUDE "AG/Base.ag"
+INCLUDE "AG/Funs.ag"
 INCLUDE "AG/Infer.ag"
