@@ -5,9 +5,10 @@ optpragmas {
 imports
 {
 import Debug.Trace
+import            Control.Monad (mplus)
 import            Data.Map (Map)
 import qualified  Data.Map as DM
-import qualified  Data.Map as Data.Map
+import qualified  Data.Map
 import qualified  Data.Map as Map
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
@@ -22,23 +23,94 @@ ATTR MH Cases
     annEnvironment  : {AnnEnv}
   | -- The counter is used to generate fresh variable names, which are unique.
     counter : {Int}
-  | -- The algW attribute will contain the type of the term.
+  |
+   -- The algW attribute will contain the type of the term.
     ty : {Ty}
+    constraints USE {`DS.union`} {DS.empty} : {Constraints}
+    patTy USE {++} {[]} : {[Ty]}
+  ]
+
+ATTR MH
+  [||
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution : {SimpleSubstitution}
-    constraints  : {Constraints}
     annotation   : {Maybe SAnn}
   ]
 
+ATTR Cases
+  [|| substs  USE {++} {[]} : {[SimpleSubstitution]}
+      cstrLst USE {++} {[]} : {[Constraints]}]
 
 -- TODO: Verify that this implementation is correct
 SEM Cases
-  | Nil  loc.alpha : UNIQUEREF counter
-         lhs.annotation   = Nothing
-         lhs.constraints  = DS.empty
-         lhs.substitution = Identity
-         lhs.ty           = freshVar @loc.alpha
+  | Cons lhs.substs = [@hd.substitution]
+         lhs.ty     = @hd.ty
+  | Nil  loc.α : UNIQUEREF counter
+         lhs.ty = freshVar @loc.α
+
+{
+
+casesSubst :: [Ty] -> SimpleSubstitution
+casesSubst []       = Identity
+casesSubst (x:y:xs) = unify x y `dot` casesSubst (y:xs)
+
+}
+
+SEM MH
+  | CaseBlck
+      loc.β : UNIQUEREF counter
+
+      loc.β' = mkAnnVar @loc.β
+      loc.θ0 = @ex.substitution
+      loc.θs = foldr1 dot @cs.substs
+      loc.csubsts = casesSubst (@ex.ty : @cs.patTy)
+      loc.app1 = applySubst @loc.θs @ex.ty -- TODO: Unify with type of case pattern
+      loc.θ  = undefined
+      {- loc.theta0 = @c.substitution-}
+      {- loc.theta1 = @e1.substitution-}
+      {- loc.theta2 = @e2.substitution-}
+      {- loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @c.ty) Bool-}
+      {- loc.theta4 = unify (applySubst @loc.theta3 @e2.ty)-}
+      {-                    (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.ty)-}
+      {- loc.theta  = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0-}
+
+      loc.τ  = applySubst @loc.θ @cs.ty
+      lhs.ty = @loc.τ
+
+      -- TODO: Take constraint from @loc.beta' to case annotations into account
+      lhs.constraints =
+        let cts = @ex.constraints `DS.union` foldr DS.union DS.empty @cs.cstrLst
+        in  applySubst @loc.θ cts
+      {- lhs.constraints =-}
+      {-   let c1 = @c.constraints-}
+      {-       c2 = @e1.constraints-}
+      {-       c3 = @e2.constraints-}
+      {-       c4 = (@loc.beta' <:? @e1.annotation) `DS.union`-}
+      {-            (@loc.beta' <:? @e2.annotation)-}
+      {-       cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4-}
+      {-   in applySubst @loc.theta cs-}
+
+      lhs.substitution = @loc.θ
+
+      lhs.annotation =
+        case @loc.τ of
+          Arr _ _ _ -> Just @loc.β'
+          _         -> Nothing
+      {- e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment-}
+      {- e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment-}
+      {- e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment-}
+      {- e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment-}
+  | CaseAlt
+      -- TODO: Typecheck to make sure that pats match ty caseblck ex
+      lhs.ty           = @bnds.ty
+      lhs.patTy        = [@pat.ty]
+      lhs.constraints  = @bnds.constraints
+      lhs.substitution = @bnds.substitution
+      lhs.annotation   = @bnds.annotation
+
+
+
 
 SEM MH
   | VBool
@@ -328,7 +400,7 @@ SEM MH
             c3 = @e2.constraints
             c4 = (@loc.beta' <:? @e1.annotation) `DS.union`
                  (@loc.beta' <:? @e2.annotation)
-            cs = trace ("asdfasdfasdfasd===="++show c4 ) $ c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
+            cs = trace ("ifunion===="++show c4 ) $ c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
         in applySubst @loc.theta cs
 
       lhs.substitution = @loc.theta
@@ -411,7 +483,7 @@ generalise env tau c = let (c', c'')   = simplify env tau c
                        in  {- trace (show annots) $ -}
                            (c'', DS.fold AnnSig genTyVars (freeBeta'))
 
--- | Simplify constraints. 
+-- | Simplify constraints.
 -- Seems reasonable.
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
@@ -539,7 +611,7 @@ dotApply _           _ = error "not allowed"
 -- | The unification algorithm. If none of the cases match, fail.
 unify :: Ty -> Ty -> SimpleSubstitution
 unify t t' = trace ("Unify(" ++ show t ++ ", " ++ show t' ++ ")") unify' t t'
- 
+
 unify' Nat  Nat  = Identity
 unify' Bool Bool = Identity
 
@@ -559,7 +631,7 @@ unify' t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
                      | otherwise               = occursCheck tv2 t
 
 unify' (Arr t11 t12 an) (Arr t21 t22 an') =
-  let theta1 = unifyAnn an an' 
+  let theta1 = unifyAnn an an'
       theta2 = unify (applySubst theta1 t11)
                      (applySubst theta1 t21)
       theta3 = let th21 = theta2 `dot` theta1
