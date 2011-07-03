@@ -96,13 +96,13 @@ instance Show MH where
   show (Op     op e1 e2   ) = show e1 ++ op ++ show e2
   show (Lambda x  e       ) = "λ "++x++" → " ++ show e
   show (App    e1 e2      ) = show e1 ++ " " ++ show e2
-  show (Let    x  e1 e2   ) = "let "++ x ++" = " ++ show e1 ++ " in " ++ show e2
+  show (Let    x  e1 e2   ) = "let "++ x ++" = " ++ show e1 ++ "\n    in  " ++ show e2
   show (LetRec f  x  e1 e2) = "μ " ++ show f ++ ".let "++ fromMaybe "undef??FIXME" x ++" = " ++ show e1 ++ " in " ++ show e2
   show (If     c  e1 e2   ) = "if "++show c++" then " ++ show e1 ++ " else " ++ show e2
   show (Cons   e1 e2      ) = show e1 ++ ":"++show e2
   show (Nil               ) = "[]"
   show (CaseBlck ex  c1 c2) = "case "   ++ show ex  ++ " of\n" ++ show c1 ++ show c2
-  show (CaseAlt  pat bnds ) = "        "++ show pat ++ "\t → " ++ show bnds ++ "\n"
+  show (CaseAlt  pat bnds ) = "        "++ show pat ++ "     → " ++ show bnds ++ "\n"
 
 instance Show Qual where
   show (Ty t) = show t
@@ -117,8 +117,8 @@ instance Show Ty where
 
 instance Show SimpleSubstitution where
   show Identity      = ""
-  show (TySub v t)   = v ++ "\t|-> " ++ show t
-  show (AnnSub a a') = show a ++ "\t|-> " ++ show a'
+  show (TySub v t)   = v ++ "    |-> " ++ show t
+  show (AnnSub a a') = show a ++ "    |-> " ++ show a'
   show (Dot s Identity) = show s
   show (Dot s s')       = show s ++ "\n" ++ show s'
 
