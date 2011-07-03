@@ -1,0 +1,6 @@
+let f = \x -> x + 1
+in  let g = \y -> y * 2
+    in  let h = \z -> case z of
+                        0 -> f
+                        1 -> g
+        in f
