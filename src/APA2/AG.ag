@@ -107,17 +107,16 @@ step infl w analysis
         else (w', analysis)
 
 (⊇) :: SAnn -> SAnn -> Bool
-AnnEmpty   ⊇ AnnEmpty               = True
-AnnEmpty   ⊇ (AnnSet a) | DS.null a = True
-                        | otherwise = False
-(AnnSet a) ⊇ (AnnSet b)             = DS.isSubsetOf b a
-_          ⊇ _                      = error "no variables allowed"
+AnnEmpty   ⊇ AnnEmpty   = True
+AnnEmpty   ⊇ (AnnSet a) = DS.null a
+(AnnSet a) ⊇ (AnnSet b) = DS.isSubsetOf b a
+_          ⊇ _          = error "no variables allowed"
 
 (∪) :: SAnn -> SAnn -> SAnn
 AnnEmpty   ∪ a          = a
 a          ∪ AnnEmpty   = a
-(AnnSet a) ∪ (AnnSet b) = AnnSet (DS.union a b) 
-_          ∪ _          = error "no variables allowed" 
+(AnnSet a) ∪ (AnnSet b) = AnnSet (DS.union a b)
+_          ∪ _          = error "no variables allowed"
 
 debugStep w ana = 
   "step: " ++ "\n" ++ 
@@ -251,8 +250,8 @@ instance Substitutable AnnEnv where
 
 instance Substitutable AnnVar where
   applySubst s@(AnnSub a b) a'
-    | a == a'   = b
-    | otherwise = a'
+    | a == a'    = b
+    | otherwise  = a'
   applySubst _ a = a
 
 instance Substitutable Constraint where
