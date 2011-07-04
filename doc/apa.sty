@@ -1,0 +1,204 @@
+%% ----------------------------------------------------------------------------
+%% PACKAGES
+%% ----------------------------------------------------------------------------
+
+\RequirePackage{amsthm}
+\RequirePackage{boxedminipage}
+\RequirePackage{xcolor}
+
+%% ----------------------------------------------------------------------------
+%% DOCUMENT INFORMATION
+%% ----------------------------------------------------------------------------
+
+\newcommand\documentinfo{}
+
+%% ----------------------------------------------------------------------------
+%% MARGINAL NOTES
+%% ----------------------------------------------------------------------------
+
+\let\old@marginpar\marginpar
+\renewcommand\marginpar[1]{\old@marginpar{%
+  \textcolor{red}{\fbox{\parbox{\marginparwidth-\fboxsep}{%
+    \raggedright\sffamily\footnotesize#1}}}}}
+\newcommand\NOTE[1]{\marginpar{NOTE: #1}}
+\newcommand\TODO[1]{\marginpar{TODO: #1}}
+\newcommand\ADDED[1]{\marginpar{ADDED: #1}}
+\newcommand\CHANGED[1]{\marginpar{CHANGED: #1}}
+\newcommand\REMOVED[1]{\marginpar{REMOVED: #1}}
+
+%% ----------------------------------------------------------------------------
+%% FIGURES
+%% ----------------------------------------------------------------------------
+
+\newif\iffig@closedbycaption
+\fig@closedbycaptionfalse
+
+\newcommand{\open@figure}[1]{%
+   \boxedminipage{#1}%
+   \small%
+   \setlength{\parskip}{.5\baselineskip}%
+   \centering%
+   \fig@closedbycaptionfalse}
+\newcommand{\close@figure}{\iffig@closedbycaption\else\endboxedminipage\fi}
+
+\renewenvironment{figure}[1][tbp]%
+  {\@float{figure}[#1]\open@figure{\textwidth}}%
+  {\close@figure\end@float}
+
+\newcommand{\tweak@caption}{%
+  \let\old@caption\caption
+  \global\renewcommand{\caption}[1]%
+    {\iffig@closedbycaption\else\endboxedminipage\fi%
+     \fig@closedbycaptiontrue%
+     \old@caption{##1}}}
+\tweak@caption
+
+%% ----------------------------------------------------------------------------
+%% LIST-LIKE ENVIRONMENTS
+%% ----------------------------------------------------------------------------
+
+\renewcommand{\qedsymbol}{\tiny$\blacksquare$}
+
+\newtheoremstyle{theorem}%
+ \topsep\topsep\normalfont{0em}\upshape{\textbf{.}}{\labelsep}%
+ {\textbf{\thmname{{#1}} \thmnumber{#2}\thmnote{ (#3)}}}
+\theoremstyle{theorem}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{lemma}[theorem]{Lemma}
+
+\renewenvironment{proof}[1][\proofname]%
+  {\par\pushQED{\qed}\normalfont \topsep6\p@\@plus6\p@\relax
+   \trivlist
+     \item[\hskip\labelsep\itshape#1\@addpunct{.}]\ignorespaces\small}%
+  {\normalsize\popQED\endtrivlist\@endpefalse}
+
+%% ----------------------------------------------------------------------------
+%% SETS
+%% ----------------------------------------------------------------------------
+
+\newif\if@firstset
+\@firstsetfalse
+
+\newenvironment{sets}%
+  {\center%
+   \tabular{%
+     @{}r@{\hspace{1em}}c@{\hspace{1em}}l@{\hspace{.5em}}c@{\hspace{.5em}}l%
+     @{\hspace{2em}}l@{}}%
+   \@firstsettrue}%
+  {\endtabular%
+   \endcenter}
+
+\newcommand{\declareset}[3]{%
+  \if@firstset\else\\\fi%
+  $#3$ & $\in$ & \multicolumn{3}{@{}l@{\hspace{2em}}}{$#2$} & #1%
+  \@firstsetfalse}
+\newcommand{\declarederivedset}[5]{%
+  \if@firstset\else\\\fi%
+  $#5$ & $\in$ & $#2$ & $#3$ & $#4$ & #1%
+  \@firstsetfalse}
+
+%% ----------------------------------------------------------------------------
+%% BNF
+%% ----------------------------------------------------------------------------
+
+\newif\if@firstnonterminal
+\@firstnonterminalfalse
+\newif\if@firstalternative
+\@firstalternativefalse
+
+\newcommand{\nonterminal}[1]{%
+  \if@firstnonterminal\else\tabularnewline\fi%
+  #1 & $::=$ &%
+  \@firstnonterminalfalse%
+  \@firstalternativetrue}
+
+\newcommand{\@bnfnewline}{}
+
+\newenvironment{bnf}%
+  {\center%
+   \tabular{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}}%
+   \@firstnonterminaltrue%
+   \@firstalternativetrue%
+   \global\let\old@bnfnewline=\\%
+   \global\renewcommand{\@bnfnewline}{%
+     \old@bnfnewline & $|$ & \@firstalternativetrue}%
+   \global\let\\\@bnfnewline}%
+  {\global\renewcommand{\\}{\old@bnfnewline}%
+   \endtabular%
+   \endcenter}
+
+\newcommand{\alternative}[1]{%
+  \begin{math}%
+    \if@firstalternative\else\hspace{.5em}|\hspace{.5em}\fi%
+    #1%
+  \end{math}%
+  \@firstalternativefalse}
+
+%% ----------------------------------------------------------------------------
+%% NATURAL DEDUCTION SYSTEMS
+%% ----------------------------------------------------------------------------
+
+\newcommand{\prototype}[2]{\textit{#1}\hfill\fbox{#2}}
+
+\newcommand{\inductive@infruleline}{%
+  \rlap{\rule[0.8ex-.25pt]{\wd\@Infrule}{.5pt}}}
+\newcommand{\coinductive@infruleline}{%
+  \rlap{\rule[0.8ex+.25pt]{\wd\@Infrule}{.5pt}}%
+  \rlap{\rule[0.8ex-.75pt]{\wd\@Infrule}{.5pt}}}
+\newcommand{\@infruleline}{\inductive@infruleline}
+
+\newcommand{\inductive}{\renewcommand{\@infruleline}{\inductive@infruleline}}
+\newcommand{\coinductive}{\renewcommand{\@infruleline}{%
+  \coinductive@infruleline}}
+
+\newcommand{\the@ruleversion}{1}
+\newcommand{\ruleversion}[1]{\global\renewcommand{\the@ruleversion}{#1}}
+
+\newcommand{\rulename}[2][1]{[\hyperlink{rule:#2:#1}{\textit{#2}}]}
+
+\newbox\@Infrule
+\newcommand{\infrule}[3][]{%
+  \noindent
+  \setbox\@Infrule\hbox{$\displaystyle{%
+    \array[b]{@{}c@{}}#2\endarray\atop\array[t]{@{}r@{}}#3\endarray}$}%
+  \@infruleline%
+  \box\@Infrule%
+  \if#1\empty%
+  \else%
+    \hbox{\ \hypertarget{rule:#1:\the@ruleversion}{[\textit{#1}]}}%
+  \fi}%
+\newcommand{\invinfrule}[3][]{\infrule[#1]{#3}{#2}}
+\newcommand{\axiom}[2][]{\infrule[#1]{}{#2}}
+
+%% ----------------------------------------------------------------------------
+%% FORMATTING SYNTAX
+%% ----------------------------------------------------------------------------
+
+\newcommand\alg[1]{\mbox{\textbf{\textsf{#1}}}}
+\newcommand\cs[1]{\textcolor{orange}{#1}}
+\newcommand\con[1]{\val{\textit{#1}}}
+\newcommand\ctx[1]{\textcolor{magenta}{#1}}
+\newcommand\ds[1]{\mathsf{#1}}
+\newcommand\meta[1]{\text{\textsl{#1}}}
+\newcommand\pc[1]{\text{#1}}
+\newcommand\rf[1]{\textcolor{blue}{#1}}
+\newcommand\set[1]{\mathbf{#1}}
+\newcommand\ty[1]{\textcolor{red}{#1}}
+\newcommand\tycon[1]{\ty{\textit{#1}}}
+\newcommand\val[1]{\textcolor{blue}{#1}}
+
+%% ----------------------------------------------------------------------------
+%% ALGORITHM
+%% ----------------------------------------------------------------------------
+
+\newenvironment{algorithm}%
+  {\figure%
+   \setlength\belowdisplayskip{.5ex}%
+   \setlength\abovedisplayskip{.5ex}%
+   \setlength\mathindent{1em}%
+   \renewcommand{\hscodestyle}{}%
+   \raggedright}%
+  {\endfigure}

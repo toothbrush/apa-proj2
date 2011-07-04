@@ -1,0 +1,35 @@
+%if draft
+
+  \RequirePackage[colorlinks,linkcolor=green]{hyperref}
+  \makeatletter
+  \tweak@@caption
+% \newcommand\revision{%
+%    \newread\revstream%
+%    \immediate\openin\revstream=REVISION%
+%    \immediate\read\revstream to \rev@@i%
+%    \immediate\read\revstream to \rev@@ii%
+%    \immediate\closein\revstream%
+%    \rev@@i \rev@@iii}
+  \renewcommand\documentinfo{%
+    \centerline{\textcolor{red}{\normalfont\textsf{%
+      Revision: no revision}}}}
+  \makeatother
+
+%else
+
+  \newcommand{\hypertarget}[2]{#2}
+  \newcommand{\hyperlink}[2]{#2}
+
+%endif
+
+%if not colour
+
+  \definecolor{blue}{named}{black}
+  \definecolor{green}{named}{black}
+  \definecolor{magenta}{named}{black}
+  \definecolor{orange}{named}{black}
+  \definecolor{red}{named}{black}
+
+  \renewcommand\tycon[1]{\mathsf{#1}}
+
+%endif

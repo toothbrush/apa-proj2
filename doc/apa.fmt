@@ -1,0 +1,173 @@
+%include polycode.fmt
+
+\renewcommand{\hscodestyle}{\centering}
+\arrayhs
+
+%% ----------------------------------------------------------------------------
+%% PUNCTUATION
+%% ----------------------------------------------------------------------------
+
+%format ^   = "{}"
+%format ^^  = "\,"
+%format ^^^ = "\ "
+%format ... = "\cdots"
+
+%% ----------------------------------------------------------------------------
+%% OPERATORS
+%% ----------------------------------------------------------------------------
+
+%format FPS(x) = "\mathcal{F}(" x ")"
+
+%format ul(x) = "\lfloor" x "\rfloor"
+
+%format `DU` = "\uplus"
+%format `U`  = "\cup"
+
+%format `fin` = "\mathbin{\to_{\text{fin}}}"
+%format `neq` = "\neq"
+%format `u`   = "\sqcup"
+
+%format ->>  = "\Downarrow"
+%format +-   = "\vdash"
+%format +->  = "\mapsto"
+%format ++-  = "\Vdash"
+%format <=:  = "\subseteq"
+%format <=.  = "\sqsubseteq"
+%format >=:  = "\supseteq"
+%format /<=: = "\not\subseteq"
+
+%% ----------------------------------------------------------------------------
+%% SETS
+%% ----------------------------------------------------------------------------
+
+%format CHAR          = "\set{Unicode}"
+%format Con           = "\set{Con}"
+%format Constraint    = "\set{Constraint}"
+%format Exp           = "\set{Exp}"
+%format INT           = "\mathbb{Z}"
+%format Literal       = "\set{Literal}"
+%format REAL          = "\mathbb{R}"
+%format Refinement    = "\set{Refinement}"
+%format RefinementTld = "\set{\widetilde{Refinement}}"
+%format RfVar         = "\set{RfVar}"
+%format RfSubst       = "\set{RfSubst}"
+%format TyCon         = "\set{TyCon}"
+%format TyEnv         = "\set{TyEnv}"
+%format TyEnvHat      = "\set{\widehat{TyEnv}}"
+%format Type          = "\set{Type}"
+%format TypeHat       = "\set{\widehat{Type}}"
+%format Whnf          = "\set{Whnf}"
+
+%% ----------------------------------------------------------------------------
+%% DATA CONSTRUCTORS
+%% ----------------------------------------------------------------------------
+
+%format False = "\con{False}"
+%format True  = "\con{True}"
+
+%% ----------------------------------------------------------------------------
+%% TYPE CONSTRUCTORS
+%% ----------------------------------------------------------------------------
+
+%format Bool    = "\tycon{Bool}"
+%format Char    = "\tycon{Char}"
+%format Double  = "\tycon{Double}"
+%format Integer = "\tycon{Integer}"
+
+%% ----------------------------------------------------------------------------
+%% METAVARIABLES
+%% ----------------------------------------------------------------------------
+
+%format C    = "\cs{C}"
+%format C_1  = "\cs{C_1}"
+%format C_2  = "\cs{C_2}"
+%format C_3  = "\cs{C_3}"
+%format C_i  = "\cs{C_i}"
+%format C'   = "\cs{C^\prime}"
+%format C'_1 = "\cs{C^\prime_1}"
+%format D    = "\val{D}"
+%format T    = "\ty{T}"
+
+%format c   = "\cs{c}"
+%format c'  = "\cs{c^\prime}"
+%format e_1
+%format e_2
+%format e_3
+%format l   = "\val{l}"
+
+%format Gamma      = "\ctx{\Gamma}"
+%format GammaHat   = "\ctx{\widehat\Gamma}"
+%format GammaHat_1 = "\ctx{\widehat\Gamma_1}"
+
+%format zeta      = "\rf\zeta"
+%format zeta_0    = "\rf{\zeta_0}"
+%format zeta_1    = "\rf{\zeta_1}"
+%format zeta_2    = "\rf{\zeta_2}"
+%format zeta_3    = "\rf{\zeta_3}"
+%format zeta'     = "\rf{\zeta^\prime}"
+%format theta     = "\ctx{\theta}"
+%format theta_0   = "\ctx{\theta_0}"
+%format theta_1   = "\ctx{\theta_1}"
+%format theta_2   = "\ctx{\theta_2}"
+%format theta_3   = "\ctx{\theta_3}"
+%format theta_i   = "\ctx{\theta_i}"
+%format theta'    = "\ctx{\theta^\prime}"
+%format theta'_1  = "\ctx{\theta^\prime_1}"
+%format rho       = "\rf\varrho"
+%format rho_0     = "\rf{\varrho_0}"
+%format rho_1     = "\rf{\varrho_1}"
+%format rho_2     = "\rf{\varrho_2}"
+%format rho_3     = "\rf{\varrho_3}"
+%format rho'      = "\rf{\varrho^\prime}"
+%format rho'_1    = "\rf{\varrho^\prime_1}"
+%format rho'_2    = "\rf{\varrho^\prime_2}"
+%format rho''     = "\rf{\varrho^{\prime\prime}}"
+%format rhoTld    = "\rf{\widetilde\varrho}"
+%format rhoTld_1  = "\rf{\widetilde\varrho_1}"
+%format rhoTld_2  = "\rf{\widetilde\varrho_2}"
+%format tau       = "\ty\tau"
+%format tauHat    = "\ty{\widehat\tau}"
+%format tauHat_1  = "\ty{\widehat\tau_1}"
+%format tauHat_2  = "\ty{\widehat\tau_2}"
+%format tauHat_3  = "\ty{\widehat\tau_3}"
+
+%% ----------------------------------------------------------------------------
+%% METAOPERATIONS
+%% ----------------------------------------------------------------------------
+
+%format dom = "\meta{dom}"
+%format rv  = "\meta{rv}"
+
+%% ----------------------------------------------------------------------------
+%% PSEUDOCODE CONSTRUCTS
+%% ----------------------------------------------------------------------------
+
+%format befresh_ = "\pc{be fresh}"
+%format case_    = "\pc{case}"
+%format do_      = "\pc{do}"
+%format else_    = "\pc{else}"
+%format fail_    = "\pc{fail}"
+%format forall_  = "\pc{for all}"
+%format if_      = "\pc{if}"
+%format in_      = "\pc{in}"
+%format let_     = "\pc{let}"
+%format of_      = "\pc{of}"
+%format return_  = "\pc{return}"
+%format then_    = "\pc{then}"
+%format while_   = "\pc{while}"
+
+%% ----------------------------------------------------------------------------
+%% ALGORITHMS
+%% ----------------------------------------------------------------------------
+
+%format EE    = "\alg{E}"
+%format LL    = "\alg{L}"
+%format solve = "\alg{solve}"
+
+%% ----------------------------------------------------------------------------
+%% DATASTRUCTURES
+%% ----------------------------------------------------------------------------
+
+%format analysis     = "\ds{analysis}" 
+%format dependencies = "\ds{dependencies}"
+%format worklist     = "\ds{worklist}"
