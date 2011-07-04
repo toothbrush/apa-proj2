@@ -218,7 +218,7 @@ instance Substitutable TyScheme where
 
   applySubst s@(AnnSub a _) t@(AnnSig tv ts) | a == tv   = t
                                              | otherwise = AnnSig tv (applySubst s ts)
-  
+
   applySubst _ t = t
 
 instance Substitutable Qual where
@@ -230,9 +230,9 @@ instance Substitutable Ty where
   applySubst Identity       t  = t
   applySubst d@(Dot _ _)    t  = dotApply d t
 
-  applySubst (TySub a t0) (TyVar t)
+  applySubst (TySub a t0) tv@(TyVar t)
     | a == t    = t0
-    | otherwise = TyVar t
+    | otherwise = tv
 
   applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) (applySubst s ann)
 
