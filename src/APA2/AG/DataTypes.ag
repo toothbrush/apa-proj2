@@ -77,6 +77,10 @@ DATA SimpleSubstitution
   | AnnSub a1 : {AnnVar}    a2 : {AnnVar} -- annotation substitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
+TYPE TyEnv = MAP {Var} TyScheme
+
+TYPE AnnEnv = MAP {Var} {Maybe SAnn}
+
 {
 instance Show Constraint where
   show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2

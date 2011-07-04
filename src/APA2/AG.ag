@@ -11,9 +11,272 @@
 -- Attribute grammar for a simple, implicitly typed functional language.
 --
 -------------------------------------------------------------------------------
+optpragmas {
+{-# LANGUAGE TypeSynonymInstances #-}
+}
 
 MODULE {APA2.AG} {} {}
+imports
+{
+import Debug.Trace
+import            Control.Monad (mplus)
+import            Data.Map (Map)
+import qualified  Data.Map as DM
+import qualified  Data.Map
+import qualified  Data.Map as Map
+import            Data.MultiSet (MultiSet)
+import qualified  Data.MultiSet as DMS
+import qualified  Data.Set as DS
+import            Data.Maybe
+}
 
-INCLUDE "AG/Base.ag"
-INCLUDE "AG/Funs.ag"
+INCLUDE "AG/DataTypes.ag"
 INCLUDE "AG/Infer.ag"
+INCLUDE "AG/CollectBinders.ag"
+INCLUDE "AG/FreeTyVars.ag"
+INCLUDE "AG/FreeAnnVars.ag"
+
+{
+class Ord a => Lattice a where
+  top     :: a
+  bottom  :: a
+  join    :: a -> a -> a
+  pord    :: a -> a -> Bool
+
+type Worklist = MultiSet Constraint
+type EvalFunc = SAnn -> Map AnnVar SAnn -> SAnn
+type Influence = Map AnnVar Constraints
+type Analysis = Map AnnVar SAnn
+
+{-
+instance Lattice SAnn where
+  top    = error "SAnn does not have a concrete Top value"
+  bottom = AnnSet DS.empty
+  join   = annUnion
+  pord   = (>=)
+-}
+
+partitionConstraints :: Constraints -> (Constraints, Constraints)
+partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs
+  where o c@(Constraint _ (AnnVar _)) (cs,cs') = (cs, DS.insert c cs')
+        o c@(Constraint _ (AnnSet _)) (cs,cs') = (DS.insert c cs, cs')  
+
+worklist :: Constraints -> Map AnnVar SAnn
+worklist cs = 
+  let
+    (solved,unsolved) = partitionConstraints cs
+   
+    (w, analysis, infl) = 
+      let o c@(Constraint a (AnnVar b)) (w, analysis, infl) = ( DMS.insert c w
+                                                              , DM.insert a AnnEmpty (DM.insert b AnnEmpty analysis)
+                                                              , DM.insert a DS.empty (DM.insert b DS.empty infl))
+          o c@(Constraint a (AnnSet b)) (w, analysis, infl) = ( w
+                                                              , DM.insert a AnnEmpty analysis
+                                                              , DM.insert a DS.empty infl)
+      in DS.fold o (DMS.empty, DM.empty, DM.empty) cs
+
+    analysis' = 
+      let o c@(Constraint x x'@(AnnSet _)) a = DM.update (\v -> Just (v ∪ x')) x a
+      in DS.fold o analysis solved
+
+    infl' = 
+      let o c@(Constraint _ (AnnVar x)) infl = DM.update (Just . DS.insert c) x infl 
+      in DS.fold o infl unsolved
+
+    solveConstraints w analysis 
+      | DMS.null w = analysis
+      | otherwise  = let (w', analysis') = trace (debugStep w analysis) (step infl' w analysis)
+                     in solveConstraints w' analysis'
+    
+  in solveConstraints w analysis'
+
+step :: Influence -> Worklist -> Analysis -> (Worklist, Analysis)
+step infl w analysis 
+  | DMS.null w  = (w, analysis)
+  | otherwise   = 
+    let ((Constraint x (AnnVar t)), w') = let c = DMS.findMin w
+                                          in (c, DMS.delete c w)
+        
+        value    = x ? analysis
+        newValue = t ? analysis
+    in if not (value ⊇ newValue)
+        then let analysis'  = DM.insert x (value ∪ newValue) analysis
+                 successors = DMS.fromSet (x ? infl)
+                 augmentedW = successors `DMS.union` w'
+             in trace ("insert new") (augmentedW, analysis')
+        else (w', analysis)
+
+(⊇) :: SAnn -> SAnn -> Bool
+AnnEmpty   ⊇ AnnEmpty               = True
+AnnEmpty   ⊇ (AnnSet a) | DS.null a = True
+                        | otherwise = False
+(AnnSet a) ⊇ (AnnSet b)             = DS.isSubsetOf b a
+_          ⊇ _                      = error "no variables allowed"
+
+(∪) :: SAnn -> SAnn -> SAnn
+AnnEmpty   ∪ a          = a
+a          ∪ AnnEmpty   = a
+(AnnSet a) ∪ (AnnSet b) = AnnSet (DS.union a b) 
+_          ∪ _          = error "no variables allowed" 
+
+debugStep w ana = 
+  "step: " ++ "\n" ++ 
+  "W: " ++ show w ++ "\n" ++
+  "ANA: " ++ show ana ++ "\n"
+
+simplify = undefined
+{-
+simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
+simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
+                         ranges = trace ("active vars: "++show active++"\n") $ range c
+                         theta  = satisfiable active ranges
+                         c'     = applySubst theta c
+                     in  partition env c'
+
+pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
+pseudoActive active c =
+  let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs
+                                  | otherwise            = xs
+      vars = DS.fold extrAnn DS.empty c `DS.union` active
+  in  if DS.null (vars `DS.intersection` active)
+        then pseudoActive vars c
+        else let extrVar (AnnVar x) xs = DS.insert x xs
+                 extrVar _          xs = xs
+             in DS.fold extrVar DS.empty vars
+
+range :: Constraints -> Map AnnVar SAnn
+range c = worklist c
+
+satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
+satisfiable active analysis =
+  let act'          = DS.map AnnVar active
+      ana'          = DM.mapKeys AnnVar analysis
+      func beta l
+        | l <= beta = if beta `DS.notMember` act' -- || l == beta
+        -- doubt: shouldn't l==beta be removed from the list too?
+                        then if l == beta then Identity else AnnSub beta l
+                        else Identity
+        | otherwise = error "lower bound is larger than upper bound"
+      substLst      = DM.mapWithKey func ana'
+  in DM.fold Dot Identity substLst
+
+partition :: TyEnv -> Constraints -> (Constraints, Constraints)
+partition env cs = (cs,DS.empty)
+-}
+(?) :: Ord a => a -> Map a b -> b
+a ? m = fromJust $ DM.lookup a m 
+
+unify :: Ty -> Ty -> SimpleSubstitution
+unify Nat  Nat  = Identity
+unify Bool Bool = Identity
+
+unify (List t an) (List t' an') = let theta1 = unify t t'
+                                      theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
+                                  in theta2 `dot` theta1
+
+unify t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
+                                    | tv1 `DS.notMember` fv t2 = TySub tv1 t2
+                                    | tv2 `DS.notMember` fv t1 = TySub tv2 t1
+                                    | otherwise = error "Cannot unify. Error."
+
+unify (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
+                    | otherwise = occursCheck tv1 t
+
+unify t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
+                    | otherwise = occursCheck tv2 t 
+
+unify (Arr t11 t12 an) (Arr t21 t22 an') =
+  let theta1 = unify t11 t21
+      theta2 = unify (applySubst theta1 t12)
+                     (applySubst theta1 t22)
+      theta3 = let th21 = theta2 `dot` theta1
+               in unifyAnn (applySubst th21 an) (applySubst th21 an')
+  in theta3 `dot` theta2 `dot` theta1
+
+unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
+                      show t1 ++ "\nt_2 = " ++
+                      show t2
+
+unifyAnn :: AnnVar -> AnnVar -> SimpleSubstitution
+unifyAnn v v' | v == v'   = Identity
+              | otherwise = AnnSub v' v 
+
+occursCheck :: (Show a, Show b) => a -> b -> t
+occursCheck tv t = error $ "Occurs check: " ++ show tv ++ " = " ++ show t
+                                            ++ "\nCannot create infinite type."
+
+class Substitutable subject where
+  applySubst :: SimpleSubstitution -> subject -> subject
+
+instance Substitutable TyScheme where
+  applySubst Identity     t = t
+  applySubst d@(Dot _ _) t  = dotApply d t
+
+  applySubst s (QualSig t) = QualSig (applySubst s t)
+
+  applySubst s@(TySub a _) t@(Forall tv ts) | a == tv   = t
+                                            | otherwise = Forall tv (applySubst s ts)
+
+  applySubst s@(AnnSub a _) t@(AnnSig tv ts) | a == tv   = t
+                                             | otherwise = AnnSig tv (applySubst s ts)
+  
+  applySubst _ t = t
+
+instance Substitutable Qual where
+  applySubst Identity t          = t
+  applySubst s        (Ty t)     = Ty $ applySubst s t
+  applySubst s        (Qual c q) = Qual c $ applySubst s q
+
+instance Substitutable Ty where
+  applySubst Identity       t  = t
+  applySubst d@(Dot _ _)    t  = dotApply d t
+
+  applySubst (TySub a t0) (TyVar t)
+    | a == t    = t0
+    | otherwise = TyVar t
+
+  applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) (applySubst s ann)
+
+  applySubst s (List t ann) = List (applySubst s t) (applySubst s ann)
+
+  applySubst _ Nat  = Nat
+  applySubst _ Bool = Bool
+  applySubst _ t    = t
+
+instance Substitutable TyEnv where
+  applySubst s = DM.map (applySubst s)
+
+instance Substitutable AnnEnv where
+  applySubst s = DM.map (maybe Nothing (Just . applySubst s))
+
+instance Substitutable AnnVar where
+  applySubst s@(AnnSub a b) a'
+    | a == a'   = b
+    | otherwise = a'
+  applySubst _ a = a
+
+instance Substitutable Constraint where
+  applySubst Identity    cs     = cs
+  applySubst d@(Dot _ _) cs     = dotApply d cs
+  applySubst s@(AnnSub a b) (Constraint a' b')
+    | a == a'   = Constraint b (applySubst s b')
+    | otherwise = Constraint a' (applySubst s b')
+  applySubst _ c = c
+
+instance Substitutable Constraints where
+  applySubst s = DS.map (applySubst s)
+
+instance Substitutable SAnn where
+  applySubst Identity    a            = a
+  applySubst d@(Dot _ _) a@(AnnVar _) = dotApply d a
+
+  applySubst (AnnSub b b') a@(AnnVar b'')
+    | b == b''  = AnnVar b'
+    | otherwise = a
+
+  applySubst _ a = a
+
+dotApply :: Substitutable t => SimpleSubstitution -> t -> t
+dotApply (Dot s1 s2) t = applySubst s1 (applySubst s2 t)
+dotApply _           _ = error "not allowed"
+}
