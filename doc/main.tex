@@ -5,7 +5,7 @@
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
-\command{let,in,:}
+\command{let,in,:,case,of}
 % end semantic
 
 \author{Jurri\"en Stutterheim\and Ruben de Gooijer \and Paul van der Walt} 
@@ -47,7 +47,7 @@ data structures. The focus is on lists and pairs, for now.
         $t$     & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
                 & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
                 & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
-                & $|$ & $ \texttt{case } e_0 \texttt{ of } alts $ \\
+                & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
         $alts$  & ::= & $alt_1; \ldots ; alt_n$ \\
         $alt$   & ::= & $pattern \rightarrow t$ \\
     \end{tabular}
@@ -110,7 +110,7 @@ $[$\emph{cfa-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau
 ~&~\\
 $[$\emph{cfa-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
 &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
-{\widehat{\Gamma} |-_{CFA} \texttt{case } e_1 \texttt{ of }(x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
+{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_1\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
 
 %todo still: cfa-case-list.  also, natural semantics for cases. 
 
