@@ -1,0 +1,32 @@
+imports 
+{
+import qualified  Data.Set as DS
+}
+
+ATTR TyScheme Ty TyEnv Qual
+  [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
+  ]
+
+SEM TyScheme
+  | Forall lhs.fv  = @ts.fv  DS.\\ DS.singleton @a
+
+SEM Ty
+  | TyVar lhs.fv = DS.singleton @a
+
+SEM TyEnv
+  | Entry lhs.fv = @val.fv `DS.union` @tl.fv
+  | Nil   lhs.fv = DS.empty
+
+{
+class FreeVariables a where
+  fv :: a -> Set TyVar -- alias String
+
+instance FreeVariables TyScheme where
+  fv x = fv_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
+
+instance FreeVariables Ty where
+  fv x = fv_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
+
+instance FreeVariables TyEnv where
+  fv x = fv_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
+}

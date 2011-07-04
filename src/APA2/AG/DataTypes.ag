@@ -50,8 +50,8 @@ DERIVING TyScheme: Show, Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty ty2 : Ty     ann : SAnn
-  | List  ty  : Ty ann : SAnn -- builtin List is an addition
+  | Arr   ty1 : Ty ty2 : Ty  ann : {AnnVar}
+  | List  ty  : Ty ann : {AnnVar} -- builtin List is an addition
   | Nat
   | Bool
 
@@ -59,35 +59,36 @@ DERIVING Ty: Eq
 
 -- | We need to make the set operations explicit, since it is also possible to
 -- have something like β∪{h}
-
 DATA SAnn
   | AnnVar   var    : {AnnVar}
-  | AnnUnion a1     : SAnn        a2 : SAnn
   | AnnEmpty
   | AnnSet   points : {Set Point}
 
 DERIVING SAnn: Eq, Ord
 
 DATA Constraint
-  | Constraint a1 : SAnn a2 : SAnn
+  | Constraint a1 : AnnVar a2 : SAnn
 
 DERIVING Constraint: Eq, Ord
 
 DATA SimpleSubstitution
   | Identity
   | TySub  tv : {TyVar} t  : Ty
-  | AnnSub a1 : SAnn    a2 : SAnn -- annotation substitution
+  | AnnSub a1 : {AnnVar}    a2 : {AnnVar} -- annotation substitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
+
+TYPE TyEnv = MAP {Var} TyScheme
+
+TYPE AnnEnv = MAP {Var} {Maybe SAnn}
 
 {
 instance Show Constraint where
   show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2
 
 instance Show SAnn where
-  show (AnnVar var    ) = var
-  show (AnnUnion a1 a2) = show a1 ++ " ∪ " ++ show a2
-  show (AnnEmpty      ) = "{}"
-  show (AnnSet ps     ) = "{" ++  intercalate ", " (toList ps) ++  "}"
+  show (AnnVar var) = var
+  show (AnnSet ps)  = "{" ++  intercalate ", " (toList ps) ++  "}"
+  show (AnnEmpty)   = "{}"
 
 instance Show MH where
   show (VBool  v          ) = show v
@@ -110,10 +111,10 @@ instance Show Qual where
 
 instance Show Ty where
   show (TyVar a)    = a
-  show (Arr t t' a) = show t ++ "--"++ show a ++ "-->" ++ show t'
+  show (Arr t t' a) = show t ++ "--"++ a ++ "-->" ++ show t'
   show Nat          = "Nat"
   show Bool         = "Bool"
-  show (List t an)  = "List^{" ++ show an ++ "} " ++ show t
+  show (List t an)  = "List^{" ++ an ++ "} " ++ show t
 
 instance Show SimpleSubstitution where
   show Identity      = ""

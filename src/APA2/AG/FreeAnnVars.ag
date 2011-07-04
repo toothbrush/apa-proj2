@@ -1,0 +1,40 @@
+imports 
+{
+import qualified  Data.Set as DS
+}
+
+ATTR TyScheme Ty Constraint SAnn Qual
+  [||
+      -- | Unrolls a type, and returns all the variables
+      -- which are in "forall". This is useful for instantiation,
+      -- since these variables will need concrete values.
+      fav USE {`DS.union`} {DS.empty} : {Set AnnVar}
+      copy : SELF
+  ]
+
+SEM TyScheme
+  | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a
+
+SEM SAnn
+  | AnnVar lhs.fav = DS.singleton @var
+
+{
+class FreeAnnVars a where
+  fav :: a -> Set AnnVar -- alias String
+
+instance FreeAnnVars Ty where
+  fav x = fav_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
+
+instance FreeAnnVars TyScheme where
+  fav x = fav_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
+
+instance FreeAnnVars SAnn where
+  fav (AnnVar v)       = DS.singleton v
+  fav _                = DS.empty
+
+instance FreeAnnVars Constraints where
+  fav = DS.fold DS.union DS.empty . DS.map fav
+
+instance FreeAnnVars Constraint where
+  fav c = fav_Syn_Constraint (wrap_Constraint (sem_Constraint c) Inh_Constraint)
+}

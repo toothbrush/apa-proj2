@@ -3,6 +3,7 @@ module Components where
 import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
 import qualified Data.Map as DM
+import           Data.Map (Map)
 import qualified Data.Set as DS
 
 import APA2.AG
@@ -16,15 +17,17 @@ initialInheritedAttributes =
          , counter_Inh_MH = 0
          }
 
-w :: MH -> (Ty, SimpleSubstitution, Constraints)
+w :: MH -> (Ty, Maybe SAnn, SimpleSubstitution, Constraints, String)
 w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
        in  ( ty_Syn_MH           wrappedDS
+           , annotation_Syn_MH   wrappedDS
            , substitution_Syn_MH wrappedDS
            , constraints_Syn_MH  wrappedDS
+           , debug_Syn_MH  wrappedDS
            )
 
 inferTypes :: MH -> Ty
-inferTypes tm = let (ty,_,_) = w tm
+inferTypes tm = let (ty,_,_,_,_) = w tm
                 in ty
 
 debugFile :: FilePath -> IO ()
@@ -35,21 +38,18 @@ debugFile fl = do
 debugInference :: MH -> IO ()
 debugInference tm =
   do
-    let (ty, subst, constraints) = w tm
+    let (ty, annotation, subst, constraints, debug) = w tm
     putStrLn ("Program: \n    " ++ show tm)
     putStrLn "Substitution:"
     print subst
     putStrLn "Ty:"
     print ty
+    putStrLn "Top level annotation: "
+    print annotation
     putStrLn "Constraints:"
     print (DS.toList constraints)
+    putStrLn debug
 
-{-
-solveConstraints :: Lattice a => Constraints -> Map SAnn a
-solveConstraints c = undefined
-  where
-  eval annVar ana = DM.lookup annVar ana
--}
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
 
@@ -85,7 +85,9 @@ translate = hExpr
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) e') = Cons (hExpr e) (hExpr e')
   hExpr (H.InfixApp e (H.QVarOp (H.UnQual (H.Symbol op))) e') = Op op (hExpr e) (hExpr e') 
 
-  hExpr (H.Case e (c1:c2:_)) = CaseBlck (hExpr e) (mkCaseBlck c1) (mkCaseBlck c2)
+  hExpr (H.Case e (c1:c2:[])) = CaseBlck (hExpr e) (mkCaseBlck c1) (mkCaseBlck c2)
+
+  hExpr (H.Tuple (e1:e2:[])) = Pair (hExpr e1) (hExpr e2)
 
   hExpr e = notSupported e
 
