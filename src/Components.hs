@@ -85,7 +85,9 @@ translate = hExpr
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) e') = Cons (hExpr e) (hExpr e')
   hExpr (H.InfixApp e (H.QVarOp (H.UnQual (H.Symbol op))) e') = Op op (hExpr e) (hExpr e') 
 
-  hExpr (H.Case e (c1:c2:_)) = CaseBlck (hExpr e) (mkCaseBlck c1) (mkCaseBlck c2)
+  hExpr (H.Case e (c1:c2:[])) = CaseBlck (hExpr e) (mkCaseBlck c1) (mkCaseBlck c2)
+
+  hExpr (H.Tuple (e1:e2:[])) = Pair (hExpr e1) (hExpr e2)
 
   hExpr e = notSupported e
 
