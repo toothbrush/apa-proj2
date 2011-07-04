@@ -1,0 +1,17 @@
+ATTR TyScheme Qual
+  [|| binders : {([TyVar], [AnnVar], Ty)}   -- alias String
+  ]
+
+SEM TyScheme
+  | Forall  lhs.binders = let (vars, avars, ty) = @ts.binders
+                          in (@a:vars, avars, ty)
+  | AnnSig  lhs.binders = let (vars, avars, ty) = @ts.binders
+                          in (vars, @a:avars, ty)
+
+SEM Qual
+  | Ty   lhs.binders = ([], [], @ty.copy)
+
+{
+collectBinders :: TyScheme -> ([TyVar],[AnnVar],Ty)
+collectBinders ty = binders_Syn_TyScheme (wrap_TyScheme (sem_TyScheme ty) Inh_TyScheme)
+}
