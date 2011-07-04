@@ -2,6 +2,7 @@
 
 \usepackage{semantic}
 \usepackage{dsfont}
+\usepackage{cases}
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
@@ -161,6 +162,61 @@ $[$\emph{cfa-case-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\wideha
     \label{tab:cfa-rules}
 \end{table}
 
+In Table \ref{tab:algoU} we see the unification algorithm used for CFA. If none
+of the cases match, the algorithm fails, which is correct behaviour. The last
+rule, for lists, was added to the default implementation.
+
+\begin{table}
+    \centering
+    \begin{tabular}{rcp{15cm}}
+        \hline
+        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
+        $\mathcal{U}_{CFA}(Bool,Bool)$ & = & $id$ \\
+        $\mathcal{U}_{CFA}(\tau_1,\tau_2)$ & = & \parbox{\textwidth}{$ \left\{
+\begin{array}{ll}
+    id                      & if \tau_1 = \tau_2         \\
+    \left[ \tau_1 \mapsto \tau_2\right] & if \tau_1 \notin fv(\tau_2)\\
+    \left[ \tau_2 \mapsto \tau_1\right] & if \tau_2 \notin fv(\tau_1)\\
+    fail& otherwise
+\end{array}
+\right. $ } \\
+        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
+        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
+        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
+        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
+        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
+        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
+% unify' t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2               = Identity
+%                                      | tv1 `DS.notMember` fv t2 = TySub tv1 t2
+%                                      | tv2 `DS.notMember` fv t1 = TySub tv2 t1
+%                                      | otherwise = error "Cannot unify. Error."
+% 
+% unify' (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
+%                      | otherwise               = occursCheck tv1 t
+% 
+% unify' t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
+%                      | otherwise               = occursCheck tv2 t
+% 
+% unify' (Arr t11 t12 an) (Arr t21 t22 an') =
+%   let theta1 = unifyAnn an an'
+%       theta2 = unify (applySubst theta1 t11)
+%                      (applySubst theta1 t21)
+%       theta3 = let th21 = theta2 `dot` theta1
+%                in  unify (applySubst th21 t12) (applySubst th21 t22)
+%   in theta3 `dot` theta2 `dot` theta1
+% 
+% unify' (List t an) (List t' an') = let theta1 = unify t t'
+%                                        theta2 = unifyAnn (applySubst theta1 an) 
+%                                                          (applySubst theta1 an')
+%                                    in  theta2 `dot` theta1
+% 
+% 
+% 
+        \hline
+    \end{tabular}
+    \caption{Unification algorithm for lambda calculus including data structures.}
+    \label{tab:algoU}
+\end{table}
 \section{Approach}
 
 
