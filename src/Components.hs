@@ -87,18 +87,17 @@ translate = hExpr
 
   hExpr (H.Case e (c1:c2:[])) = CaseBlck (hExpr e) (mkCaseBlck c1) (mkCaseBlck c2)
 
-  hExpr (H.Tuple (e1:e2:[])) = Pair (hExpr e1) (hExpr e2)
-
   hExpr e = notSupported e
 
   mkCaseBlck (H.Alt _ pat (H.UnGuardedAlt ex) _) = CaseAlt (mkPat pat) (hExpr ex)
   mkCaseBlck _ = undefined -- TODO: Nice error
   mkPat (H.PLit (H.Int n)) = VInt n
-  mkPat (H.PApp (H.UnQual (H.Ident n)) _) = VBool $ case n of
-                                                      "True"  -> True
-                                                      "False" -> False
-                                                      _       -> undefined -- TODO: Nice error
-  mkPat _ = undefined -- TODO: Nice error
+  mkPat (H.PApp (H.UnQual (H.Ident n)) _) = case n of
+                                                "True"  -> VBool True
+                                                "False" -> VBool False
+                                                val     -> Var val
+  mkPat (H.PList []) = Nil
+  mkPat e = notSupported e
 
   hQName (H.UnQual (H.Ident x)) = x
   hQName e = notSupported e
