@@ -1,5 +1,5 @@
 {
-type Binders = ([TyVar], [AnnVar], Ty)
+type Binders = ([TyVar], [AnnVar], Qual)
 }
 
 ATTR TyScheme Qual
@@ -13,8 +13,8 @@ SEM TyScheme
                           in (vars, @a:avars, ty)
 
 SEM Qual
-  | Ty   lhs.binders = ([], [], @ty.copy)
-  | Qual lhs.binders = ([], [], @ty.copy)
+  | Ty   lhs.binders = ([], [], @self)
+  | Qual lhs.binders = ([], [], @self)
 
 {
 collectBinders :: TyScheme -> Binders

@@ -498,12 +498,25 @@ generalise env tau c = let free      = fv tau DS.\\ fv env
 -- old
 instantiate :: Int -> TyScheme -> Ty
 instantiate seed ts =
-  let (tyvars, _, ty') = collectBinders ts
+  let (tyvars, _, (Ty ty')) = collectBinders ts
       sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
       seed' = show seed
       nzip  c = zipWith (\_ b -> c (seed' ++ b)) tyvars (map show ([0..] :: [Int]))
       s  = sfold TySub (zip tyvars $ nzip TyVar)
   in applySubst s ty'
+
+inst :: Int -> TyScheme -> Qual
+inst seed ts = applySubst (tySubs `dot` annSubs) qual
+  where 
+  infinitelyFresh           = map (\x -> show seed ++ show x) ([0..] :: [Int]) 
+  (tyvars, annvars, qual)   = collectBinders ts
+  (tySubs,infinitelyFresh') = forallFresh (\a b -> TySub a (TyVar b)) infinitelyFresh tyvars
+  (annSubs,_)               = forallFresh AnnSub infinitelyFresh' annvars
+        
+forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] -> (SimpleSubstitution, [String])
+forallFresh subst fresh = foldr o (Identity, fresh)
+  where o a (b, fresh) = (Dot (subst a (fresh !! 0)) b, drop 1 fresh)
+
 
 {-
 -- a type T, and then makes the type into 
