@@ -107,11 +107,10 @@ step infl w analysis
         else (w', analysis)
 
 (⊇) :: SAnn -> SAnn -> Bool
-AnnEmpty   ⊇ AnnEmpty               = True
-AnnEmpty   ⊇ (AnnSet a) | DS.null a = True
-                        | otherwise = False
-(AnnSet a) ⊇ (AnnSet b)             = DS.isSubsetOf b a
-_          ⊇ _                      = error "no variables allowed"
+AnnEmpty   ⊇ AnnEmpty   = True
+AnnEmpty   ⊇ (AnnSet a) = DS.null a
+(AnnSet a) ⊇ (AnnSet b) = DS.isSubsetOf b a
+_          ⊇ _          = error "no variables allowed"
 
 (∪) :: SAnn -> SAnn -> SAnn
 AnnEmpty   ∪ a          = a
