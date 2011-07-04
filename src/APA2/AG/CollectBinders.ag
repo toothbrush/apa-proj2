@@ -1,5 +1,9 @@
+{
+type Binders = ([TyVar], [AnnVar], Ty)
+}
+
 ATTR TyScheme Qual
-  [|| binders : {([TyVar], [AnnVar], Ty)}   -- alias String
+  [|| binders : {Binders}   -- alias String
   ]
 
 SEM TyScheme
@@ -12,6 +16,6 @@ SEM Qual
   | Ty   lhs.binders = ([], [], @ty.copy)
 
 {
-collectBinders :: TyScheme -> ([TyVar],[AnnVar],Ty)
+collectBinders :: TyScheme -> Binders
 collectBinders ty = binders_Syn_TyScheme (wrap_TyScheme (sem_TyScheme ty) Inh_TyScheme)
 }
