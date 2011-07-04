@@ -44,12 +44,12 @@ data structures. The focus is on lists and pairs, for now.
 \begin{table}
     \centering
     \begin{tabular}{lcl}
-        $t$ & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
-            & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
-            & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
-            & $|$ & $ \texttt{case } e_0 \texttt{ of } alts $ \\
-        $alts$ & ::= & $alt_1; \ldots ; alt_n$ \\
-        $alt$ & ::= & $pattern \rightarrow t$ \\
+        $t$     & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
+                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
+                & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
+                & $|$ & $ \texttt{case } e_0 \texttt{ of } alts $ \\
+        $alts$  & ::= & $alt_1; \ldots ; alt_n$ \\
+        $alt$   & ::= & $pattern \rightarrow t$ \\
     \end{tabular}
     \caption{Grammar}
     \label{tab:grammar}
