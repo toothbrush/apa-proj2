@@ -251,8 +251,8 @@ instance Substitutable AnnEnv where
 
 instance Substitutable AnnVar where
   applySubst s@(AnnSub a b) a'
-    | a == a'   = b
-    | otherwise = a'
+    | a == a'    = b
+    | otherwise  = a'
   applySubst _ a = a
 
 instance Substitutable Constraint where

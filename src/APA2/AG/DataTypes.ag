@@ -37,7 +37,7 @@ DERIVING MH: Eq
 
 DATA Qual
   | Ty   ty : Ty
-  | Qual c  : Constraint q : Qual -- TODO: Constraint?
+  | Qual c  : {Constraints} ty : Ty
 
 DERIVING Qual: Eq
 
