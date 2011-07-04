@@ -93,17 +93,21 @@ instance Show SAnn where
 instance Show MH where
   show (VBool  v           ) = show v
   show (VInt   v           ) = show v
-  show (Var    x           ) =      x
-  show (Op     op e1 e2    ) = show e1 ++ op ++ show e2
-  show (Lambda x  e        ) = "λ "++x++" → " ++ show e
-  show (App    e1 e2       ) = show e1 ++ " " ++ show e2
-  show (Let    x  e1 e2    ) = "let "++ x ++" = " ++ show e1 ++ " in " ++ show e2
-  show (LetRec f  x  e1 e2 ) = "μ " ++ show f ++ ".let "++ fromMaybe "undef??FIXME" x ++" = " ++ show e1 ++ " in " ++ show e2
-  show (If     c  e1 e2    ) = "if " ++ show c ++ " then " ++ show e1 ++ " else " ++ show e2
-  show (Cons   e1 e2       ) = show e1 ++ ":"++show e2
+  show (Var    x           ) =   x
+  show (Op     op e1 e2    ) = show e1    ++ op       ++ show e2
+  show (Lambda x  e        ) = "λ "       ++ x        ++ " → "    ++ show e
+  show (App    e1 e2       ) = show e1    ++ " "      ++ show e2
+  show (Let    x  e1 e2    ) = "let "     ++ x        ++ " = "    
+                               ++ show e1 ++ " in "   ++ show e2
+  show (LetRec f  x  e1 e2 ) = "μ "       ++ show f   ++ ".let "  
+                               ++ fromMaybe "undefined" x 
+                               ++ " = "   ++ show e1  ++ " in "   ++ show e2
+  show (If     c  e1 e2    ) = "if "      ++ show c   ++ " then " ++ show e1   
+                               ++ " else "++ show e2
+  show (Cons   e1 e2       ) = show e1    ++ ":"      ++ show e2
   show (Nil                ) = "[]"
-  show (CaseBlck ex  c1 c2 ) = "case "    ++ show ex  ++ " of\n" ++ show c1   ++ show c2
-  show (CaseAlt  pat bnds  ) = "        " ++ show pat ++ "\t → " ++ show bnds ++ "\n"
+  show (CaseBlck ex  c1 c2 ) = "case "    ++ show ex  ++ " of\n"  ++ show c1   ++ show c2
+  show (CaseAlt  pat bnds  ) = "        " ++ show pat ++ "\t → "  ++ show bnds ++ "\n"
 
 instance Show Qual where
   show (Ty t) = show t
