@@ -5,7 +5,8 @@
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
-\command{let,in,:}
+\command{let,in,:,case,of}
+\mathlig{-->}{\longrightarrow}
 % end semantic
 
 \author{Jurri\"en Stutterheim\and Ruben de Gooijer \and Paul van der Walt} 
@@ -44,11 +45,12 @@ data structures. The focus is on lists and pairs, for now.
 \begin{table}
     \centering
     \begin{tabular}{lcl}
-        $t$ & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
-            & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
-            & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
-            & $|$ & $ (\texttt{case } e_0 \texttt{ of }(x_1,x_2) \Rightarrow e_1)     $ \\
-            & $|$ & $ (\texttt{case } e_0 \texttt{ of }(x_1\<:>x_2) \Rightarrow e_1 \texttt{ or } e_2)     $ \\
+        $t$     & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
+                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
+                & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
+                & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
+        $alts$  & ::= & $alt_1; \ldots ; alt_n$ \\
+        $alt$   & ::= & $pattern \rightarrow t$ \\
     \end{tabular}
     \caption{Grammar}
     \label{tab:grammar}
@@ -79,12 +81,43 @@ data structures. The focus is on lists and pairs, for now.
     \label{tab:typing}
 \end{table}
 
-This is the control-flow analysis: 
-\fbox{$\widehat{\Gamma}\:\vdash_{CFA} t : \widehat{\sigma}$}
-
 \subsection{Natural semantics}
 
-We have the usual set of rules including, for example,  \emph{cfa-var} or \emph{cfa-let}, which has been extended to support lists, see \emph{cfa-nil} and \emph{cfa-cons}, the rules specifying list-typing. 
+In this section, Table \ref{tab:natural-semantics}, we define how terms are
+evaluated. This is also known as big-step semantics. Notice the addition of
+\textbf{case}-statements for data structure use. See Table 5.4 in \cite{nnh}
+for reference. Our listing isn't complete, only the additions with respect to the 
+aforementioned table are shown. 
+
+\begin{table}
+    \centering
+    \begin{tabular}{ll}
+        $ [$\emph{ns-con}$] $& $ |- c --> c$ \\ ~&~\\
+        $ [$\emph{ns-fn}$]  $& $ |- \lambda_\pi x.t_1 --> \lambda_\pi x.t_1$ \\ ~&~\\
+        $ [$\emph{ns-fn$_{rec}$}$]  $& $ |- \mu f.\lambda_\pi x.t_1 --> \lambda_\pi x.(t_1[f \mapsto \lambda_\pi x.t_1 ])$ \\ ~&~\\
+        $ [$\emph{ns-case$_{pair}$}$] $& \inference{|- e_0 --> (x_1,x_2) & |- x_1 --> v_1 & |- x_2 --> v_2}
+{|- (\<case>\: e_0\: \<of>\: (x_1,x_2) -> e_1) --> e_1[x_1\mapsto v_1, x_2 \mapsto v_2]} \\ ~&~\\
+        $ [$\emph{ns-case$_{list1}$}$] $& \inference{|- e_0 --> [] }
+{|- (\<case>\: e_0\: \<of>\: [] -> e_1; (x\<:>xs) -> e_2) --> e_1} \\ ~&~\\
+        $ [$\emph{ns-case$_{list2}$}$] $& \inference{|- e_0 --> (x\<:>xs) & x --> v & xs --> vs }
+{|- (\<case>\: e_0\: \<of>\: [] -> e_1; (x\<:>xs) -> e_2) --> e_2[x\mapsto v, xs \mapsto vs]} \\ ~&~\\
+
+
+    \end{tabular}
+    \caption{Natural semantics for the language}
+    \label{tab:natural-semantics}
+\end{table}
+
+\subsection{Control Flow Analysis}
+
+We have the usual set of rules including, for example,  \emph{cfa-var} or
+\emph{cfa-let}, which has been extended to support lists, see \emph{cfa-nil}
+and \emph{cfa-cons}, the rules specifying list-typing, Table
+\ref{tab:cfa-rules}. CFA judgements look like {$\widehat{\Gamma}\:\vdash_{CFA}
+t : \widehat{\sigma}$}, meaning that some term $t$ has inferred type
+$\widehat{\sigma}$ in context $\widehat{\Gamma}$. See Table 5.2 in \cite{nnh}
+for reference. 
+
 
 \begin{table}
     \centering
@@ -109,12 +142,16 @@ $[$\emph{cfa-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau
 ~&~\\
 $[$\emph{cfa-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
 &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
-{\widehat{\Gamma} |-_{CFA} \texttt{case } e_1 \texttt{ of }(x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
-
-%todo still: cfa-case-list.  also, natural semantics for cases. 
+{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
+~&~\\
+$[$\emph{cfa-case-nil}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat{\tau}_1] &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
+{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: [] \Rightarrow e_1 : \widehat{\tau} }, if $e_0$ empty\\
+~&~\\
+$[$\emph{cfa-case-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat{\tau}_1] &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
+{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x\<:>xs) \Rightarrow e_1 : \widehat{\tau} }, if $e_0$ nonempty\\
 
     \end{tabular}
-    \caption{Control flow analysis rules. }
+    \caption{Control Flow Analysis rules. }
     \label{tab:cfa-rules}
 \end{table}
 
@@ -140,5 +177,18 @@ $[$\emph{cfa-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat
     \item \textit{singleton.hm} Simply illustrates a variable which is out of
         scope. 
 \end{itemize}
+
+
+
+\begin{thebibliography}{9}
+
+\bibitem{nnh}
+  {Flemming Nielson, Hanne Riis Nielson, Chris Hankin},
+  \emph{Principles of Program Analysis},
+  Springer, Berlin,
+  2nd Edition,
+  2005.
+
+\end{thebibliography}
 
 \end{document}
