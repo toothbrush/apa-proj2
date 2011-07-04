@@ -83,14 +83,14 @@ partition env cs = (cs,DS.empty)
 instantiate :: Int -> TyScheme -> Ty
 instantiate seed ts =
   let (faVars, forallAVars, ty') = (agTyScheme faVs_Syn_TyScheme) ts
-      sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      nzip  c = zipWith (\a b -> {- trace ("fresh="++a++b++"\n") $ -} c (a ++ b)) faVars (map show ([seed..] :: [Int]))
+      sfold c = foldr (\(o,n) -> Dot (c o n) ) Identity
+      nzip  c = zipWith (\a b -> c   (a ++ b)) faVars (map show ([seed..] :: [Int]))
       -- first get all "forall" bound variables,
       -- then replace these with fresh variables
       s  = sfold TySub (zip faVars $ nzip TyVar)
       -- TODO: do kinda the same for annotation variables.
-  in  {-trace (show finalSub) $ -}
-      applySubst s ty'
+  in  applySubst s ty'
+
 {-
 instantiate :: TyScheme -> Ty
 instantiate ts =
