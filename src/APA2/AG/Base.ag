@@ -26,6 +26,7 @@ DATA MH
   | Let    x  : {Var}  e1 : MH          e2 : MH
   | LetRec f  : {Var}  x  : {Maybe Var} e1 : MH e2 : MH
   | If     c  : MH     e1 : MH          e2 : MH
+  | Pair   e1 : MH     e2 : MH
   | Cons   e1 : MH     e2 : MH
   | Nil
   | CaseBlck ex  : MH c1  : MH c2 : MH
@@ -97,12 +98,13 @@ instance Show MH where
   show (Lambda x  e       ) = "λ "++x++" → " ++ show e
   show (App    e1 e2      ) = show e1 ++ " " ++ show e2
   show (Let    x  e1 e2   ) = "let "++ x ++" = " ++ show e1 ++ " in " ++ show e2
-  show (LetRec f  x  e1 e2) = "μ " ++ show f ++ ".let "++ fromMaybe "undef??FIXME" x ++" = " ++ show e1 ++ " in " ++ show e2
-  show (If     c  e1 e2   ) = "if "++show c++" then " ++ show e1 ++ " else " ++ show e2
-  show (Cons   e1 e2      ) = show e1 ++ ":"++show e2
+  show (LetRec f  x  e1 e2) = "μ " ++ show f ++ ".let "  ++ fromMaybe "undefined" x ++" = " ++ show e1 ++ " in " ++ show e2
+  show (If     c  e1 e2   ) = "if "++ show c ++ " then " ++ show e1 ++ " else " ++ show e2
+  show (Cons   e1 e2      ) = show e1 ++ ":" ++ show e2
   show (Nil               ) = "[]"
-  show (CaseBlck ex  c1 c2) = "case "   ++ show ex  ++ " of\n" ++ show c1 ++ show c2
-  show (CaseAlt  pat bnds ) = "        "++ show pat ++ "\t → " ++ show bnds ++ "\n"
+  show (Pair   e1 e2      ) = "(" ++ show e1 ++ "," ++ show e2 ++ ")"
+  show (CaseBlck ex  c1 c2) = "case "    ++ show ex  ++ " of\n" ++ show c1   ++ show c2
+  show (CaseAlt  pat bnds ) = "        " ++ show pat ++ "\t → " ++ show bnds ++ "\n"
 
 instance Show Qual where
   show (Ty t) = show t
