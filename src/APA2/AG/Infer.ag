@@ -625,7 +625,7 @@ worklist cs =
    
     (w, analysis, infl) = 
       let o c@(Constraint a (AnnVar b)) (w, analysis, infl) = ( DMS.insert c w
-                                                              , DM.insert a AnnEmpty analysis
+                                                              , DM.insert a AnnEmpty (DM.insert b AnnEmpty analysis)
                                                               , DM.insert a DS.empty (DM.insert b DS.empty infl))
           o c@(Constraint a (AnnSet b)) (w, analysis, infl) = ( w
                                                               , DM.insert a AnnEmpty analysis
@@ -645,8 +645,7 @@ worklist cs =
       | otherwise  = let (w', analysis') = trace (debugStep w analysis) (step infl' w analysis)
                      in solveConstraints w' analysis'
     
-  in trace ("INFL: " ++ show infl' ++ "\n") solveConstraints w analysis'
-
+  in solveConstraints w analysis'
 
 step infl w analysis 
   | DMS.null w  = (w, analysis)
@@ -656,23 +655,20 @@ step infl w analysis
         
         value    = x ? analysis
         newValue = t ? analysis
-    in if value ⊈ newValue
-        then let analysis'  = DM.insert t (value ∪ newValue) analysis
+    in if not (value ⊇ newValue)
+        then let analysis'  = DM.insert x (value ∪ newValue) analysis
                  successors = DMS.fromSet (x ? infl)
                  augmentedW = successors `DMS.union` w'
              in trace ("insert new") (augmentedW, analysis')
         else (w', analysis)
 
-(⊆) :: SAnn -> SAnn -> Bool
-AnnEmpty ⊆ AnnEmpty = True
-AnnEmpty ⊆ (AnnSet a) 
+(⊇) :: SAnn -> SAnn -> Bool
+AnnEmpty ⊇ AnnEmpty = True
+AnnEmpty ⊇ (AnnSet a) 
   | DS.null a = True
   | otherwise = False
-(AnnSet a) ⊆ (AnnSet b) = DS.isSubsetOf a b
-_ ⊆ _  = error "no variables allowed"
-
-(⊈) :: SAnn -> SAnn -> Bool
-a ⊈ b = not (a ⊆ b)
+(AnnSet a) ⊇ (AnnSet b) = DS.isSubsetOf b a
+_ ⊇ _  = error "no variables allowed"
 
 (∪) :: SAnn -> SAnn -> SAnn
 AnnEmpty ∪ a = a
