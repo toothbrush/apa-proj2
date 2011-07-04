@@ -10,6 +10,7 @@ SEM TyScheme
 
 SEM Qual
   | Ty   lhs.binders = ([], [], @ty.copy)
+  | Qual lhs.binders = ([], [], @ty.copy)
 
 {
 collectBinders :: TyScheme -> ([TyVar],[AnnVar],Ty)
