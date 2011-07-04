@@ -26,7 +26,6 @@ DATA MH
   | Let    x  : {Var}  e1 : MH          e2 : MH
   | LetRec f  : {Var}  x  : {Maybe Var} e1 : MH e2 : MH
   | If     c  : MH     e1 : MH          e2 : MH
-  | Pair   e1 : MH     e2 : MH
   | Cons   e1 : MH     e2 : MH
   | Nil
   | CaseBlck ex  : MH c1  : MH c2 : MH
@@ -102,7 +101,6 @@ instance Show MH where
   show (If     c  e1 e2   ) = "if "++ show c ++ " then " ++ show e1 ++ " else " ++ show e2
   show (Cons   e1 e2      ) = show e1 ++ ":" ++ show e2
   show (Nil               ) = "[]"
-  show (Pair   e1 e2      ) = "(" ++ show e1 ++ "," ++ show e2 ++ ")"
   show (CaseBlck ex  c1 c2) = "case "    ++ show ex  ++ " of\n" ++ show c1   ++ show c2
   show (CaseAlt  pat bnds ) = "        " ++ show pat ++ "\t → " ++ show bnds ++ "\n"
 
