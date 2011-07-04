@@ -1,3 +1,4 @@
 dist
 .DS_Store
 src/APA2/AG.hs
+doc/main.out

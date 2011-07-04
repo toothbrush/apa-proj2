@@ -1,0 +1,3 @@
+let x = (1,2) in 
+    case x of
+        (y,z) -> z

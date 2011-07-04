@@ -45,12 +45,14 @@ data structures. The focus is on lists and pairs, for now.
 \begin{table}
     \centering
     \begin{tabular}{lcl}
+        \hline
         $t$     & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
                 & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
                 & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
                 & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
         $alts$  & ::= & $alt_1; \ldots ; alt_n$ \\
         $alt$   & ::= & $pattern \rightarrow t$ \\
+        \hline
     \end{tabular}
     \caption{Grammar}
     \label{tab:grammar}
@@ -92,6 +94,7 @@ aforementioned table are shown.
 \begin{table}
     \centering
     \begin{tabular}{ll}
+        \hline
         $ [$\emph{ns-con}$] $& $ |- c --> c$ \\ ~&~\\
         $ [$\emph{ns-fn}$]  $& $ |- \lambda_\pi x.t_1 --> \lambda_\pi x.t_1$ \\ ~&~\\
         $ [$\emph{ns-fn$_{rec}$}$]  $& $ |- \mu f.\lambda_\pi x.t_1 --> \lambda_\pi x.(t_1[f \mapsto \lambda_\pi x.t_1 ])$ \\ ~&~\\
@@ -103,6 +106,7 @@ aforementioned table are shown.
 {|- (\<case>\: e_0\: \<of>\: [] -> e_1; (x\<:>xs) -> e_2) --> e_2[x\mapsto v, xs \mapsto vs]} \\ ~&~\\
 
 
+        \hline
     \end{tabular}
     \caption{Natural semantics for the language}
     \label{tab:natural-semantics}
@@ -122,6 +126,7 @@ for reference.
 \begin{table}
     \centering
     \begin{tabular}{ll}
+        \hline
         $ [$\emph{cfa-var}$] $& \inference{\widehat{\Gamma}(x) = \widehat{\sigma}}
 {\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}} \\
 ~&~\\
@@ -150,6 +155,7 @@ $[$\emph{cfa-case-nil}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat
 $[$\emph{cfa-case-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat{\tau}_1] &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
 {\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x\<:>xs) \Rightarrow e_1 : \widehat{\tau} }, if $e_0$ nonempty\\
 
+        \hline
     \end{tabular}
     \caption{Control Flow Analysis rules. }
     \label{tab:cfa-rules}
