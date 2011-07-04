@@ -2,7 +2,7 @@
 
 \usepackage{semantic}
 \usepackage{dsfont}
-\usepackage{cases}
+\usepackage{array}
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
@@ -168,11 +168,11 @@ rule, for lists, was added to the default implementation.
 
 \begin{table}
     \centering
-    \begin{tabular}{rcp{15cm}}
+    \begin{tabular}{rcb{7cm}}
         \hline
         $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
         $\mathcal{U}_{CFA}(Bool,Bool)$ & = & $id$ \\
-        $\mathcal{U}_{CFA}(\tau_1,\tau_2)$ & = & \parbox{\textwidth}{$ \left\{
+        $\mathcal{U}_{CFA}(\tau_1,\tau_2)$ & = & \parbox{0.3\textwidth}{$ \left\{
 \begin{array}{ll}
     id                      & if \tau_1 = \tau_2         \\
     \left[ \tau_1 \mapsto \tau_2\right] & if \tau_1 \notin fv(\tau_2)\\
@@ -180,41 +180,46 @@ rule, for lists, was added to the default implementation.
     fail& otherwise
 \end{array}
 \right. $ } \\
-        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
-        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
-        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
-        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
-        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
-        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
-% unify' t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2               = Identity
-%                                      | tv1 `DS.notMember` fv t2 = TySub tv1 t2
-%                                      | tv2 `DS.notMember` fv t1 = TySub tv2 t1
-%                                      | otherwise = error "Cannot unify. Error."
-% 
-% unify' (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
-%                      | otherwise               = occursCheck tv1 t
-% 
-% unify' t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
-%                      | otherwise               = occursCheck tv2 t
-% 
-% unify' (Arr t11 t12 an) (Arr t21 t22 an') =
-%   let theta1 = unifyAnn an an'
-%       theta2 = unify (applySubst theta1 t11)
-%                      (applySubst theta1 t21)
-%       theta3 = let th21 = theta2 `dot` theta1
-%                in  unify (applySubst th21 t12) (applySubst th21 t22)
-%   in theta3 `dot` theta2 `dot` theta1
-% 
-% unify' (List t an) (List t' an') = let theta1 = unify t t'
-%                                        theta2 = unifyAnn (applySubst theta1 an) 
-%                                                          (applySubst theta1 an')
-%                                    in  theta2 `dot` theta1
-% 
-% 
-% 
+        $\mathcal{U}_{CFA}(\beta,\tau)$ & = & \parbox{\textwidth}{$ \left\{
+\begin{array}{ll}
+    \left[ \tau \mapsto \beta\right] & if \tau \notin fv(\beta)\\
+    occurs check & otherwise
+\end{array}
+\right. $ } \\
+        $\mathcal{U}_{CFA}(\tau,\beta)$ & = & $\mathcal{U}_{CFA}(\beta,\tau)$ \\
+        $\mathcal{U}_{CFA}(\tau_1 \stackrel{\varphi}{->} \tau_2,
+                           \tau_1' \stackrel{\varphi'}{->} \tau_2')$ & = & 
+                           \parbox{\textwidth}{$ 
+\begin{array}{ll}
+    let & \theta_1 = \mathcal{U}'_{CFA}(\varphi,\varphi')  \\
+        & \theta_2 = \mathcal{U}_{CFA}(\theta_1 \tau_1, \theta_1 \tau_1') \\
+        & \theta_3 = \mathcal{U}_{CFA}(\theta_2 (\theta_1 \tau_2), \theta_2(\theta_1 \tau_2')) \\
+    in  & \theta_3 \circ \theta_2 \circ \theta_1
+\end{array}
+ $ } 
+\\
+        $\mathcal{U}_{CFA}([\tau]^\varphi,
+        [\tau']^{\varphi'})$ & = & 
+                           \parbox{0.3\textwidth}{$ 
+\begin{array}{ll}
+    let & \theta_1 = \mathcal{U}_{CFA}(\tau,\tau')  \\
+        & \theta_2 = \mathcal{U}'_{CFA}(\theta_1 \varphi, \theta_1 \varphi') \\
+    in  & \theta_2 \circ \theta_1
+\end{array}
+ $ } 
+\\
+
+        $\mathcal{U}'_{CFA}(\varphi,\varphi')$ & = & \parbox{\textwidth}{$ \left\{
+\begin{array}{ll}
+    id & if \varphi = \varphi' \\
+    \left[ \varphi' \mapsto \varphi\right] & otherwise 
+\end{array}
+\right. $ } \\
+        $\mathcal{U}'_{CFA}(\_,\_)$ & = & unification error \\
         \hline
     \end{tabular}
-    \caption{Unification algorithm for lambda calculus including data structures.}
+    \caption{Unification algorithm for lambda calculus including data structures. $\mathcal{U}'$ is 
+    annotation unification.}
     \label{tab:algoU}
 \end{table}
 \section{Approach}
