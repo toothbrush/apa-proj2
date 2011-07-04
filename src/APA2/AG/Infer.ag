@@ -395,11 +395,10 @@ SEM MH
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
       e2.annEnvironment =
-        case @x of
-          Just x  -> applySubst @e1.substitution 
-                                (DM.insert @f (Just (AnnVar @loc.beta')) (DM.insert x @e1.annotation @lhs.annEnvironment))
-          Nothing -> applySubst @e1.substitution
-                                (DM.insert @f (Just (AnnVar @loc.beta')) @lhs.annEnvironment)
+        let apps t = applySubst @e1.substitution (DM.insert @f (Just (AnnVar @loc.beta')) t)
+        in case @x of
+             Just x' -> apps (DM.insert x' @e1.annotation @lhs.annEnvironment)
+             Nothing -> apps @lhs.annEnvironment
 
   | If
       loc.beta   : UNIQUEREF counter
@@ -437,7 +436,7 @@ SEM MH
 
       e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
       e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment                          
+      e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
       lhs.debug = "If: \n" ++
