@@ -86,13 +86,22 @@ data structures. The focus is on lists and pairs, for now.
 In this section, Table \ref{tab:natural-semantics}, we define how terms are
 evaluated. This is also known as big-step semantics. Notice the addition of
 \textbf{case}-statements for data structure use. See Table 5.4 in \cite{nnh}
-for reference. 
+for reference. Our listing isn't complete, only the additions with respect to the 
+aforementioned table are shown. 
 
 \begin{table}
     \centering
     \begin{tabular}{ll}
-        $ [$\emph{ns-con}$] $& \inference{}
-{ |- c --> c} \\ ~&~\\
+        $ [$\emph{ns-con}$] $& $ |- c --> c$ \\ ~&~\\
+        $ [$\emph{ns-fn}$]  $& $ |- \lambda_\pi x.t_1 --> \lambda_\pi x.t_1$ \\ ~&~\\
+        $ [$\emph{ns-fn$_{rec}$}$]  $& $ |- \mu f.\lambda_\pi x.t_1 --> \lambda_\pi x.(t_1[f \mapsto \lambda_\pi x.t_1 ])$ \\ ~&~\\
+        $ [$\emph{ns-case$_{pair}$}$] $& \inference{|- e_0 --> (x_1,x_2) & |- x_1 --> v_1 & |- x_2 --> v_2}
+{|- (\<case>\: e_0\: \<of>\: (x_1,x_2) -> e_1) --> e_1[x_1\mapsto v_1, x_2 \mapsto v_2]} \\ ~&~\\
+        $ [$\emph{ns-case$_{list1}$}$] $& \inference{|- e_0 --> [] }
+{|- (\<case>\: e_0\: \<of>\: [] -> e_1; (x\<:>xs) -> e_2) --> e_1} \\ ~&~\\
+        $ [$\emph{ns-case$_{list2}$}$] $& \inference{|- e_0 --> (x\<:>xs) & x --> v & xs --> vs }
+{|- (\<case>\: e_0\: \<of>\: [] -> e_1; (x\<:>xs) -> e_2) --> e_2[x\mapsto v, xs \mapsto vs]} \\ ~&~\\
+
 
     \end{tabular}
     \caption{Natural semantics for the language}
