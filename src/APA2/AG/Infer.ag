@@ -489,7 +489,7 @@ getVar x env =
 
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c =
-  let ftvs   = fv tau DS.\\ fv env
+  let ftvs   = ftv tau DS.\\ ftv env
       favs   = fav tau DS.\\ fav env DS.\\ fav ann
       fcvs   = fav c DS.\\ favs
       (c', c'') = simplify env tau c

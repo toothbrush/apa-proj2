@@ -1,27 +1,27 @@
 ATTR TyScheme Ty TyEnv Qual TyEnv
-  [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
+  [|| ftv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
   ]
 
 SEM TyScheme
-  | Forall lhs.fv  = @ts.fv  DS.\\ DS.singleton @a
+  | Forall lhs.ftv  = @ts.ftv  DS.\\ DS.singleton @a
 
 SEM Ty
-  | TyVar lhs.fv = DS.singleton @a
+  | TyVar lhs.ftv = DS.singleton @a
 
 SEM TyEnv
-  | Entry lhs.fv = @val.fv `DS.union` @tl.fv
-  | Nil   lhs.fv = DS.empty
+  | Entry lhs.ftv = @val.ftv `DS.union` @tl.ftv
+  | Nil   lhs.ftv = DS.empty
 
 {
 class FreeVariables a where
-  fv :: a -> Set TyVar -- alias String
+  ftv :: a -> Set TyVar -- alias String
 
 instance FreeVariables TyScheme where
-  fv x = fv_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
+  ftv x = ftv_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
 
 instance FreeVariables Ty where
-  fv x = fv_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
+  ftv x = ftv_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
 
 instance FreeVariables TyEnv where
-  fv x = fv_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
+  ftv x = ftv_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
 }
