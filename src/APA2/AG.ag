@@ -121,19 +121,18 @@ debugStep w ana =
   "W: " ++ show w ++ "\n" ++
   "ANA: " ++ show ana ++ "\n"
 
-simplify = undefined
-{-
-simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
-simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
-                         ranges = trace ("active vars: "++show active++"\n") $ range c
-                         theta  = satisfiable active ranges
-                         c'     = applySubst theta c
-                     in  partition env c'
+simplify :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, Constraints)
+{- simplify = undefined-}
+simplify env ann tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
+                             ranges = trace ("active vars: "++show active++"\n") $ range c
+                             theta  = satisfiable active ranges
+                             c'     = applySubst theta c
+                         in  partition env c'
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
-  let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs
-                                  | otherwise            = xs
+  let extrAnn (Constraint l u) xs | AnnVar l `DS.member` active = DS.insert u xs
+                                  | otherwise                   = xs
       vars = DS.fold extrAnn DS.empty c `DS.union` active
   in  if DS.null (vars `DS.intersection` active)
         then pseudoActive vars c
@@ -144,14 +143,18 @@ pseudoActive active c =
 range :: Constraints -> Map AnnVar SAnn
 range c = worklist c
 
+-- TODO: Implementation is ugly, refactor. It helps if we get a set of SAnn here
 satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
 satisfiable active analysis =
   let act'          = DS.map AnnVar active
       ana'          = DM.mapKeys AnnVar analysis
-      func beta l
-        | l <= beta = if beta `DS.notMember` act' -- || l == beta
-        -- doubt: shouldn't l==beta be removed from the list too?
-                        then if l == beta then Identity else AnnSub beta l
+      func beta@(AnnVar v) l
+        | l <= beta = if beta `DS.notMember` act'
+                        then if l == beta
+                               then Identity
+                               else case l of
+                                      (AnnVar v') -> AnnSub v v'
+                                      _          -> error "satisfiable: should not happen"
                         else Identity
         | otherwise = error "lower bound is larger than upper bound"
       substLst      = DM.mapWithKey func ana'
@@ -159,7 +162,7 @@ satisfiable active analysis =
 
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs = (cs,DS.empty)
--}
+
 (?) :: Ord a => a -> Map a b -> b
 a ? m = fromJust $ DM.lookup a m 
 

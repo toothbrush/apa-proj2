@@ -66,6 +66,7 @@ DATA SAnn
 
 DERIVING SAnn: Eq, Ord
 
+-- TODO: a1 needs to become SAnn again
 DATA Constraint
   | Constraint a1 : AnnVar a2 : SAnn
 

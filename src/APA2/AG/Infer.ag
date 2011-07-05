@@ -492,10 +492,11 @@ getVar x env =
 
 generalise :: TyEnv -> Maybe SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c =
-  let ftvs   = fv tau DS.\\ fv env
-      favs   = fav tau DS.\\ fav env DS.\\ fav (fromMaybe AnnEmpty ann)
+  let phi    = fromMaybe AnnEmpty ann
+      ftvs   = fv tau DS.\\ fv env
+      favs   = fav tau DS.\\ fav env DS.\\ fav phi
       fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
-      (c'', c') = simplify c
+      (c'', c') = simplify env phi tau c
       qtdTVs = DS.fold Forall (QualSig $ Qual c' $ Ty tau) ftvs
       qtdAVs = DS.fold AnnSig qtdTVs favs
   in  (c'', qtdAVs)
