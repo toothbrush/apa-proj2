@@ -182,22 +182,20 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.ty =
+      loc.(c, ty) = 
         if @x `DM.member` @lhs.typeEnvironment
-          then let x  = getVar @x @lhs.typeEnvironment 
-                   x' = instantiate @loc.beta x 
-               in case x' of
-                    Arr a b _ -> Arr a b @loc.beta'
-                    _         -> x'
+          then case inst @loc.beta (getVar @x @lhs.typeEnvironment) of
+                Ty   ty    -> (DS.empty, ty)
+                Qual c  ty -> (c, ty)
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
       loc.constraints = 
         let phi = @x ? @lhs.annEnvironment 
-        in @loc.beta' <:? phi
+        in @loc.c `DS.union` (@loc.beta' <:? phi)
 
       loc.annotation = 
         case @loc.ty of
-          Arr _ _ _ -> Just (AnnVar @loc.beta')
+          Arr _ _ a -> Just (AnnVar a)
           _         -> Nothing
 
       loc.substitution = Identity

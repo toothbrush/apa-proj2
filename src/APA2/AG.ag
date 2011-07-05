@@ -124,10 +124,8 @@ debugStep w ana =
   "W: " ++ show w ++ "\n" ++
   "ANA: " ++ show ana ++ "\n"
 
-simplify = undefined
-{-
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
-simplify env tau c = let active = pseudoActive (DS.map AnnVar ({- fav env `DS.union` -} fav tau)) c
+simplify env tau c = let active = pseudoActive (DS.map AnnVar (fav tau)) c
                          ranges = trace ("active vars: "++show active++"\n") $ range c
                          theta  = satisfiable active ranges
                          c'     = applySubst theta c
@@ -162,7 +160,7 @@ satisfiable active analysis =
 
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs = (cs,DS.empty)
--}
+
 (?) :: Ord a => a -> Map a b -> b
 a ? m = fromJust $ DM.lookup a m 
 
