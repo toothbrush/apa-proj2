@@ -121,7 +121,7 @@ debugStep w ana =
   "W: " ++ show w ++ "\n" ++
   "ANA: " ++ show ana ++ "\n"
 
-simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
+simplify :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c = let active = pseudoActive (DS.map AnnVar (fav tau)) c
                          ranges = trace ("active vars: "++show active++"\n") $ range c
                          theta  = satisfiable active ranges

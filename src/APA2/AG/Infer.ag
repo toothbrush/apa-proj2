@@ -183,9 +183,7 @@ SEM MH
 
       loc.(c, ty) = 
         if @x `DM.member` @lhs.typeEnvironment
-          then case instantiate @loc.beta (getVar @x @lhs.typeEnvironment) of
-                Ty   ty    -> (DS.empty, ty)
-                Qual c  ty -> (c, ty)
+          then unwrapQual $ instantiate @loc.beta (getVar @x @lhs.typeEnvironment)
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
       loc.constraints = 
@@ -511,7 +509,11 @@ forallFresh subst fresh = foldr o (Identity, fresh)
         o _ (_, [])   = (Identity, [])
 
 -- TODO: To AG?
-unwrapTy :: Qual -> Ty
-unwrapTy (Qual _ q) = unwrapTy q
-unwrapTy (Ty t)     = t
+unwrapQual :: Qual -> (Constraints, Ty)
+unwrapQual = unwrapQual'
+  where
+  unwrapQual' (Qual c q) = let (c', t) = unwrapQual' q 
+                           in (DS.union (DS.singleton c) c', t)
+  unwrapQual' (Ty t)     = (DS.empty, t)
+   
 }
