@@ -513,11 +513,10 @@ generalise env ann tau c =
 
 instantiate :: Int -> TyScheme -> Qual
 instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
-  where 
-  infinitelyFresh           = map (\x -> show seed ++ show x) ([0..] :: [Int]) 
-  (tyvars, annvars, qual)   = collectBinders ts
-  (tySubs,infinitelyFresh') = forallFresh (\a b -> TySub a (TyVar b)) infinitelyFresh tyvars
-  (annSubs,_)               = forallFresh AnnSub infinitelyFresh' annvars
+  where fresh                   = map (\x -> show seed ++ show x) ([0..] :: [Int])
+        (tyvars, annvars, qual) = collectBinders ts
+        (tySubs,fresh')         = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
+        (annSubs,_)             = forallFresh AnnSub fresh' annvars
 
 forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] -> (SimpleSubstitution, [String])
 forallFresh subst fresh = foldr o (Identity, fresh)
