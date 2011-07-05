@@ -497,7 +497,7 @@ generalise env ann tau c =
       fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
       (c'', c') = simplify env phi tau c
       qtdTVs = DS.fold Forall (QualSig $ Qual c' $ Ty tau) ftvs
-      qtdAVs = DS.fold AnnSig qtdTVs favs
+      qtdAVs = DS.fold AnnSig qtdTVs fcvs
   in  (c'', qtdAVs)
 
 instantiate :: Int -> TyScheme -> Qual
