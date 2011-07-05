@@ -6,3 +6,8 @@ Constraints moeten op een of andere manier opgelost worden. (mogelijk eerst met 
 Polyvariance implementen
 - Simplify moet getest worden (moet dus gebruikt gaan worden)
 Support voor lege lijst assignen ergens
+
+
+Polyvariance:
+Constraints by type
+Moet gequantificeerd worden over annot vars

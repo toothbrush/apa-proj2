@@ -324,10 +324,11 @@ SEM MH
       lhs.constraints = @loc.constraints
       lhs.substitution = @loc.substitution
 
-      e2.typeEnvironment = 
-        let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = maybe (QualSig $ Ty @e1.ty) (\ann -> snd $ generalise newEnv ann @e1.ty @e1.constraints) @e1.annotation
-        in DM.insert @x ty' newEnv
+      e2.typeEnvironment =
+        let newEnv  = applySubst @e1.substitution @lhs.typeEnvironment
+            gen ann = snd $ generalise newEnv ann @e1.ty @e1.constraints
+            ty'     = maybe (QualSig $ Ty @e1.ty) gen @e1.annotation
+        in  DM.insert @x ty' newEnv
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
 

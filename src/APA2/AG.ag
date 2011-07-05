@@ -135,6 +135,10 @@ simplify env tau c =
       c'     = applySubst theta c
   in  partition env c'
 
+testPA = pseudoActive (DS.fromList [AnnVar "b1", AnnVar "b2", AnnVar "b3"])
+                      (DS.fromList [ Constraint "b2" (AnnVar "b6")
+                                   , Constraint "b6" (AnnVar "b4")])
+
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
   let extrAnn (Constraint l u) xs | AnnVar l `DS.member` active = DS.insert u xs
