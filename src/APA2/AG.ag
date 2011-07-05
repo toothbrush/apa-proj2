@@ -60,7 +60,7 @@ partitionConstraints :: Constraints -> (Constraints, Constraints)
 partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs
   where o c@(Constraint _ (AnnVar _)) (cs'', cs') = (cs'', DS.insert c cs')
         o c@(Constraint _ (AnnSet _)) (cs'', cs') = (DS.insert c cs'', cs')
-        o (Constraint _ AnnEmpty)     p           = p -- TODO: Is this correct?
+        o (Constraint _ AnnEmpty)     _           = error "should not happen"
 
 worklist :: Constraints -> Map AnnVar SAnn
 worklist cs =
@@ -74,17 +74,17 @@ worklist cs =
           o (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'
                                                            , DM.insert a AnnEmpty ana'
                                                            , DM.insert a DS.empty infl'')
-          o _ t = t -- TODO: Is this correct?
+          o _ _ = error "should not happen"
       in DS.fold o (DMS.empty, DM.empty, DM.empty) cs
 
     analysis' =
       let o (Constraint x x'@(AnnSet _)) a = DM.update (\v -> Just (v ∪ x')) x a
-          o _ a = a -- TODO: Is this correct?
+          o _ _ = error "should not happen"
       in DS.fold o ana solved
 
     infl' =
       let o c@(Constraint _ (AnnVar x)) infl'' = DM.update (Just . DS.insert c) x infl''
-          o _ i = i -- TODO: IS this correct?
+          o _ _ = error "should not happen"
       in DS.fold o infl unsolved
 
     solveConstraints w' ana'
@@ -121,8 +121,8 @@ a          ∪ AnnEmpty   = a
 _          ∪ _          = error "no variables allowed"
 
 debugStep :: (Show a, Show b) => a -> b -> String
-debugStep w ana = 
-  "step: " ++ "\n" ++ 
+debugStep w ana =
+  "step: " ++ "\n" ++
   "W: " ++ show w ++ "\n" ++
   "ANA: " ++ show ana ++ "\n"
 
@@ -164,7 +164,7 @@ satisfiable active analysis =
                                                       _          -> error "satisfiable: should not happen"
                                       _          -> error "sat should not happen"
                         else Identity
-        | otherwise = error "lower bound is larger than upper bound"
+        | otherwise = error "lower bound is larger than upper bound, ?? we don't track lower and upper bounds..."
       substLst      = DM.mapWithKey func ana'
   in DM.fold Dot Identity substLst
 
