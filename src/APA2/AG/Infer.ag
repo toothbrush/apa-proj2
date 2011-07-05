@@ -1,7 +1,6 @@
 imports
 {
 import            Control.Monad ()
-import            Debug.Trace
 }
 
 ATTR MH
@@ -520,7 +519,7 @@ instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
 
 forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] -> (SimpleSubstitution, [String])
 forallFresh subst fresh = foldr o (Identity, fresh)
-  where o a (b, fresh) = (Dot (subst a (fresh !! 0)) b, drop 1 fresh)
+  where o a (b, f:fs) = (Dot (subst a f) b, fs)
 
 -- TODO: To AG?
 unwrapTy :: Qual -> Ty
