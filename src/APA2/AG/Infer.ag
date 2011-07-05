@@ -387,7 +387,7 @@ SEM MH
             Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
-                           ty' = maybe (QualSig $ Ty $ ty) (\ann -> snd $ generalise newEnv ann ty @e1.constraints) @loc.annotation
+                           ty' = maybe (QualSig $ Ty ty) (\ann -> snd $ generalise newEnv ann ty @e1.constraints) @loc.annotation
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
