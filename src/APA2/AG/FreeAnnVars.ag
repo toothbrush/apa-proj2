@@ -3,7 +3,7 @@ imports
 import qualified  Data.Set as DS
 }
 
-ATTR TyScheme Ty Constraint SAnn Qual
+ATTR TyScheme Ty Constraint SAnn Qual TyEnv AnnEnv
   [||
       -- | Unrolls a type, and returns all the variables
       -- which are in "forall". This is useful for instantiation,
@@ -37,4 +37,11 @@ instance FreeAnnVars Constraints where
 
 instance FreeAnnVars Constraint where
   fav c = fav_Syn_Constraint (wrap_Constraint (sem_Constraint c) Inh_Constraint)
+
+instance FreeAnnVars TyEnv where
+  fav x = fav_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
+
+instance FreeAnnVars AnnEnv where
+  fav x = fav_Syn_AnnEnv (wrap_AnnEnv (sem_AnnEnv x) Inh_AnnEnv)
+
 }

@@ -330,7 +330,7 @@ SEM MH
       
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = snd $ generalise newEnv @e1.ty @e1.constraints
+            ty'    = snd $ generalise newEnv @loc.annotation @e1.ty @e1.constraints
         in DM.insert @x ty' newEnv
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
@@ -374,7 +374,8 @@ SEM MH
             c3 = applySubst @loc.theta (@loc.beta' <:? @e2.annotation)
         in c1 `DS.union` c2 `DS.union` c3
 
-      lhs.annotation = Just (AnnVar @loc.beta'')
+      loc.annotation = Just (AnnVar @loc.beta'')
+      lhs.annotation = @loc.annotation
 
       e1.typeEnvironment =
         case @x of
@@ -390,7 +391,7 @@ SEM MH
             Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
-                           ty' = snd $ generalise newEnv ty @e1.constraints
+                           ty' = snd $ generalise newEnv @loc.annotation ty @e1.constraints
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
@@ -489,11 +490,14 @@ getVar x env =
     _           -> error ("This shouldn't happen. '" ++ x ++
                           "'\nwasn't found in the environment.")
 
--- old
-generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme)
-generalise env tau c = let free      = fv tau DS.\\ fv env
-                           genTyVars = DS.fold Forall (QualSig $ Ty tau) free
-                       in (undefined, genTyVars)
+generalise :: TyEnv -> Maybe SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
+generalise env ann tau c =
+  let ftvs   = fv tau DS.\\ fv env
+      favs   = fav tau DS.\\ fav env DS.\\ fav (fromMaybe AnnEmpty ann)
+      fcvs   = fav c DS.\\ favs
+      qtdTVs = DS.fold Forall (QualSig $ Ty tau) ftvs
+      qtdAVs = DS.fold AnnSig qtdTVs favs
+  in  (undefined, qtdAVs)
 
 -- old
 instantiate :: Int -> TyScheme -> Ty

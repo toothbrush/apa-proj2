@@ -3,7 +3,7 @@ imports
 import qualified  Data.Set as DS
 }
 
-ATTR TyScheme Ty TyEnv Qual
+ATTR TyScheme Ty TyEnv Qual TyEnv
   [|| fv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
   ]
 
