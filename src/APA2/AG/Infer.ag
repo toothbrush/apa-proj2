@@ -185,7 +185,7 @@ SEM MH
 
       loc.(c, ty) = 
         if @x `DM.member` @lhs.typeEnvironment
-          then unwrapQual $ instantiate @loc.beta @loc.sigma
+          then instantiate @loc.beta @loc.sigma
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
       -- this does not work for a case like: let f = \x -> true in let g = \k -> if f 0 then k else \y -> false in g f
@@ -498,10 +498,10 @@ generalise env ann tau c =
       qtdAVs = DS.fold AnnSig qtdTVs fcvs
   in  (c'', qtdAVs)
 
-instantiate :: Int -> TyScheme -> Qual
-instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
+instantiate :: Int -> TyScheme -> (Constraints, Ty)
+instantiate seed ts = (cs, applySubst (tySubs `dot` annSubs) ty)
   where fresh                   = map (\x -> show seed ++ show x) ([0..] :: [Int])
-        (Binders tyvars annvars cs qual) = collectBinders ts
+        (Binders tyvars annvars cs ty) = collectBinders ts
         (tySubs,fresh')         = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
         (annSubs,_)             = forallFresh AnnSub fresh' annvars
 
@@ -509,12 +509,4 @@ forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] 
 forallFresh subst fresh = foldr o (Identity, fresh)
   where o a (b, f:fs) = (Dot (subst a f) b, fs)
         o _ (_, [])   = (Identity, [])
-
--- TODO: To AG?
-unwrapQual :: Qual -> (Constraints, Ty)
-unwrapQual = unwrapQual'
-  where
-  unwrapQual' (Qual c q) = let (c', t) = unwrapQual' q 
-                           in (DS.union (DS.singleton c) c', t)
-  unwrapQual' (Ty t)     = (DS.empty, t)
 }

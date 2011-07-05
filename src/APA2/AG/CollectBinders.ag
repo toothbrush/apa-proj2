@@ -1,5 +1,5 @@
 {
-data Binders = Binders [TyVar] [AnnVar] Constraints Qual
+data Binders = Binders [TyVar] [AnnVar] Constraints Ty
 }
 
 ATTR TyScheme Qual
@@ -13,7 +13,7 @@ SEM TyScheme
                           in  Binders vars (@a:avars) cs ty
 
 SEM Qual
-  | Ty   lhs.binders = Binders [] [] DS.empty @self
+  | Ty   lhs.binders = Binders [] [] DS.empty @ty.copy
   | Qual lhs.binders = let (Binders tvs avs cs q) = @q.binders
                        in  Binders tvs avs (DS.insert @c.copy cs) q
 
