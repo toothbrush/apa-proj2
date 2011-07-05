@@ -87,7 +87,6 @@ worklist cs =
       | DMS.null w = analysis
       | otherwise  = let (w', analysis') = trace (debugStep w analysis) (step infl' w analysis)
                      in solveConstraints w' analysis'
-    
   in solveConstraints w analysis'
 
 step :: Influence -> Worklist -> Analysis -> (Worklist, Analysis)
@@ -96,7 +95,6 @@ step infl w analysis
   | otherwise   = 
     let ((Constraint x (AnnVar t)), w') = let c = DMS.findMin w
                                           in (c, DMS.delete c w)
-        
         value    = x ? analysis
         newValue = t ? analysis
     in if not (value ⊇ newValue)

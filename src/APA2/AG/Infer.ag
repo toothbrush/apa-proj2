@@ -249,7 +249,7 @@ SEM MH
                   @e.debug
 
 
-  | App 
+  | App
       loc.alpha : UNIQUEREF counter
       loc.beta  : UNIQUEREF counter
 
