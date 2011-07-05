@@ -496,7 +496,7 @@ generalise env ann tau c =
                    fld _ xs           = xs
                in  DS.fold fld (QualSig $ Ty tau) DS.empty -- c'
       qtdTVs = DS.fold Forall qtdCs ftvs
-      qtdAVs = DS.fold AnnSig qtdTVs fcvs
+      qtdAVs = DS.fold AnnSig qtdTVs (favs `DS.union` fcvs)
   in  (DS.empty, qtdAVs)
 
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
