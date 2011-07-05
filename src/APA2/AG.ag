@@ -126,9 +126,8 @@ debugStep w ana =
   "W: " ++ show w ++ "\n" ++
   "ANA: " ++ show ana ++ "\n"
 
--- TODO: tau is not used yet. this bit needs to be revised anyway
-simplify :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, Constraints)
-simplify env ann tau c =
+simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
+simplify env tau c =
   let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
       ranges = trace ("active vars: "++show active++"\n") $
                      range c

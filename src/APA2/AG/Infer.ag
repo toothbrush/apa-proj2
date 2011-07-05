@@ -490,7 +490,7 @@ generalise env ann tau c =
       ftvs   = fv tau DS.\\ fv env
       favs   = fav tau DS.\\ fav env DS.\\ fav phi
       fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
-      (c'', c') = simplify env phi tau c
+      (c'', c') = simplify env tau c
       qtdCs  = let fld x (QualSig x') = QualSig $ Qual x x'
                    fld _ xs           = xs
                in  DS.fold fld (QualSig $ Ty tau) c'
