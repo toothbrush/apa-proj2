@@ -181,14 +181,15 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.(c, ty) =
+      loc.(phi, sigma) = (@x ? @lhs.annEnvironment, @x ? @lhs.typeEnvironment)
+
+      loc.(c, ty) = 
         if @x `DM.member` @lhs.typeEnvironment
-          then unwrapQual $ instantiate @loc.beta (getVar @x @lhs.typeEnvironment)
+          then unwrapQual $ instantiate @loc.beta @loc.sigma
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
-      loc.constraints =
-        let phi = @x ? @lhs.annEnvironment
-        in  @loc.c `DS.union` (@loc.beta' <:? phi)
+      -- this does not work for a case like: let f = \x -> true in let g = \k -> if f 0 then k else \y -> false in g f
+      loc.constraints = @loc.c `DS.union` (@loc.beta' <:? @loc.phi)
 
       loc.annotation =
         case @loc.ty of
@@ -325,7 +326,7 @@ SEM MH
 
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = snd $ generalise newEnv @loc.annotation @e1.ty @e1.constraints
+            ty'    = maybe (QualSig $ Ty $ @e1.ty) (\ann -> snd $ generalise newEnv ann @e1.ty @e1.constraints) @loc.annotation
         in DM.insert @x ty' newEnv
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
@@ -386,7 +387,7 @@ SEM MH
             Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
-                           ty' = snd $ generalise newEnv @loc.annotation ty @e1.constraints
+                           ty' = maybe (QualSig $ Ty $ ty) (\ann -> snd $ generalise newEnv ann ty @e1.constraints) @loc.annotation
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
@@ -484,11 +485,10 @@ getVar x env =
     _           -> error ("This shouldn't happen. '" ++ x ++
                           "'\nwasn't found in the environment.")
 
-generalise :: TyEnv -> Maybe SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
+generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c =
-  let phi    = fromMaybe AnnEmpty ann
-      ftvs   = fv tau DS.\\ fv env
-      favs   = fav tau DS.\\ fav env DS.\\ fav phi
+  let ftvs   = fv tau DS.\\ fv env
+      favs   = fav tau DS.\\ fav env DS.\\ fav ann
       fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
       (c'', c') = simplify env tau c
       qtdCs  = let fld x (QualSig x') = QualSig $ Qual x x'
