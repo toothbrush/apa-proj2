@@ -1,5 +1,5 @@
 {
-type Binders = ([TyVar], [AnnVar], Qual)
+data Binders = Binders [TyVar] [AnnVar] Constraints Qual
 }
 
 ATTR TyScheme Qual
@@ -7,14 +7,15 @@ ATTR TyScheme Qual
   ]
 
 SEM TyScheme
-  | Forall  lhs.binders = let (vars, avars, ty) = @ts.binders
-                          in (@a:vars, avars, ty)
-  | AnnSig  lhs.binders = let (vars, avars, ty) = @ts.binders
-                          in (vars, @a:avars, ty)
+  | Forall  lhs.binders = let (Binders vars avars cs ty) = @ts.binders
+                          in  Binders (@a:vars) avars cs ty
+  | AnnSig  lhs.binders = let (Binders vars avars cs ty) = @ts.binders
+                          in  Binders vars (@a:avars) cs ty
 
 SEM Qual
-  | Ty   lhs.binders = ([], [], @self)
-  | Qual lhs.binders = ([], [], @self)
+  | Ty   lhs.binders = Binders [] [] DS.empty @self
+  | Qual lhs.binders = let (Binders tvs avs cs q) = @q.binders
+                       in  Binders tvs avs (DS.insert @c.copy cs) q
 
 {
 collectBinders :: TyScheme -> Binders

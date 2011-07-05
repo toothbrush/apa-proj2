@@ -490,7 +490,7 @@ generalise env ann tau c =
   let ftvs   = fv tau DS.\\ fv env
       favs   = fav tau DS.\\ fav env DS.\\ fav ann
       fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
-      (c'', c') = simplify env ann tau c
+      (c'', c') = simplify env tau c
       qtdCs  = let fld x (QualSig x') = QualSig $ Qual x x'
                    fld _ xs          = xs
                in  DS.fold fld (QualSig $ Ty tau) c'
@@ -517,7 +517,7 @@ generalise env ann tau c =
 instantiate :: Int -> TyScheme -> Qual
 instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
   where fresh                   = map (\x -> show seed ++ show x) ([0..] :: [Int])
-        (tyvars, annvars, qual) = collectBinders ts
+        (Binders tyvars annvars cs qual) = collectBinders ts
         (tySubs,fresh')         = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
         (annSubs,_)             = forallFresh AnnSub fresh' annvars
 
@@ -533,5 +533,4 @@ unwrapQual = unwrapQual'
   unwrapQual' (Qual c q) = let (c', t) = unwrapQual' q 
                            in (DS.union (DS.singleton c) c', t)
   unwrapQual' (Ty t)     = (DS.empty, t)
-   
 }

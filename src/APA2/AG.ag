@@ -146,8 +146,9 @@ pseudoActive active c =
                  extrVar _          xs = xs
              in DS.fold extrVar DS.empty vars
 
+-- TODO: Remove fun? Or do we need to do some more here?
 range :: Constraints -> Map AnnVar SAnn
-range c = worklist c
+range = worklist
 
 -- TODO: Implementation is ugly, refactor. It helps if we get a set of SAnn here
 satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
