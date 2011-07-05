@@ -181,14 +181,14 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.(c, ty) = 
+      loc.(c, ty) =
         if @x `DM.member` @lhs.typeEnvironment
           then unwrapQual $ instantiate @loc.beta (getVar @x @lhs.typeEnvironment)
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
-      loc.constraints = 
-        let phi = @x ? @lhs.annEnvironment 
-        in @loc.c `DS.union` (@loc.beta' <:? phi)
+      loc.constraints =
+        let phi = @x ? @lhs.annEnvironment
+        in  @loc.c `DS.union` (@loc.beta' <:? phi)
 
       loc.annotation =
         case @loc.ty of
@@ -501,7 +501,7 @@ generalise env ann tau c =
 instantiate :: Int -> TyScheme -> Qual
 instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
   where fresh                   = map (\x -> show seed ++ show x) ([0..] :: [Int])
-        (tyvars, annvars, qual) = collectBinders ts
+        (Binders tyvars annvars cs qual) = collectBinders ts
         (tySubs,fresh')         = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
         (annSubs,_)             = forallFresh AnnSub fresh' annvars
 
@@ -517,5 +517,4 @@ unwrapQual = unwrapQual'
   unwrapQual' (Qual c q) = let (c', t) = unwrapQual' q 
                            in (DS.union (DS.singleton c) c', t)
   unwrapQual' (Ty t)     = (DS.empty, t)
-   
 }
