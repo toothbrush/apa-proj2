@@ -181,22 +181,18 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.ty =
+      loc.(c, ty) = 
         if @x `DM.member` @lhs.typeEnvironment
-          then let x  = getVar @x @lhs.typeEnvironment
-                   x' = unwrapTy $ instantiate @loc.beta x
-               in case x' of -- TODO: Correct?
-                    Arr a b _ -> Arr a b @loc.beta'
-                    _         -> x'
+          then unwrapQual $ instantiate @loc.beta (getVar @x @lhs.typeEnvironment)
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
 
       loc.constraints = 
         let phi = @x ? @lhs.annEnvironment 
-        in @loc.beta' <:? phi
+        in @loc.c `DS.union` (@loc.beta' <:? phi)
 
       loc.annotation =
         case @loc.ty of
-          Arr _ _ _ -> Just (AnnVar @loc.beta')
+          Arr _ _ a -> Just (AnnVar a)
           _         -> Nothing
 
       loc.substitution = Identity
@@ -512,7 +508,11 @@ forallFresh subst fresh = foldr o (Identity, fresh)
         o _ (_, [])   = (Identity, [])
 
 -- TODO: To AG?
-unwrapTy :: Qual -> Ty
-unwrapTy (Qual _ q) = unwrapTy q
-unwrapTy (Ty t)     = t
+unwrapQual :: Qual -> (Constraints, Ty)
+unwrapQual = unwrapQual'
+  where
+  unwrapQual' (Qual c q) = let (c', t) = unwrapQual' q 
+                           in (DS.union (DS.singleton c) c', t)
+  unwrapQual' (Ty t)     = (DS.empty, t)
+   
 }
