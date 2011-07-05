@@ -170,8 +170,7 @@ satisfiable active analysis =
 
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs =
-  let active = fav env
-      prop   = let isActive a = a `DS.member` active
+  let prop   = let isActive a = a `DS.member` fav env
                    f c@(Constraint a1 (AnnVar a2)) xs
                      | isActive a1 || isActive a2 = DS.insert c xs
                    f _ xs = xs
