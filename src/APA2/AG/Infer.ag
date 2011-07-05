@@ -494,10 +494,11 @@ generalise :: TyEnv -> Maybe SAnn -> Ty -> Constraints -> (Constraints, TyScheme
 generalise env ann tau c =
   let ftvs   = fv tau DS.\\ fv env
       favs   = fav tau DS.\\ fav env DS.\\ fav (fromMaybe AnnEmpty ann)
-      fcvs   = fav c DS.\\ favs
-      qtdTVs = DS.fold Forall (QualSig $ Ty tau) ftvs
+      fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
+      (c'', c') = simplify c
+      qtdTVs = DS.fold Forall (QualSig $ Qual c' $ Ty tau) ftvs
       qtdAVs = DS.fold AnnSig qtdTVs favs
-  in  (undefined, qtdAVs)
+  in  (c'', qtdAVs)
 
 -- old
 instantiate :: Int -> TyScheme -> Ty
@@ -516,7 +517,7 @@ inst seed ts = applySubst (tySubs `dot` annSubs) qual
   (tyvars, annvars, qual)   = collectBinders ts
   (tySubs,infinitelyFresh') = forallFresh (\a b -> TySub a (TyVar b)) infinitelyFresh tyvars
   (annSubs,_)               = forallFresh AnnSub infinitelyFresh' annvars
-        
+
 forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] -> (SimpleSubstitution, [String])
 forallFresh subst fresh = foldr o (Identity, fresh)
   where o a (b, fresh) = (Dot (subst a (fresh !! 0)) b, drop 1 fresh)
