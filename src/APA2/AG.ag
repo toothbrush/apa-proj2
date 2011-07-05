@@ -78,7 +78,7 @@ worklist cs =
       in DS.fold o (DMS.empty, DM.empty, DM.empty) cs
 
     analysis' =
-      let o (Constraint x x'@(AnnSet _)) a = DM.update (\v -> Just (v ∪ x')) x a
+      let o (Constraint x x'@(AnnSet _)) a = DM.update (\v -> Just (v ⊔ x')) x a
           o _ _ = error "should not happen"
       in DS.fold o ana solved
 
@@ -101,24 +101,24 @@ step infl w analysis
                                           in (c, DMS.delete c w)
         value    = x ? analysis
         newValue = t ? analysis
-    in if not (value ⊇ newValue)
-        then let analysis'  = DM.insert x (value ∪ newValue) analysis
+    in if not (value ⊒ newValue)
+        then let analysis'  = DM.insert x (value ⊔ newValue) analysis
                  successors = DMS.fromSet (x ? infl)
                  augmentedW = successors `DMS.union` w'
              in trace ("insert new") (augmentedW, analysis')
         else (w', analysis)
 
-(⊇) :: SAnn -> SAnn -> Bool
-AnnEmpty   ⊇ AnnEmpty   = True
-AnnEmpty   ⊇ (AnnSet a) = DS.null a
-(AnnSet a) ⊇ (AnnSet b) = DS.isSubsetOf b a
-_          ⊇ _          = error "no variables allowed"
+(⊒) :: SAnn -> SAnn -> Bool
+AnnEmpty   ⊒ AnnEmpty   = True
+AnnEmpty   ⊒ (AnnSet a) = DS.null a
+(AnnSet a) ⊒ (AnnSet b) = DS.isSubsetOf b a
+_          ⊒ _          = error "no variables allowed"
 
-(∪) :: SAnn -> SAnn -> SAnn
-AnnEmpty   ∪ a          = a
-a          ∪ AnnEmpty   = a
-(AnnSet a) ∪ (AnnSet b) = AnnSet (DS.union a b)
-_          ∪ _          = error "no variables allowed"
+(⊔) :: SAnn -> SAnn -> SAnn
+AnnEmpty   ⊔ a          = a
+a          ⊔ AnnEmpty   = a
+(AnnSet a) ⊔ (AnnSet b) = AnnSet (DS.union a b)
+_          ⊔ _          = error "no variables allowed"
 
 debugStep :: (Show a, Show b) => a -> b -> String
 debugStep w ana =
@@ -168,12 +168,21 @@ satisfiable active analysis =
       substLst      = DM.mapWithKey func ana'
   in DM.fold Dot Identity substLst
 
--- TODO: Implement?
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
-partition _ cs = (cs, DS.empty)
+partition env cs =
+  let active = fav env
+      prop   = let isActive a = a `DS.member` active
+                   f c@(Constraint a1 (AnnVar a2)) xs
+                     | isActive a1 || isActive a2 = DS.insert c xs
+                   f _ xs = xs
+               in  DS.fold f DS.empty cs
+      qual   = let f c xs | c `DS.notMember` prop = DS.insert c xs
+                          | otherwise             = xs
+               in  DS.fold f DS.empty cs
+  in (prop, qual)
 
 (?) :: Ord a => a -> Map a b -> b
-a ? m = fromJust $ DM.lookup a m 
+a ? m = fromJust $ DM.lookup a m
 
 unify :: Ty -> Ty -> SimpleSubstitution
 unify Nat  Nat  = Identity
