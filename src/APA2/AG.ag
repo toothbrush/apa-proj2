@@ -122,11 +122,11 @@ debugStep w ana =
   "ANA: " ++ show ana ++ "\n"
 
 simplify :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, Constraints)
-simplify env tau c = let active = pseudoActive (DS.map AnnVar (fav tau)) c
-                         ranges = trace ("active vars: "++show active++"\n") $ range c
-                         theta  = satisfiable active ranges
-                         c'     = applySubst theta c
-                     in  partition env c'
+simplify env phi tau c = let active = pseudoActive (DS.map AnnVar (fav tau)) c
+                             ranges = trace ("active vars: "++show active++"\n") $ range c
+                             theta  = satisfiable active ranges
+                             c'     = applySubst theta c
+                         in  partition env c'
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
