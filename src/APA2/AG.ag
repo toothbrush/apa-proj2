@@ -129,8 +129,9 @@ debugStep w ana =
 -- TODO: tau is not used yet. this bit needs to be revised anyway
 simplify :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env ann tau c =
-  let active = pseudoActive (DS.map AnnVar (fav tau)) c
-      ranges = trace ("active vars: "++show active++"\n") $ range c
+  let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
+      ranges = trace ("active vars: "++show active++"\n") $
+                     range c
       theta  = satisfiable active ranges
       c'     = applySubst theta c
   in  partition env c'
@@ -175,10 +176,11 @@ partition env cs =
                      | isActive a1 || isActive a2 = DS.insert c xs
                    f _ xs = xs
                in  DS.fold f DS.empty cs
-      qual   = let f c xs | c `DS.notMember` prop = DS.insert c xs
+      -- FIXME: For some reason qual makes this all not terminate ....
+      qual   = let g c xs | c `DS.notMember` prop = DS.insert c xs
                           | otherwise             = xs
-               in  DS.fold f DS.empty cs
-  in (prop, qual)
+               in  DS.fold g DS.empty cs
+  in (prop, DS.empty) -- qual)
 
 (?) :: Ord a => a -> Map a b -> b
 a ? m = fromJust $ DM.lookup a m
