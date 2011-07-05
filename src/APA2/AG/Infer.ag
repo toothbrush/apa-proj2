@@ -181,12 +181,12 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.(phi, sigma) = (@x ? @lhs.annEnvironment, @x ? @lhs.typeEnvironment)
+      loc.phi = @x ? @lhs.annEnvironment
 
       loc.(c, ty) = 
-        if @x `DM.member` @lhs.typeEnvironment
-          then instantiate @loc.beta @loc.sigma
-          else error ("Variable "++ @x ++" not found in environment (out of scope).")
+        maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))
+              (instantiate @loc.beta)
+              (DM.lookup @x @lhs.typeEnvironment)
 
       -- this does not work for a case like: let f = \x -> true in let g = \k -> if f 0 then k else \y -> false in g f
       loc.constraints = @loc.c `DS.union` (@loc.beta' <:? @loc.phi)
@@ -326,7 +326,7 @@ SEM MH
 
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = maybe (QualSig $ Ty $ @e1.ty) (\ann -> snd $ generalise newEnv ann @e1.ty @e1.constraints) @loc.annotation
+            ty'    = maybe (QualSig $ Ty @e1.ty) (\ann -> snd $ generalise newEnv ann @e1.ty @e1.constraints) @e1.annotation
         in DM.insert @x ty' newEnv
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
@@ -493,15 +493,15 @@ generalise env ann tau c =
       (c'', c') = simplify env tau c
       qtdCs  = let fld x (QualSig x') = QualSig $ Qual x x'
                    fld _ xs           = xs
-               in  DS.fold fld (QualSig $ Ty tau) c'
+               in  DS.fold fld (QualSig $ Ty tau) DS.empty -- c'
       qtdTVs = DS.fold Forall qtdCs ftvs
       qtdAVs = DS.fold AnnSig qtdTVs fcvs
-  in  (c'', qtdAVs)
+  in  (DS.empty, qtdAVs)
 
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = let ss = tySubs `dot` annSubs
                       in  (applySubst ss cs, applySubst ss ty)
-  where (Binders tyvars annvars cs ty) = collectBinders ts
+  where (Binders tyvars annvars cs ty) = trace ("collectBinders") collectBinders ts
         fresh           = map (\x -> show seed ++ show x) ([0..] :: [Int])
         (tySubs,fresh') = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
         (annSubs,_)     = forallFresh AnnSub fresh' annvars
