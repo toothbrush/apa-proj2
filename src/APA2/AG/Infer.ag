@@ -520,7 +520,7 @@ instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
 forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] -> (SimpleSubstitution, [String])
 forallFresh subst fresh = foldr o (Identity, fresh)
   where o a (b, f:fs) = (Dot (subst a f) b, fs)
-
+        o _ (_, [])   = (Identity, [])
 -- TODO: To AG?
 unwrapTy :: Qual -> Ty
 unwrapTy (Qual _ q) = unwrapTy q

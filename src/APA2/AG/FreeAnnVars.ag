@@ -1,8 +1,3 @@
-imports
-{
-import qualified  Data.Set as DS
-}
-
 ATTR TyScheme Ty Constraint SAnn Qual TyEnv AnnEnv
   [||
       -- | Unrolls a type, and returns all the variables
