@@ -60,7 +60,7 @@ SEM MH
 
 
       lhs.substitution = @loc.theta
-      lhs.annotation   = 
+      lhs.annotation   =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -136,7 +136,7 @@ SEM MH
                (@loc.beta' <:? @e2.annotation)
           cs = c1 `DS.union` c2 `DS.union` c3
       in applySubst @loc.theta cs 
-    
+
     lhs.annotation = Just (AnnVar @loc.beta')
 
     e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
@@ -310,7 +310,7 @@ SEM MH
 
       loc.substitution = @loc.theta2 `dot` @loc.theta1
 
-      loc.constraints = 
+      loc.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
             c3 = @loc.beta' <:? @e2.annotation
@@ -419,13 +419,13 @@ SEM MH
           Arr a b _ -> applySubst @loc.substitution (Arr a b @loc.beta')
           _         -> @e2.ty
 
-      loc.constraints = 
+      loc.constraints =
         let c  = (@loc.beta' <:? @e1.annotation) `DS.union`
                  (@loc.beta' <:? @e2.annotation)
             cs = @e1.constraints `DS.union` @e2.constraints `DS.union` c
         in applySubst @loc.substitution cs
 
-      loc.annotation = 
+      loc.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -437,7 +437,7 @@ SEM MH
 
       e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
       e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment                          
+      e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
       lhs.debug = "If: \n" ++
@@ -457,7 +457,7 @@ mkAnnVar :: Int -> AnnVar
 mkAnnVar i = "b" ++ show i
 
 mkProgramPoint :: Var -> Int -> SAnn
-mkProgramPoint v p = AnnSet (DS.singleton (v ++ (show p))) 
+mkProgramPoint v p = AnnSet (DS.singleton (v ++ show p))
 
 operatorType :: String -> (Ty, Ty, Ty)
 operatorType op
