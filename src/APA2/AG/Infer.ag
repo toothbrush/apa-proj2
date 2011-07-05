@@ -325,7 +325,7 @@ SEM MH
 
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = snd $ generalise newEnv @loc.annotation @e1.ty @e1.constraints
+            ty'    = maybe (QualSig $ Ty $ @e1.ty) (\ann -> snd $ generalise newEnv ann @e1.ty @e1.constraints) @loc.annotation
         in DM.insert @x ty' newEnv
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
@@ -386,7 +386,7 @@ SEM MH
             Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
-                           ty' = snd $ generalise newEnv @loc.annotation ty @e1.constraints
+                           ty' = maybe (QualSig $ Ty $ ty) (\ann -> snd $ generalise newEnv ann ty @e1.constraints) @loc.annotation
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
@@ -484,6 +484,20 @@ getVar x env =
     _           -> error ("This shouldn't happen. '" ++ x ++
                           "'\nwasn't found in the environment.")
 
+generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
+generalise env ann tau c =
+  let ftvs   = fv tau DS.\\ fv env
+      favs   = fav tau DS.\\ fav env DS.\\ fav ann
+      fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
+      (c'', c') = simplify env ann tau c
+      qtdCs  = let fld x (QualSig x') = QualSig $ Qual x x'
+                   fld _ xs          = xs
+               in  DS.fold fld (QualSig $ Ty tau) c'
+      qtdTVs = DS.fold Forall qtdCs ftvs
+      qtdAVs = DS.fold AnnSig qtdTVs fcvs
+  in  (c'', qtdAVs)
+
+{-
 generalise :: TyEnv -> Maybe SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c =
   let phi    = fromMaybe AnnEmpty ann
@@ -497,6 +511,7 @@ generalise env ann tau c =
       qtdTVs = DS.fold Forall qtdCs ftvs
       qtdAVs = DS.fold AnnSig qtdTVs fcvs
   in  (c'', qtdAVs)
+-}
 
 instantiate :: Int -> TyScheme -> Qual
 instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
