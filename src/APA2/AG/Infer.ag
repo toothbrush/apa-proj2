@@ -391,11 +391,10 @@ SEM MH
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
       e2.annEnvironment =
-        case @x of
-          Just x  -> applySubst @e1.substitution 
-                                (DM.insert @f (Just (AnnVar @loc.beta')) (DM.insert x @e1.annotation @lhs.annEnvironment))
-          Nothing -> applySubst @e1.substitution
-                                (DM.insert @f (Just (AnnVar @loc.beta')) @lhs.annEnvironment)
+        let apps t = applySubst @e1.substitution (DM.insert @f (Just (AnnVar @loc.beta')) t)
+        in case @x of
+             Just x' -> apps (DM.insert x' @e1.annotation @lhs.annEnvironment)
+             Nothing -> apps @lhs.annEnvironment
 
   | If
       loc.beta   : UNIQUEREF counter
@@ -493,7 +492,7 @@ generalise env ann tau c =
       fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
       (c'', c') = simplify env phi tau c
       qtdTVs = DS.fold Forall (QualSig $ Qual c' $ Ty tau) ftvs
-      qtdAVs = DS.fold AnnSig qtdTVs favs
+      qtdAVs = DS.fold AnnSig qtdTVs fcvs
   in  (c'', qtdAVs)
 
 instantiate :: Int -> TyScheme -> Qual
