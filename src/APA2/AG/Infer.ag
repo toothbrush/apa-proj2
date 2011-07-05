@@ -385,11 +385,12 @@ SEM MH
       e2.typeEnvironment =
         let newEnv = applySubst @loc.theta0 @lhs.typeEnvironment
         in case @x of
-            Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
-                                    (applySubst @loc.theta1 @e1.ty)
-                                    (applySubst @loc.theta @loc.beta')
-                           ty' = maybe (QualSig $ Ty ty) (\ann -> snd $ generalise newEnv ann ty @e1.constraints) @loc.annotation
-                       in DM.insert @f ty' newEnv
+            Just _  -> let ty      = Arr (applySubst @loc.theta @alpha1')
+                                         (applySubst @loc.theta1 @e1.ty)
+                                         (applySubst @loc.theta @loc.beta')
+                           gen ann = snd $ generalise newEnv ann ty @e1.constraints
+                           ty'     = maybe (QualSig $ Ty ty) gen @loc.annotation
+                       in  DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
       e2.annEnvironment =
