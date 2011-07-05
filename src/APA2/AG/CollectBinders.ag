@@ -14,8 +14,8 @@ SEM TyScheme
 
 SEM Qual
   | Ty   lhs.binders = Binders [] [] DS.empty @ty.copy
-  | Qual lhs.binders = let (Binders tvs avs cs q) = @q.binders
-                       in  Binders tvs avs (DS.insert @c.copy cs) q
+  | Qual lhs.binders = let (Binders tvs avs cs ty) = @q.binders
+                       in  Binders tvs avs (DS.insert @c.copy cs) ty
 
 {
 collectBinders :: TyScheme -> Binders
