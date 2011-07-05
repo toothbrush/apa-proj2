@@ -174,11 +174,10 @@ partition env cs =
                      | isActive a1 || isActive a2 = DS.insert c xs
                    f _ xs = xs
                in  DS.fold f DS.empty cs
-      -- FIXME: For some reason qual makes this all not terminate ....
       qual   = let g c xs | c `DS.notMember` prop = DS.insert c xs
                           | otherwise             = xs
                in  DS.fold g DS.empty cs
-  in (prop, DS.empty) -- qual)
+  in (prop, qual)
 
 (?) :: Ord a => a -> Map a b -> b
 a ? m = fromJust $ DM.lookup a m
