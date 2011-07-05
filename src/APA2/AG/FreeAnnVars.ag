@@ -13,6 +13,10 @@ SEM TyScheme
 SEM SAnn
   | AnnVar lhs.fav = DS.singleton @var
 
+-- TODO: Verify that this implementation is correct
+SEM Constraint
+  | Constraint lhs.fav = DS.insert @a1 @a2.fav
+
 {
 class FreeAnnVars a where
   fav :: a -> Set AnnVar -- alias String
@@ -24,8 +28,8 @@ instance FreeAnnVars TyScheme where
   fav x = fav_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
 
 instance FreeAnnVars SAnn where
-  fav (AnnVar v)       = DS.singleton v
-  fav _                = DS.empty
+  fav (AnnVar v) = DS.singleton v
+  fav _          = DS.empty
 
 instance FreeAnnVars Constraints where
   fav = DS.fold DS.union DS.empty . DS.map fav
