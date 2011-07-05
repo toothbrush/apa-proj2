@@ -117,8 +117,8 @@ _          ⊇ _          = error "no variables allowed"
 (∪) :: SAnn -> SAnn -> SAnn
 AnnEmpty   ∪ a          = a
 a          ∪ AnnEmpty   = a
-(AnnSet a) ∪ (AnnSet b) = AnnSet (DS.union a b) 
-_          ∪ _          = error "no variables allowed" 
+(AnnSet a) ∪ (AnnSet b) = AnnSet (DS.union a b)
+_          ∪ _          = error "no variables allowed"
 
 debugStep :: (Show a, Show b) => a -> b -> String
 debugStep w ana = 

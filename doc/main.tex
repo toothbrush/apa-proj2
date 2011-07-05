@@ -170,6 +170,33 @@ rule, for lists, was added to the default implementation.
     \centering
     \begin{tabular}{rcb{7cm}}
         \hline
+        $\mathcal{W}_{CFA}(\widehat{\Gamma},[])$ & = & $(\tau\: \texttt{list}^{\alpha}, id, \emptyset)$ with $\tau,\alpha$ fresh \\
+        $\mathcal{W}_{CFA}(\widehat{\Gamma},(x\<:>xs))$ & = &  $ 
+\begin{array}{lll}
+    let & \beta & \textnormal{fresh annotation variable}\\
+        & (listTy,\theta_1,c_1) & = \mathcal{W}_{CFA}(\widehat{\Gamma}, x)\\
+    & (\sigma, \theta_2, c_2) & = \mathcal{W}_{CFA}(\theta_1 \widehat{\Gamma}, xs)\\
+    & \theta_3 & = \mathcal{U}_{CFA} (\sigma, \theta_2\: listTy) \\ 
+        & \theta&  =  \theta_3 \circ \theta_2 \circ \theta_1\\ 
+        & c_3 & = \beta \leq listTy \cup \beta \leq \sigma \\ 
+        & cs & = c_1 \cup c_2 \cup c_3 \\
+         in & ~  & (\theta\: (listTy\: \texttt{list}^\beta), \theta, \theta\: cs)
+\end{array}
+ $  
+\\
+
+
+
+
+        \hline
+    \end{tabular}
+    \caption{Algorithm~W for lambda calculus including data structures. }
+    \label{tab:algoW}
+\end{table}
+\begin{table}
+    \centering
+    \begin{tabular}{rcb{7cm}}
+        \hline
         $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
         $\mathcal{U}_{CFA}(Bool,Bool)$ & = & $id$ \\
         $\mathcal{U}_{CFA}(\tau_1,\tau_2)$ & = & \parbox{0.3\textwidth}{$ \left\{
