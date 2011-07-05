@@ -1,7 +1,6 @@
 imports
 {
 import            Control.Monad ()
-import            Debug.Trace
 }
 
 ATTR MH
@@ -61,7 +60,7 @@ SEM MH
 
 
       lhs.substitution = @loc.theta
-      lhs.annotation   = 
+      lhs.annotation   =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -137,7 +136,7 @@ SEM MH
                (@loc.beta' <:? @e2.annotation)
           cs = c1 `DS.union` c2 `DS.union` c3
       in applySubst @loc.theta cs 
-    
+
     lhs.annotation = Just (AnnVar @loc.beta')
 
     e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
@@ -184,7 +183,7 @@ SEM MH
 
       loc.(c, ty) = 
         if @x `DM.member` @lhs.typeEnvironment
-          then case inst @loc.beta (getVar @x @lhs.typeEnvironment) of
+          then case instantiate @loc.beta (getVar @x @lhs.typeEnvironment) of
                 Ty   ty    -> (DS.empty, ty)
                 Qual c  ty -> (c, ty)
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
@@ -193,7 +192,7 @@ SEM MH
         let phi = @x ? @lhs.annEnvironment 
         in @loc.c `DS.union` (@loc.beta' <:? phi)
 
-      loc.annotation = 
+      loc.annotation =
         case @loc.ty of
           Arr _ _ a -> Just (AnnVar a)
           _         -> Nothing
@@ -204,7 +203,7 @@ SEM MH
       lhs.constraints = @loc.constraints
       lhs.annotation = @loc.annotation
       lhs.substitution = @loc.substitution
-  
+
       lhs.debug = "Var("++ @x ++ "): \n" ++
                   "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
@@ -228,7 +227,7 @@ SEM MH
       loc.constraints = @e.constraints `DS.union` (@loc.beta' <:? (Just @loc.pi))
       loc.ty = applySubst @e.substitution (Arr @loc.alpha' @e.ty @loc.beta')
       loc.annotation = Just (AnnVar @loc.beta')
-  
+
       lhs.substitution = @loc.substitution
       lhs.ty = @loc.ty
       lhs.constraints = @loc.constraints
@@ -247,7 +246,7 @@ SEM MH
                   @e.debug
 
 
-  | App 
+  | App
       loc.alpha : UNIQUEREF counter
       loc.beta  : UNIQUEREF counter
 
@@ -263,7 +262,7 @@ SEM MH
 
       loc.ty = applySubst @loc.theta3 @loc.alpha'
 
-      loc.annotation = 
+      loc.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -298,7 +297,7 @@ SEM MH
                   @e1.debug ++ @e2.debug
 
 
-  | Let 
+  | Let
       loc.beta : UNIQUEREF counter
 
       loc.beta'  = mkAnnVar @loc.beta
@@ -309,14 +308,14 @@ SEM MH
 
       loc.substitution = @loc.theta2 `dot` @loc.theta1
 
-      loc.constraints = 
+      loc.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
             c3 = @loc.beta' <:? @e2.annotation
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta2 cs
-      
-      loc.annotation = 
+
+      loc.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -325,10 +324,10 @@ SEM MH
       lhs.annotation = @loc.annotation
       lhs.constraints = @loc.constraints
       lhs.substitution = @loc.substitution
-      
+
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = snd $ generalise newEnv @e1.ty @e1.constraints
+            ty'    = snd $ generalise newEnv @loc.annotation @e1.ty @e1.constraints
         in DM.insert @x ty' newEnv
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
@@ -372,7 +371,8 @@ SEM MH
             c3 = applySubst @loc.theta (@loc.beta' <:? @e2.annotation)
         in c1 `DS.union` c2 `DS.union` c3
 
-      lhs.annotation = Just (AnnVar @loc.beta'')
+      loc.annotation = Just (AnnVar @loc.beta'')
+      lhs.annotation = @loc.annotation
 
       e1.typeEnvironment =
         case @x of
@@ -388,7 +388,7 @@ SEM MH
             Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
                                     (applySubst @loc.theta1 @e1.ty)
                                     (applySubst @loc.theta @loc.beta')
-                           ty' = snd $ generalise newEnv ty @e1.constraints
+                           ty' = snd $ generalise newEnv @loc.annotation ty @e1.constraints
                        in DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
@@ -417,13 +417,13 @@ SEM MH
           Arr a b _ -> applySubst @loc.substitution (Arr a b @loc.beta')
           _         -> @e2.ty
 
-      loc.constraints = 
+      loc.constraints =
         let c  = (@loc.beta' <:? @e1.annotation) `DS.union`
                  (@loc.beta' <:? @e2.annotation)
             cs = @e1.constraints `DS.union` @e2.constraints `DS.union` c
         in applySubst @loc.substitution cs
 
-      loc.annotation = 
+      loc.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -435,7 +435,7 @@ SEM MH
 
       e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
       e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment                          
+      e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
       lhs.debug = "If: \n" ++
@@ -455,7 +455,7 @@ mkAnnVar :: Int -> AnnVar
 mkAnnVar i = "b" ++ show i
 
 mkProgramPoint :: Var -> Int -> SAnn
-mkProgramPoint v p = AnnSet (DS.singleton (v ++ (show p))) 
+mkProgramPoint v p = AnnSet (DS.singleton (v ++ show p))
 
 operatorType :: String -> (Ty, Ty, Ty)
 operatorType op
@@ -487,69 +487,31 @@ getVar x env =
     _           -> error ("This shouldn't happen. '" ++ x ++
                           "'\nwasn't found in the environment.")
 
--- old
-generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme)
-generalise env tau c = let free      = fv tau DS.\\ fv env
-                           genTyVars = DS.fold Forall (QualSig $ Ty tau) free
-                       in (undefined, genTyVars)
+generalise :: TyEnv -> Maybe SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
+generalise env ann tau c =
+  let phi    = fromMaybe AnnEmpty ann
+      ftvs   = fv tau DS.\\ fv env
+      favs   = fav tau DS.\\ fav env DS.\\ fav phi
+      fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
+      (c'', c') = simplify env phi tau c
+      qtdTVs = DS.fold Forall (QualSig $ Qual c' $ Ty tau) ftvs
+      qtdAVs = DS.fold AnnSig qtdTVs favs
+  in  (c'', qtdAVs)
 
--- old
-instantiate :: Int -> TyScheme -> Ty
-instantiate seed ts =
-  let (tyvars, _, (Ty ty')) = collectBinders ts
-      sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      seed' = show seed
-      nzip  c = zipWith (\_ b -> c (seed' ++ b)) tyvars (map show ([0..] :: [Int]))
-      s  = sfold TySub (zip tyvars $ nzip TyVar)
-  in applySubst s ty'
+instantiate :: Int -> TyScheme -> Qual
+instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
+  where fresh                   = map (\x -> show seed ++ show x) ([0..] :: [Int])
+        (tyvars, annvars, qual) = collectBinders ts
+        (tySubs,fresh')         = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
+        (annSubs,_)             = forallFresh AnnSub fresh' annvars
 
-inst :: Int -> TyScheme -> Qual
-inst seed ts = applySubst (tySubs `dot` annSubs) qual
-  where 
-  infinitelyFresh           = map (\x -> show seed ++ show x) ([0..] :: [Int]) 
-  (tyvars, annvars, qual)   = collectBinders ts
-  (tySubs,infinitelyFresh') = forallFresh (\a b -> TySub a (TyVar b)) infinitelyFresh tyvars
-  (annSubs,_)               = forallFresh AnnSub infinitelyFresh' annvars
-        
 forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] -> (SimpleSubstitution, [String])
 forallFresh subst fresh = foldr o (Identity, fresh)
-  where o a (b, fresh) = (Dot (subst a (fresh !! 0)) b, drop 1 fresh)
+  where o a (b, f:fs) = (Dot (subst a f) b, fs)
+        o _ (_, [])   = (Identity, [])
 
-
-{-
--- a type T, and then makes the type into 
--- "foreach [those variables] T."
--- Also returns a coercion. This is to be applied to the term, 
--- resulting in a Tm with type lambdas at the right spots.
-generalise :: TyEnv -> Ty -> Constraints -> (Constraints, TyScheme) -- I'm assuming there's no need for Annotations here?
-generalise env tau c = let (c', c'')   = simplify env tau c
-                           freeAlpha   = fv  tau DS.\\ fv  env
-                           freeBeta'   = fav c'   -- ??? DS.\\ fav env -- onzin? : DS.\\ fav tau -- DS.\\ fav ann
-                           genTyVars   = DS.fold Forall (QualSig $ Ty tau) freeAlpha
-                           --genAnnVars  = DS.fold Forall (genTyVars) (freeBeta `DS.union` freeBeta')
-                       in  {- trace (show annots) $ -}
-                           (c'', DS.fold AnnSig genTyVars (freeBeta'))
-
--- | Turn a number (the counter's current value) into a type variable.
--- NOTE: This assumes the user doesn't use variables like v[0-9]+ in the program.
---       This seems reasonable, given the scope of the assignment, a workaround
---       shouldn't be difficult to implement.
-
--- | Instantiate. Specialise a given polymorphic type
--- with fresh variables. A coercion function is also returned, 
--- which should be used to show where in the original term
--- type instantiations were applied.
-instantiate :: Int -> TyScheme -> Ty
-instantiate seed ts =
-  let (faVars, forallAVars, ty') = (agTyScheme faVs_Syn_TyScheme) ts
-      sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      nzip  c = zipWith (\a b -> {- trace ("fresh="++a++b++"\n") $ -} c (a ++ b)) faVars (map show ([seed..] :: [Int]))
-      -- first get all "forall" bound variables,
-      -- then replace these with fresh variables
-      s  = sfold TySub (zip faVars $ nzip TyVar)
-      -- TODO: do kinda the same for annotation variables.
-  in  {-trace (show finalSub) $ -}
-      applySubst s ty'
--}
+-- TODO: To AG?
+unwrapTy :: Qual -> Ty
+unwrapTy (Qual _ q) = unwrapTy q
+unwrapTy (Ty t)     = t
 }
-

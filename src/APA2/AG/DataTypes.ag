@@ -37,7 +37,7 @@ DERIVING MH: Eq
 
 DATA Qual
   | Ty   ty : Ty
-  | Qual c  : {Constraints} ty : Ty
+  | Qual c  : {Constraints} q : Qual
 
 DERIVING Qual: Eq
 
@@ -66,6 +66,7 @@ DATA SAnn
 
 DERIVING SAnn: Eq, Ord
 
+-- TODO: a1 needs to become SAnn again
 DATA Constraint
   | Constraint a1 : AnnVar a2 : SAnn
 

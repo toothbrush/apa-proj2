@@ -87,7 +87,6 @@ worklist cs =
       | DMS.null w = analysis
       | otherwise  = let (w', analysis') = trace (debugStep w analysis) (step infl' w analysis)
                      in solveConstraints w' analysis'
-    
   in solveConstraints w analysis'
 
 step :: Influence -> Worklist -> Analysis -> (Worklist, Analysis)
@@ -96,7 +95,6 @@ step infl w analysis
   | otherwise   = 
     let ((Constraint x (AnnVar t)), w') = let c = DMS.findMin w
                                           in (c, DMS.delete c w)
-        
         value    = x ? analysis
         newValue = t ? analysis
     in if not (value ⊇ newValue)
@@ -107,11 +105,10 @@ step infl w analysis
         else (w', analysis)
 
 (⊇) :: SAnn -> SAnn -> Bool
-AnnEmpty   ⊇ AnnEmpty               = True
-AnnEmpty   ⊇ (AnnSet a) | DS.null a = True
-                        | otherwise = False
-(AnnSet a) ⊇ (AnnSet b)             = DS.isSubsetOf b a
-_          ⊇ _                      = error "no variables allowed"
+AnnEmpty   ⊇ AnnEmpty   = True
+AnnEmpty   ⊇ (AnnSet a) = DS.null a
+(AnnSet a) ⊇ (AnnSet b) = DS.isSubsetOf b a
+_          ⊇ _          = error "no variables allowed"
 
 (∪) :: SAnn -> SAnn -> SAnn
 AnnEmpty   ∪ a          = a
@@ -133,8 +130,8 @@ simplify env tau c = let active = pseudoActive (DS.map AnnVar (fav tau)) c
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
-  let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs
-                                  | otherwise            = xs
+  let extrAnn (Constraint l u) xs | AnnVar l `DS.member` active = DS.insert u xs
+                                  | otherwise                   = xs
       vars = DS.fold extrAnn DS.empty c `DS.union` active
   in  if DS.null (vars `DS.intersection` active)
         then pseudoActive vars c
@@ -145,14 +142,18 @@ pseudoActive active c =
 range :: Constraints -> Map AnnVar SAnn
 range c = worklist c
 
+-- TODO: Implementation is ugly, refactor. It helps if we get a set of SAnn here
 satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
 satisfiable active analysis =
   let act'          = DS.map AnnVar active
       ana'          = DM.mapKeys AnnVar analysis
-      func beta l
-        | l <= beta = if beta `DS.notMember` act' -- || l == beta
-        -- doubt: shouldn't l==beta be removed from the list too?
-                        then if l == beta then Identity else AnnSub beta l
+      func beta@(AnnVar v) l
+        | l <= beta = if beta `DS.notMember` act'
+                        then if l == beta
+                               then Identity
+                               else case l of
+                                      (AnnVar v') -> AnnSub v v'
+                                      _          -> error "satisfiable: should not happen"
                         else Identity
         | otherwise = error "lower bound is larger than upper bound"
       substLst      = DM.mapWithKey func ana'
@@ -168,20 +169,13 @@ unify :: Ty -> Ty -> SimpleSubstitution
 unify Nat  Nat  = Identity
 unify Bool Bool = Identity
 
-unify (List t an) (List t' an') = let theta1 = unify t t'
-                                      theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
-                                  in theta2 `dot` theta1
+unify (List t an) (List t' an') =
+  let theta1 = unify t t'
+      theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
+  in theta2 `dot` theta1
 
-unify t1@(TyVar tv1) t2@(TyVar tv2) | tv1 == tv2 = Identity
-                                    | tv1 `DS.notMember` fv t2 = TySub tv1 t2
-                                    | tv2 `DS.notMember` fv t1 = TySub tv2 t1
-                                    | otherwise = error "Cannot unify. Error."
-
-unify (TyVar tv1) t | tv1 `DS.notMember` fv t = TySub tv1 t
-                    | otherwise = occursCheck tv1 t
-
-unify t (TyVar tv2) | tv2 `DS.notMember` fv t = TySub tv2 t
-                    | otherwise = occursCheck tv2 t 
+unify a@(TyVar _) t = unifyTyVar a t
+unify t a@(TyVar _) = unifyTyVar a t
 
 unify (Arr t11 t12 an) (Arr t21 t22 an') =
   let theta1 = unify t11 t21
@@ -197,7 +191,13 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
 
 unifyAnn :: AnnVar -> AnnVar -> SimpleSubstitution
 unifyAnn v v' | v == v'   = Identity
-              | otherwise = AnnSub v' v 
+              | otherwise = AnnSub v v'
+
+unifyTyVar :: Ty -> Ty -> SimpleSubstitution
+unifyTyVar a@(TyVar x) t | a == t                = Identity
+                         | x `DS.notMember` fv t = TySub x t
+                         | otherwise             = occursCheck a t
+unifyTyVar _           _ = error "First argument to unifyTyVar must be a TyVar"
 
 occursCheck :: (Show a, Show b) => a -> b -> t
 occursCheck tv t = error $ "Occurs check: " ++ show tv ++ " = " ++ show t
@@ -217,7 +217,7 @@ instance Substitutable TyScheme where
 
   applySubst s@(AnnSub a _) t@(AnnSig tv ts) | a == tv   = t
                                              | otherwise = AnnSig tv (applySubst s ts)
-  
+
   applySubst _ t = t
 
 instance Substitutable Qual where
@@ -229,9 +229,9 @@ instance Substitutable Ty where
   applySubst Identity       t  = t
   applySubst d@(Dot _ _)    t  = dotApply d t
 
-  applySubst (TySub a t0) (TyVar t)
+  applySubst (TySub a t0) tv@(TyVar t)
     | a == t    = t0
-    | otherwise = TyVar t
+    | otherwise = tv
 
   applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) (applySubst s ann)
 
