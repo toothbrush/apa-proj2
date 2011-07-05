@@ -184,9 +184,9 @@ SEM MH
 
       loc.ty =
         if @x `DM.member` @lhs.typeEnvironment
-          then let x  = getVar @x @lhs.typeEnvironment 
-                   x' = instantiate @loc.beta x 
-               in case x' of
+          then let x  = getVar @x @lhs.typeEnvironment
+                   x' = unwrapTy $ instantiate @loc.beta x
+               in case x' of -- TODO: Correct?
                     Arr a b _ -> Arr a b @loc.beta'
                     _         -> x'
           else error ("Variable "++ @x ++" not found in environment (out of scope).")
@@ -195,7 +195,7 @@ SEM MH
         let phi = @x ? @lhs.annEnvironment 
         in @loc.beta' <:? phi
 
-      loc.annotation = 
+      loc.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -206,7 +206,7 @@ SEM MH
       lhs.constraints = @loc.constraints
       lhs.annotation = @loc.annotation
       lhs.substitution = @loc.substitution
-  
+
       lhs.debug = "Var("++ @x ++ "): \n" ++
                   "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
@@ -230,7 +230,7 @@ SEM MH
       loc.constraints = @e.constraints `DS.union` (@loc.beta' <:? (Just @loc.pi))
       loc.ty = applySubst @e.substitution (Arr @loc.alpha' @e.ty @loc.beta')
       loc.annotation = Just (AnnVar @loc.beta')
-  
+
       lhs.substitution = @loc.substitution
       lhs.ty = @loc.ty
       lhs.constraints = @loc.constraints
@@ -265,7 +265,7 @@ SEM MH
 
       loc.ty = applySubst @loc.theta3 @loc.alpha'
 
-      loc.annotation = 
+      loc.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -300,7 +300,7 @@ SEM MH
                   @e1.debug ++ @e2.debug
 
 
-  | Let 
+  | Let
       loc.beta : UNIQUEREF counter
 
       loc.beta'  = mkAnnVar @loc.beta
@@ -317,8 +317,8 @@ SEM MH
             c3 = @loc.beta' <:? @e2.annotation
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta2 cs
-      
-      loc.annotation = 
+
+      loc.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -327,7 +327,7 @@ SEM MH
       lhs.annotation = @loc.annotation
       lhs.constraints = @loc.constraints
       lhs.substitution = @loc.substitution
-      
+
       e2.typeEnvironment = 
         let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
             ty'    = snd $ generalise newEnv @loc.annotation @e1.ty @e1.constraints
@@ -502,17 +502,17 @@ generalise env ann tau c =
   in  (c'', qtdAVs)
 
 -- old
-instantiate :: Int -> TyScheme -> Ty
-instantiate seed ts =
-  let (tyvars, _, (Ty ty')) = collectBinders ts
-      sfold c = foldr (\(o,n) -> Dot (c o n)) Identity
-      seed' = show seed
-      nzip  c = zipWith (\_ b -> c (seed' ++ b)) tyvars (map show ([0..] :: [Int]))
-      s  = sfold TySub (zip tyvars $ nzip TyVar)
-  in applySubst s ty'
+{- instantiate :: Int -> TyScheme -> Ty-}
+{- instantiate seed ts =-}
+{-   let (tyvars, _, (Ty ty')) = collectBinders ts-}
+{-       sfold c = foldr (\(o,n) -> Dot (c o n)) Identity-}
+{-       seed' = show seed-}
+{-       nzip  c = zipWith (\_ b -> c (seed' ++ b)) tyvars (map show ([0..] :: [Int]))-}
+{-       s  = sfold TySub (zip tyvars $ nzip TyVar)-}
+{-   in applySubst s ty'-}
 
-inst :: Int -> TyScheme -> Qual
-inst seed ts = applySubst (tySubs `dot` annSubs) qual
+instantiate :: Int -> TyScheme -> Qual
+instantiate seed ts = applySubst (tySubs `dot` annSubs) qual
   where 
   infinitelyFresh           = map (\x -> show seed ++ show x) ([0..] :: [Int]) 
   (tyvars, annvars, qual)   = collectBinders ts
@@ -523,6 +523,10 @@ forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] 
 forallFresh subst fresh = foldr o (Identity, fresh)
   where o a (b, fresh) = (Dot (subst a (fresh !! 0)) b, drop 1 fresh)
 
+-- TODO: To AG?
+unwrapTy :: Qual -> Ty
+unwrapTy (Qual _ q) = unwrapTy q
+unwrapTy (Ty t)     = t
 
 {-
 -- a type T, and then makes the type into 
