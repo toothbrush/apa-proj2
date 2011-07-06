@@ -1,3 +1,8 @@
+optpragmas {
+{-# LANGUAGE FlexibleContexts,
+             FlexibleInstances,
+             UndecidableInstances #-}
+}
 imports
 {
 import Data.Set (Set, toList)
@@ -132,4 +137,11 @@ instance Show TyScheme where
   show (QualSig q)   = show q
   show (Forall a ts) = "∀" ++ a ++ ". " ++ show ts
   show (AnnSig a ts) = "∀" ++ a ++ ". " ++ show ts
+
+class (Show (Set a)) => PrintSet a where
+  ppSet :: Set a -> String
+
+instance Show a => PrintSet a where
+  ppSet x = let l = map show $ toList x
+            in  "{" ++ (intercalate "," l) ++ "}"
 }

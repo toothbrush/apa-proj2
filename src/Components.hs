@@ -46,7 +46,7 @@ debugInference tm =
     putStrLn "Top level annotation: "
     print annotation
     putStrLn "Constraints:"
-    print (DS.toList constraints)
+    putStrLn (ppSet constraints)
     putStrLn debug
 
 parseProgram :: String -> MH
