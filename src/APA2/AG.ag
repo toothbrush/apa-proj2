@@ -149,17 +149,16 @@ debugStep w ana =
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
   let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
-      ranges :: Lattice SAnn => Map SAnn SAnn
       ranges = trace ("active vars: "++show active++"\n") $
                worklist c
       theta  = satisfiable active ranges
-      c'     = nubTriv (applySubst theta c)
+      c'     = applySubst theta c
   in  partition env c'
 
 -- | todo: is this necessary?
-nubTriv :: Constraints -> Constraints
-nubTriv = DS.filter triv
-     where triv (Constraint k v) = k == v
+{- nubTriv :: Constraints -> Constraints-}
+{- nubTriv = DS.filter triv-}
+     {- where triv (Constraint k v) = k == v-}
 
 {- satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution-}
 {- satisfiable active analysis =-}
@@ -171,11 +170,10 @@ nubTriv = DS.filter triv
 {-   in DM.fold Dot Identity substLst-}
 
 satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution
-satisfiable active analysis =
-  let f (AnnVar β) (AnnVar β') acc
-        | β `DS.notMember` active = AnnSub β β' `dot` acc
-      f _            _         acc = acc
-  in  DM.foldrWithKey f Identity analysis
+satisfiable act ana =
+  let f (AnnVar β) (AnnVar β') acc | β `DS.notMember` act = AnnSub β β' `dot` acc
+      f _          _           acc = acc
+  in  DM.foldrWithKey f Identity ana
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
