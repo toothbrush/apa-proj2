@@ -71,8 +71,15 @@ iterAbsWl infl eval wlst ana
 {-   where o c@(Constraint _ (AnnVar _)) (cs'', cs') = (cs'', DS.insert c cs')-}
 {-         o c@(Constraint _ (AnnSet _)) (cs'', cs') = (DS.insert c cs'', cs')-}
 {-         o (Constraint _ AnnEmpty)     _           = error "should not happen"-}
+
+qq :: Lattice a => SAnn -> Map SAnn a -> a
+qq a m = case DM.lookup a m of
+           Just x  -> x
+           Nothing -> bottom
+
+
 worklist :: Lattice a => Constraints -> Map SAnn a
-worklist cs = absWl cs (?)
+worklist cs = absWl cs qq
 {- worklist :: Constraints -> Map AnnVar SAnn-}
 {- worklist cs =-}
 {-   let-}
@@ -144,19 +151,36 @@ debugStep w ana =
   "W: " ++ show w ++ "\n" ++
   "ANA: " ++ show ana ++ "\n"
 
+
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
-  let --active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
-      --ranges = trace ("active vars: "++show active++"\n") $
-      --               worklist c
-  in  partition env c
+  let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
+      ranges :: Lattice SAnn => Map SAnn SAnn
+      ranges = trace ("active vars: "++show active++"\n") $
+               worklist c
+      theta  = satisfiable active ranges
+      c'     = applySubst theta c
+  in  trace ("\nBEFORE satisfiable = "++show c ++ "\nAFTER  satisfiable = "++show c') $ partition env c'
+
+
+satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution
+satisfiable active analysis =
+  let act' = DS.map AnnVar active
+      ana' = analysis -- DM.mapKeys AnnVar analysis
+      func (AnnVar beta) (AnnVar l) | beta == l || not (beta `DS.member` active) = AnnSub beta l 
+                                    | otherwise                                  = Identity
+      func (AnnVar beta) l          = Identity
+      func beta          (AnnVar l) = Identity
+      func beta          l          = Identity
+      substLst = DM.mapWithKey func ana'
+  in DM.fold Dot Identity substLst
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
   let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs
                                   | otherwise            = xs
       vars = DS.fold extrAnn DS.empty c `DS.union` active
-  in  if DS.null (vars `DS.intersection` active)
+  in  if not ( DS.null (vars `DS.intersection` active) )
         then pseudoActive vars c
         else let extrVar (AnnVar x) xs = DS.insert x xs
                  extrVar _          xs = xs
