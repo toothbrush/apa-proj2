@@ -464,11 +464,8 @@ operatorType op
   | otherwise                              = error $ "Invalid op: " ++ op
 
 (<:?) :: AnnVar -> Maybe SAnn -> Constraints
-beta <:? Just phi = DS.singleton (constrain beta phi)
+beta <:? Just phi = DS.singleton (Constraint beta phi)
 _    <:? _        = DS.empty
-
-constrain :: AnnVar -> SAnn -> Constraint
-constrain = Constraint
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
 dot = Dot
