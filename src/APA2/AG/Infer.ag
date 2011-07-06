@@ -20,15 +20,18 @@ ATTR MH
     lhsTy     USE {`mplus`} {Nothing}       : {Maybe Ty}
     annotation                              : {Maybe SAnn}
     debug     USE {++} {""}                 : {String}
-    annotDict USE {`DM.union`} {DM.empty}   : {Map SAnn MH}
+    annotDict USE {`DM.union`} {DM.empty}   : {Map String MH}
     cp : SELF
   ]
 
 SEM MH
   | Lambda
-      lhs.annotDict = DM.singleton @loc.pi @loc.cp
+      lhs.annotDict = DM.singleton (@x ++ show @loc.ppoint) @loc.cp
+                        `DM.union` @e.annotDict
   | LetRec
-      lhs.annotDict = DM.singleton @loc.pi @loc.cp
+      lhs.annotDict = DM.singleton (@f ++ show @loc.ppoint) @loc.cp
+                        `DM.union` @e2.annotDict
+                        `DM.union` @e1.annotDict
 
 SEM MH
   | CaseBlck

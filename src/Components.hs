@@ -16,7 +16,7 @@ initialInheritedAttributes =
          , counter_Inh_MH = 0
          }
 
-w :: MH -> (Ty, Maybe SAnn, SimpleSubstitution, Constraints, String, Map SAnn MH)
+w :: MH -> (Ty, Maybe SAnn, SimpleSubstitution, Constraints, String, Map String MH)
 w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
        in  ( ty_Syn_MH           wrappedDS
            , annotation_Syn_MH   wrappedDS
