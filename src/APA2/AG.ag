@@ -73,9 +73,7 @@ iterAbsWl infl eval wlst ana
 {-         o (Constraint _ AnnEmpty)     _           = error "should not happen"-}
 
 qq :: Lattice a => SAnn -> Map SAnn a -> a
-qq a m = case DM.lookup a m of
-           Just x  -> x
-           Nothing -> bottom
+qq = DM.findWithDefault bottom
 
 
 worklist :: Lattice a => Constraints -> Map SAnn a
