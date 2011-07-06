@@ -13,7 +13,6 @@ SEM TyScheme
 SEM SAnn
   | AnnVar lhs.fav = DS.singleton @var
 
--- TODO: Verify that this implementation is correct
 SEM Constraint
   | Constraint lhs.fav = DS.insert @a1 @a2.fav
 
