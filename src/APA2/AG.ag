@@ -39,39 +39,40 @@ instance Lattice SAnn where
   join   = (⊔)
   pord   = (⊒)
 
-{- absWl :: Lattice a => Constraints -> (SAnn -> Map SAnn a -> a) -> Map SAnn a-}
-{- absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)-}
-{-   where mkMap  s = let mf (Constraint x _) xs = DM.insert x s xs-}
-{-                    in  DS.fold mf DM.empty cstr-}
-{-         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))-}
-{-         infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr-}
-{-         inflx_ cxt@(Constraint _ t) =-}
-{-           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m-}
-{-           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)-}
+absWl :: Lattice a => Constraints -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
+absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
+  where mkMap  s = let mf (Constraint x _) xs = DM.insert x s xs
+                   in  DS.fold mf DM.empty cstr
+        inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
+        infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
+        inflx_ cxt@(Constraint _ t) =
+          let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
+          in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
 
-{- iterAbsWl :: Lattice a => Map SAnn (Set Constraint)-}
-{-           -> (SAnn -> Map SAnn a -> a) -> Worklist -> Map SAnn a-}
-{-           -> Map SAnn a-}
-{- iterAbsWl infl eval wlst ana-}
-{-   | DMS.null wlst          = ana-}
-{-   | not $ anaLU `pord` new = iter (wltl `DMS.union` inflx x) newAna-}
-{-   | otherwise              = iter wltl ana-}
-{-   where-}
-{-     new     = eval t ana-}
-{-     inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl-}
-{-     anaLU   = DM.fromJust $ DM.lookup x ana-}
-{-     newAna  = DM.insert x newAnax ana-}
-{-     newAnax = anaLU `join` new-}
-{-     iter    = iterAbsWl infl eval-}
-{-     wltl    = DMS.delete cp wlst-}
-{-     cp@(Constraint x t) = DMS.findMin wlst-}
+iterAbsWl :: Lattice a => Map SAnn (Set Constraint)
+          -> (SAnn -> Map SAnn a -> a) -> Worklist -> Map SAnn a
+          -> Map SAnn a
+iterAbsWl infl eval wlst ana
+  | DMS.null wlst          = ana
+  | not $ anaLU `pord` new = iter (wltl `DMS.union` inflx x) newAna
+  | otherwise              = iter wltl ana
+  where
+    new     = eval t ana
+    inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl
+    anaLU   = DM.fromJust $ DM.lookup x ana
+    newAna  = DM.insert x newAnax ana
+    newAnax = anaLU `join` new
+    iter    = iterAbsWl infl eval
+    wltl    = DMS.delete cp wlst
+    cp@(Constraint x t) = DMS.findMin wlst
 
 {- partitionConstraints :: Constraints -> (Constraints, Constraints)-}
 {- partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs-}
 {-   where o c@(Constraint _ (AnnVar _)) (cs'', cs') = (cs'', DS.insert c cs')-}
 {-         o c@(Constraint _ (AnnSet _)) (cs'', cs') = (DS.insert c cs'', cs')-}
 {-         o (Constraint _ AnnEmpty)     _           = error "should not happen"-}
-worklist = undefined
+worklist :: Lattice a => Constraints -> Map SAnn a
+worklist cs = absWl cs (?)
 {- worklist :: Constraints -> Map AnnVar SAnn-}
 {- worklist cs =-}
 {-   let-}
