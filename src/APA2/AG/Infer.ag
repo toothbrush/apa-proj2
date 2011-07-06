@@ -25,10 +25,10 @@ ATTR MH
   ]
 
 SEM MH
-  | *
-      lhs.annotDict = case @loc.annotation of
-                          Just x  -> DM.singleton x @loc.cp
-                          Nothing -> DM.empty
+  | Lambda
+      lhs.annotDict = DM.singleton @loc.pi @loc.cp
+  | LetRec
+      lhs.annotDict = DM.singleton @loc.pi @loc.cp
 
 SEM MH
   | CaseBlck
