@@ -490,16 +490,11 @@ generalise env ann tau c =
   in  (c'', qtdAVs)
 
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
-instantiate seed ts = let ss = tySubs `dot` annSubs
-                      in  (applySubst ss cs, applySubst ss ty)
-  where (Binders tyvars annvars cs ty) = trace ("collectBinders") collectBinders ts
-        fresh           = map (\x -> 'τ' : show seed ++ show x) ([0..] :: [Int]) -- TODO: Not very clean, but  hey
-        (tySubs,fresh') = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
-        (annSubs,_)     = forallFresh AnnSub fresh' annvars
+instantiate seed ts = (applySubst subst cs, applySubst subst ty)
+  where (Binders tyvars annvars cs ty) = collectBinders ts
+        fresh   prefix = map (\x -> prefix : show seed ++ show x) ([0..] :: [Int])
+        tySubs         = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
+        annSubs        = zipWith AnnSub annvars (fresh 'β')
+        subst          = foldr Dot Identity (tySubs ++ annSubs)
 
-forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String]
-            -> (SimpleSubstitution, [String])
-forallFresh subst fresh = foldr o (Identity, fresh)
-  where o a (b, f:fs) = (Dot (subst a f) b, fs)
-        o _ (_, [])   = (Identity, [])
 }
