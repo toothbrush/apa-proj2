@@ -129,9 +129,9 @@ debugStep w ana =
 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
-  let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
-      ranges = trace ("active vars: "++show active++"\n") $
-                     worklist c
+  let --active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
+      --ranges = trace ("active vars: "++show active++"\n") $
+      --               worklist c
   in  partition env c
 
 testPA :: Set AnnVar
