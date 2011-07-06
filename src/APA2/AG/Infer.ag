@@ -218,8 +218,8 @@ SEM MH
       lhs.substitution = @loc.substitution
 
       lhs.debug = "Var("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
@@ -250,8 +250,8 @@ SEM MH
       e.annEnvironment  = DM.insert @x Nothing @lhs.annEnvironment
 
       lhs.debug = "Lambda("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
@@ -301,8 +301,8 @@ SEM MH
       e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
       lhs.debug = "App: \n" ++
-                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
@@ -347,8 +347,8 @@ SEM MH
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
 
       lhs.debug = "Let("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
@@ -453,8 +453,8 @@ SEM MH
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
       lhs.debug = "If: \n" ++
-                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++

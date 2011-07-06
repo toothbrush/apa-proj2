@@ -142,14 +142,17 @@ instance Show TyScheme where
 class PrintSet a where
   ppSet :: Set a -> String
 
-class PrintMap b where
-  ppMap :: Map String b -> String
-
 instance Show a => PrintSet a where
   ppSet x = let l = map show $ toList x
             in  "{" ++ intercalate "," l ++ "}"
-instance Show b => PrintMap b where
-  ppMap x = let f (a, b) = a ++ " :: " ++ show b
-                l        = map f $ M.toList x
-            in  "Map{" ++ intercalate "," l ++ "}"
+
+
+ppMapStr :: Show b => Map String b -> String
+ppMapStr x = let f (a, b) = a ++ " :: " ++ show b
+                 l        = map f $ M.toList x
+             in  "Map{" ++ intercalate "," l ++ "}"
+ppMap :: (Show a, Show b) => Map a b -> String
+ppMap x = let f (a, b) = show a ++ " :: " ++ show b
+              l        = map f $ M.toList x
+          in  "Map{" ++ intercalate "," l ++ "}"
 }
