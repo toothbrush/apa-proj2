@@ -22,7 +22,7 @@ import Debug.Trace
 import            Control.Monad (mplus)
 import            Data.Map (Map)
 import qualified  Data.Map as DM
-import qualified  Data.Map
+import qualified  Data.Map()
 import qualified  Data.Map as Map
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
@@ -37,6 +37,7 @@ INCLUDE "AG/FreeTyVars.ag"
 INCLUDE "AG/FreeAnnVars.ag"
 
 {
+
 class Ord a => Lattice a where
   top     :: a
   bottom  :: a
@@ -135,6 +136,7 @@ simplify env tau c =
       c'     = applySubst theta c
   in  partition env c'
 
+testPA :: Set AnnVar
 testPA = pseudoActive (DS.fromList [AnnVar "b1", AnnVar "b2", AnnVar "b3"])
                       (DS.fromList [ Constraint "b2" (AnnVar "b6")
                                    , Constraint "b6" (AnnVar "b4")])
