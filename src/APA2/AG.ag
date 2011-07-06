@@ -11,6 +11,7 @@ import            Data.Map (Map)
 import qualified  Data.Map as DM
 import qualified  Data.Map
 import qualified  Data.Map as Map
+import qualified  Data.Maybe as DM
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
 import qualified  Data.Set as DS
@@ -24,6 +25,7 @@ INCLUDE "AG/FreeTyVars.ag"
 INCLUDE "AG/FreeAnnVars.ag"
 
 {
+type Worklist = MultiSet Constraint
 
 class Ord a => Lattice a where
   top     :: a
@@ -31,70 +33,97 @@ class Ord a => Lattice a where
   join    :: a -> a -> a
   pord    :: a -> a -> Bool
 
-type Worklist = MultiSet Constraint
-type EvalFunc = SAnn -> Map AnnVar SAnn -> SAnn
-type Influence = Map AnnVar Constraints
-type Analysis = Map AnnVar SAnn
-
-{-
 instance Lattice SAnn where
   top    = error "SAnn does not have a concrete Top value"
-  bottom = AnnSet DS.empty
-  join   = annUnion
-  pord   = (>=)
--}
+  bottom = AnnSet DS.empty -- TODO: AnnEmpty?
+  join   = (⊔)
+  pord   = (⊒)
 
-partitionConstraints :: Constraints -> (Constraints, Constraints)
-partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs
-  where o c@(Constraint _ (AnnVar _)) (cs'', cs') = (cs'', DS.insert c cs')
-        o c@(Constraint _ (AnnSet _)) (cs'', cs') = (DS.insert c cs'', cs')
-        o (Constraint _ AnnEmpty)     _           = error "should not happen"
+{- absWl :: Lattice a => Constraints -> (SAnn -> Map SAnn a -> a) -> Map SAnn a-}
+{- absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)-}
+{-   where mkMap  s = let mf (Constraint x _) xs = DM.insert x s xs-}
+{-                    in  DS.fold mf DM.empty cstr-}
+{-         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))-}
+{-         infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr-}
+{-         inflx_ cxt@(Constraint _ t) =-}
+{-           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m-}
+{-           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)-}
 
-worklist :: Constraints -> Map AnnVar SAnn
-worklist cs =
-  let
-    (solved,unsolved) = partitionConstraints cs
+{- iterAbsWl :: Lattice a => Map SAnn (Set Constraint)-}
+{-           -> (SAnn -> Map SAnn a -> a) -> Worklist -> Map SAnn a-}
+{-           -> Map SAnn a-}
+{- iterAbsWl infl eval wlst ana-}
+{-   | DMS.null wlst          = ana-}
+{-   | not $ anaLU `pord` new = iter (wltl `DMS.union` inflx x) newAna-}
+{-   | otherwise              = iter wltl ana-}
+{-   where-}
+{-     new     = eval t ana-}
+{-     inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl-}
+{-     anaLU   = DM.fromJust $ DM.lookup x ana-}
+{-     newAna  = DM.insert x newAnax ana-}
+{-     newAnax = anaLU `join` new-}
+{-     iter    = iterAbsWl infl eval-}
+{-     wltl    = DMS.delete cp wlst-}
+{-     cp@(Constraint x t) = DMS.findMin wlst-}
 
-    (w, ana, infl) =
-      let o c@(Constraint a (AnnVar b)) (w', ana', infl'') = ( DMS.insert c w'
-                                                             , DM.insert a AnnEmpty (DM.insert b AnnEmpty ana')
-                                                             , DM.insert a DS.empty (DM.insert b DS.empty infl''))
-          o   (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'
-                                                             , DM.insert a AnnEmpty ana'
-                                                             , DM.insert a DS.empty infl'')
-          o _ _ = error "should not happen"
-      in DS.fold o (DMS.empty, DM.empty, DM.empty) cs
+{- partitionConstraints :: Constraints -> (Constraints, Constraints)-}
+{- partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs-}
+{-   where o c@(Constraint _ (AnnVar _)) (cs'', cs') = (cs'', DS.insert c cs')-}
+{-         o c@(Constraint _ (AnnSet _)) (cs'', cs') = (DS.insert c cs'', cs')-}
+{-         o (Constraint _ AnnEmpty)     _           = error "should not happen"-}
+worklist = undefined
+{- worklist :: Constraints -> Map AnnVar SAnn-}
+{- worklist cs =-}
+{-   let-}
+{-     (solved,unsolved) = partitionConstraints cs-}
 
-    analysis' =
-      let o (Constraint x x'@(AnnSet _)) a = DM.update (\v -> Just (v ⊔ x')) x a
-          o _ _ = error "should not happen"
-      in DS.fold o ana solved
+{-     (w, ana, infl) =-}
+{-       let o c@(Constraint a (AnnVar b)) (w', ana', infl'') = ( DMS.insert c w'-}
+{-                                                              , DM.insert a AnnEmpty (DM.insert b AnnEmpty ana')-}
+{-                                                              , DM.insert a DS.empty (DM.insert b DS.empty infl''))-}
+{-           o   (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'-}
+{-                                                              , DM.insert a AnnEmpty ana'-}
+{-                                                              , DM.insert a DS.empty infl'')-}
+{-           o _ _ = error "should not happen"-}
+{-       in DS.fold o (DMS.empty, DM.empty, DM.empty) cs-}
 
-    infl' =
-      let o c@(Constraint _ (AnnVar x)) infl'' = DM.update (Just . DS.insert c) x infl''
-          o _ _ = error "should not happen"
-      in DS.fold o infl unsolved
+{-     analysis' =-}
+{-       let o (Constraint x x'@(AnnSet _)) a = DM.update (\v -> Just (v ⊔ x')) x a-}
+{-           o _ _ = error "should not happen"-}
+{-       in DS.fold o ana solved-}
 
-    solveConstraints w' ana'
-      | DMS.null w' = ana'
-      | otherwise   = let (w'', ana'') = trace (debugStep w' ana') (step infl' w' ana')
-                      in  solveConstraints w'' ana''
-  in solveConstraints w analysis'
+{-     infl' =-}
+{-       let o c@(Constraint _ (AnnVar x)) infl'' = DM.update (Just . DS.insert c) x infl''-}
+{-           o _ _ = error "should not happen"-}
+{-       in DS.fold o infl unsolved-}
 
-step :: Influence -> Worklist -> Analysis -> (Worklist, Analysis)
-step infl w analysis
-  | DMS.null w  = (w, analysis)
-  | otherwise   =
-    let ((Constraint x (AnnVar t)), w') = let c = DMS.findMin w
-                                          in (c, DMS.delete c w)
-        value    = x ? analysis
-        newValue = t ? analysis
-    in if not (value ⊒ newValue)
-        then let analysis'  = DM.insert x (value ⊔ newValue) analysis
-                 successors = DMS.fromSet (x ? infl)
-                 augmentedW = successors `DMS.union` w'
-             in trace ("insert new") (augmentedW, analysis')
-        else (w', analysis)
+{-     solveConstraints w' ana'-}
+{-       | DMS.null w' = ana'-}
+{-       | otherwise   = let (w'', ana'') = trace (debugStep w' ana') (step infl' w' ana')-}
+{-                       in  solveConstraints w'' ana''-}
+{-   in solveConstraints w analysis'-}
+
+{- type Influence = Map AnnVar Constraints-}
+{- type Analysis  = Map AnnVar SAnn-}
+
+{- step :: Influence -> Worklist -> Analysis -> (Worklist, Analysis)-}
+{- step infl w analysis-}
+{-   | DMS.null w  = (w, analysis)-}
+{-   | otherwise   =-}
+{-     let ((Constraint x (AnnVar t)), w') = let c = DMS.findMin w-}
+{-                                           in (c, DMS.delete c w)-}
+{-         value    = x ? analysis-}
+{-         newValue = t ? analysis-}
+{-     in if not (value ⊒ newValue)-}
+{-         then let analysis'  = DM.insert x (value ⊔ newValue) analysis-}
+{-                  successors = DMS.fromSet (x ? infl)-}
+{-                  augmentedW = successors `DMS.union` w'-}
+{-              in trace ("insert new") (augmentedW, analysis')-}
+{-         else (w', analysis)-}
+
+-- Is this the eval function? It seems so. So, we could just try to plug this into the absWl alg.
+(?) :: Ord a => a -> Map a b -> b
+a ? m = fromJust $ DM.lookup a m
 
 (⊒) :: SAnn -> SAnn -> Bool
 AnnEmpty   ⊒ AnnEmpty   = True
@@ -121,15 +150,10 @@ simplify env tau c =
       --               worklist c
   in  partition env c
 
-testPA :: Set AnnVar
-testPA = pseudoActive (DS.fromList [AnnVar "b1", AnnVar "b2", AnnVar "b3"])
-                      (DS.fromList [ Constraint "b2" (AnnVar "b6")
-                                   , Constraint "b6" (AnnVar "b4")])
-
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
-  let extrAnn (Constraint l u) xs | AnnVar l `DS.member` active = DS.insert u xs
-                                  | otherwise                   = xs
+  let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs
+                                  | otherwise            = xs
       vars = DS.fold extrAnn DS.empty c `DS.union` active
   in  if DS.null (vars `DS.intersection` active)
         then pseudoActive vars c
@@ -140,7 +164,7 @@ pseudoActive active c =
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs =
   let prop   = let isActive a = a `DS.member` fav env
-                   f c@(Constraint a1 (AnnVar a2)) xs
+                   f c@(Constraint (AnnVar a1) (AnnVar a2)) xs
                      | isActive a1 || isActive a2 = DS.insert c xs
                    f _ xs = xs
                in  DS.fold f DS.empty cs
@@ -148,9 +172,6 @@ partition env cs =
                           | otherwise             = xs
                in  DS.fold g DS.empty cs
   in (prop, qual)
-
-(?) :: Ord a => a -> Map a b -> b
-a ? m = fromJust $ DM.lookup a m
 
 unify :: Ty -> Ty -> SimpleSubstitution
 unify Nat  Nat  = Identity
@@ -243,9 +264,9 @@ instance Substitutable AnnVar where
 instance Substitutable Constraint where
   applySubst Identity    cs     = cs
   applySubst d@(Dot _ _) cs     = dotApply d cs
-  applySubst s@(AnnSub a b) (Constraint a' b')
-    | a == a'    = Constraint b (applySubst s b')
-    | otherwise  = Constraint a' (applySubst s b')
+  applySubst s@(AnnSub a b) (Constraint (AnnVar a') b')
+    | a == a'    = Constraint (AnnVar b) (applySubst s b')
+    | otherwise  = Constraint (AnnVar a') (applySubst s b')
   applySubst _ c = c
 
 instance Substitutable Constraints where

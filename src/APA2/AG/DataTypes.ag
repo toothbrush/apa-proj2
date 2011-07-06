@@ -75,7 +75,7 @@ DERIVING SAnn: Eq, Ord
 
 -- TODO: a1 needs to become SAnn again
 DATA Constraint
-  | Constraint a1 : AnnVar a2 : SAnn
+  | Constraint a1 : SAnn a2 : SAnn
 
 DERIVING Constraint: Eq, Ord
 
@@ -91,7 +91,7 @@ TYPE AnnEnv = MAP {Var} {Maybe SAnn}
 
 {
 instance Show Constraint where
-  show (Constraint a1 a2) = a1 ++ " ⊇ " ++ show a2
+  show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2
 
 instance Show SAnn where
   show (AnnVar var) = var

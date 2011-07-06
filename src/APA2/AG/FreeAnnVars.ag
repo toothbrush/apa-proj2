@@ -13,9 +13,6 @@ SEM TyScheme
 SEM SAnn
   | AnnVar lhs.fav = DS.singleton @var
 
-SEM Constraint
-  | Constraint lhs.fav = DS.insert @a1 @a2.fav
-
 {
 class FreeAnnVars a where
   fav :: a -> Set AnnVar -- alias String
