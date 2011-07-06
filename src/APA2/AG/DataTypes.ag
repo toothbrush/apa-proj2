@@ -148,9 +148,9 @@ class PrintMap a b where
 
 instance Show a => PrintSet a where
   ppSet x = let l = map show $ toList x
-            in  "{" ++ (intercalate "," l) ++ "}"
+            in  "{" ++ intercalate "," l ++ "}"
 instance (Show a, Show b) => PrintMap a b where
-  ppMap x = let f (a,b) = show a ++ " → " ++show b
-                l = map f $ M.toList x
-            in  "Map{" ++ (intercalate "," l) ++ "}"
+  ppMap x = let f (a, b) = show a ++ " :: " ++show b
+                l        = map f $ M.toList x
+            in  "Map{" ++ intercalate "," l ++ "}"
 }
