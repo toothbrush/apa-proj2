@@ -46,7 +46,7 @@ DATA TyScheme
   | Forall  a : {TyVar}  ts : TyScheme
   | AnnSig  a : {AnnVar} ts : TyScheme
 
-DERIVING TyScheme: Show, Eq
+DERIVING TyScheme: Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
@@ -84,7 +84,7 @@ TYPE AnnEnv = MAP {Var} {Maybe SAnn}
 
 {
 instance Show Constraint where
-  show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2
+  show (Constraint a1 a2) = a1 ++ " ⊇ " ++ show a2
 
 instance Show SAnn where
   show (AnnVar var) = var
@@ -94,16 +94,16 @@ instance Show SAnn where
 instance Show MH where
   show (VBool  v           ) = show v
   show (VInt   v           ) = show v
-  show (Var    x           ) =   x
+  show (Var    x           ) = x
   show (Op     op e1 e2    ) = show e1    ++ op       ++ show e2
   show (Lambda x  e        ) = "λ "       ++ x        ++ " → "    ++ show e
   show (App    e1 e2       ) = show e1    ++ " "      ++ show e2
-  show (Let    x  e1 e2    ) = "let "     ++ x        ++ " = "    
+  show (Let    x  e1 e2    ) = "let "     ++ x        ++ " = "
                                ++ show e1 ++ " in "   ++ show e2
-  show (LetRec f  x  e1 e2 ) = "μ "       ++ show f   ++ ".let "  
-                               ++ fromMaybe "undefined" x 
+  show (LetRec f  x  e1 e2 ) = "μ "       ++ f        ++ ".let "
+                               ++ fromMaybe "undefined" x
                                ++ " = "   ++ show e1  ++ " in "   ++ show e2
-  show (If     c  e1 e2    ) = "if "      ++ show c   ++ " then " ++ show e1   
+  show (If     c  e1 e2    ) = "if "      ++ show c   ++ " then " ++ show e1
                                ++ " else "++ show e2
   show (Cons   e1 e2       ) = show e1    ++ ":"      ++ show e2
   show (Nil                ) = "[]"
@@ -111,7 +111,7 @@ instance Show MH where
   show (CaseAlt  pat bnds  ) = "        " ++ show pat ++ "\t → "  ++ show bnds ++ "\n"
 
 instance Show Qual where
-  show (Ty t) = show t
+  show (Ty t)     = show t
   show (Qual c q) = show c ++ " => " ++ show q
 
 instance Show Ty where
@@ -124,8 +124,12 @@ instance Show Ty where
 instance Show SimpleSubstitution where
   show Identity      = ""
   show (TySub v t)   = v ++ "    |-> " ++ show t
-  show (AnnSub a a') = show a ++ "    |-> " ++ show a'
+  show (AnnSub a a') = a ++ "    |-> " ++ a'
   show (Dot s Identity) = show s
   show (Dot s s')       = show s ++ "\n" ++ show s'
 
+instance Show TyScheme where
+  show (QualSig q)   = show q
+  show (Forall a ts) = "∀" ++ a ++ ". " ++ show ts
+  show (AnnSig a ts) = "∀" ++ a ++ ". " ++ show ts
 }

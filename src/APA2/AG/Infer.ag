@@ -324,10 +324,11 @@ SEM MH
       lhs.constraints = @loc.constraints
       lhs.substitution = @loc.substitution
 
-      e2.typeEnvironment = 
-        let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = maybe (QualSig $ Ty @e1.ty) (\ann -> snd $ generalise newEnv ann @e1.ty @e1.constraints) @e1.annotation
-        in DM.insert @x ty' newEnv
+      e2.typeEnvironment =
+        let newEnv  = applySubst @e1.substitution @lhs.typeEnvironment
+            gen ann = snd $ generalise newEnv ann @e1.ty @e1.constraints
+            ty'     = maybe (QualSig $ Ty @e1.ty) gen @e1.annotation
+        in  DM.insert @x ty' newEnv
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
 
@@ -384,11 +385,12 @@ SEM MH
       e2.typeEnvironment =
         let newEnv = applySubst @loc.theta0 @lhs.typeEnvironment
         in case @x of
-            Just _  -> let ty = Arr (applySubst @loc.theta @alpha1')
-                                    (applySubst @loc.theta1 @e1.ty)
-                                    (applySubst @loc.theta @loc.beta')
-                           ty' = maybe (QualSig $ Ty ty) (\ann -> snd $ generalise newEnv ann ty @e1.constraints) @loc.annotation
-                       in DM.insert @f ty' newEnv
+            Just _  -> let ty      = Arr (applySubst @loc.theta @alpha1')
+                                         (applySubst @loc.theta1 @e1.ty)
+                                         (applySubst @loc.theta @loc.beta')
+                           gen ann = snd $ generalise newEnv ann ty @e1.constraints
+                           ty'     = maybe (QualSig $ Ty ty) gen @loc.annotation
+                       in  DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
 
       e2.annEnvironment =
@@ -479,16 +481,16 @@ nextUnique u = (u+1, u)
 
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c =
-  let ftvs   = fv tau DS.\\ fv env
+  let ftvs   = ftv tau DS.\\ ftv env
       favs   = fav tau DS.\\ fav env DS.\\ fav ann
-      fcvs   = fav c DS.\\ favs -- TODO: Determine if we need this
-      (c'', c') = simplify env tau c
+      fcvs   = fav c DS.\\ favs
+      (c', c'') = simplify env tau c
       qtdCs  = let fld x (QualSig x') = QualSig $ Qual x x'
                    fld _ xs           = xs
-               in  DS.fold fld (QualSig $ Ty tau) DS.empty -- c'
+               in  DS.fold fld (QualSig $ Ty tau) c'
       qtdTVs = DS.fold Forall qtdCs ftvs
-      qtdAVs = DS.fold AnnSig qtdTVs fcvs
-  in  (DS.empty, qtdAVs)
+      qtdAVs = DS.fold AnnSig qtdTVs (favs `DS.union` fcvs)
+  in  (c'', qtdAVs)
 
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = let ss = tySubs `dot` annSubs
