@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 -- |
--- Module      :  CCO.HM.AG
+-- Module      :  APA2.AG
 -- Copyright   :  (c) 2008 Utrecht University
 -- License     :  All rights reserved
 --
@@ -22,7 +22,7 @@ import Debug.Trace
 import            Control.Monad (mplus)
 import            Data.Map (Map)
 import qualified  Data.Map as DM
-import qualified  Data.Map
+import qualified  Data.Map()
 import qualified  Data.Map as Map
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
@@ -37,6 +37,7 @@ INCLUDE "AG/FreeTyVars.ag"
 INCLUDE "AG/FreeAnnVars.ag"
 
 {
+
 class Ord a => Lattice a where
   top     :: a
   bottom  :: a
@@ -71,9 +72,9 @@ worklist cs =
       let o c@(Constraint a (AnnVar b)) (w', ana', infl'') = ( DMS.insert c w'
                                                              , DM.insert a AnnEmpty (DM.insert b AnnEmpty ana')
                                                              , DM.insert a DS.empty (DM.insert b DS.empty infl''))
-          o (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'
-                                                           , DM.insert a AnnEmpty ana'
-                                                           , DM.insert a DS.empty infl'')
+          o   (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'
+                                                             , DM.insert a AnnEmpty ana'
+                                                             , DM.insert a DS.empty infl'')
           o _ _ = error "should not happen"
       in DS.fold o (DMS.empty, DM.empty, DM.empty) cs
 
@@ -128,13 +129,12 @@ debugStep w ana =
 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
-  let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
-      ranges = trace ("active vars: "++show active++"\n") $
-                     worklist c
-      theta  = satisfiable active ranges
-      c'     = applySubst theta c
-  in  partition env c'
+  let --active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
+      --ranges = trace ("active vars: "++show active++"\n") $
+      --               worklist c
+  in  partition env c
 
+testPA :: Set AnnVar
 testPA = pseudoActive (DS.fromList [AnnVar "b1", AnnVar "b2", AnnVar "b3"])
                       (DS.fromList [ Constraint "b2" (AnnVar "b6")
                                    , Constraint "b6" (AnnVar "b4")])
@@ -149,27 +149,6 @@ pseudoActive active c =
         else let extrVar (AnnVar x) xs = DS.insert x xs
                  extrVar _          xs = xs
              in DS.fold extrVar DS.empty vars
-
--- TODO: Determine what we need to do here.
-satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
-satisfiable _ _ = Identity
--- TODO: Implementation is ugly, refactor. It helps if we get a set of SAnn here
-{- satisfiable active analysis =-}
-{-   let act'          = DS.map AnnVar active-}
-{-       ana'          = DM.mapKeys AnnVar analysis-}
-{-       func beta l-}
-{-         | l <= beta = if beta `DS.notMember` act'-}
-{-                         then if l == beta-}
-{-                                then Identity-}
-{-                                else case beta of-}
-{-                                       (AnnVar v) -> case l of-}
-{-                                                       (AnnVar v') -> AnnSub v v'-}
-{-                                                       _          -> error "satisfiable: should not happen"-}
-{-                                       _          -> error "sat should not happen"-}
-{-                         else Identity-}
-{-         | otherwise = error "lower bound is larger than upper bound, ?? we don't track lower and upper bounds..."-}
-{-       substLst      = DM.mapWithKey func ana'-}
-{-   in DM.fold Dot Identity substLst-}
 
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs =
@@ -231,10 +210,10 @@ instance Substitutable TyScheme where
   applySubst Identity     t = t
   applySubst d@(Dot _ _) t  = dotApply d t
 
-  applySubst s (QualSig t) = QualSig (applySubst s t)
+  applySubst s (QualSig t)  = QualSig (applySubst s t)
 
-  applySubst s@(TySub a _) t@(Forall tv ts) | a == tv   = t
-                                            | otherwise = Forall tv (applySubst s ts)
+  applySubst s@(TySub a _)  t@(Forall tv ts) | a == tv   = t
+                                             | otherwise = Forall tv (applySubst s ts)
 
   applySubst s@(AnnSub a _) t@(AnnSig tv ts) | a == tv   = t
                                              | otherwise = AnnSig tv (applySubst s ts)
@@ -256,9 +235,9 @@ instance Substitutable Ty where
 
   applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) (applySubst s ann)
 
-  applySubst s (List t ann) = List (applySubst s t) (applySubst s ann)
+  applySubst s (List t ann)    = List (applySubst s t) (applySubst s ann)
 
-  applySubst _ Nat  = Nat
+  applySubst _ Nat  = Nat   -- TODO: zijn deze niet redundant?
   applySubst _ Bool = Bool
   applySubst _ t    = t
 
@@ -278,8 +257,8 @@ instance Substitutable Constraint where
   applySubst Identity    cs     = cs
   applySubst d@(Dot _ _) cs     = dotApply d cs
   applySubst s@(AnnSub a b) (Constraint a' b')
-    | a == a'   = Constraint b (applySubst s b')
-    | otherwise = Constraint a' (applySubst s b')
+    | a == a'    = Constraint b (applySubst s b')
+    | otherwise  = Constraint a' (applySubst s b')
   applySubst _ c = c
 
 instance Substitutable Constraints where
@@ -290,8 +269,8 @@ instance Substitutable SAnn where
   applySubst d@(Dot _ _) a@(AnnVar _) = dotApply d a
 
   applySubst (AnnSub b b') a@(AnnVar b'')
-    | b == b''  = AnnVar b'
-    | otherwise = a
+    | b == b''   = AnnVar b'
+    | otherwise  = a
 
   applySubst _ a = a
 

@@ -204,12 +204,12 @@ SEM MH
       lhs.substitution = @loc.substitution
 
       lhs.debug = "Var("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n"
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n"
 
   | Lambda
       loc.alpha   : UNIQUEREF counter
@@ -236,12 +236,12 @@ SEM MH
       e.annEnvironment  = DM.insert @x Nothing @lhs.annEnvironment
 
       lhs.debug = "Lambda("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e.debug
 
 
@@ -287,12 +287,12 @@ SEM MH
       e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
       lhs.debug = "App: \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e1.debug ++ @e2.debug
 
 
@@ -333,12 +333,12 @@ SEM MH
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
 
       lhs.debug = "Let("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e1.debug ++ @e2.debug
 
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
@@ -439,12 +439,12 @@ SEM MH
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
       lhs.debug = "If: \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @c.debug ++ @e1.debug ++ @e2.debug
 
 {

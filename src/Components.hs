@@ -3,7 +3,6 @@ module Components where
 import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
 import qualified Data.Map as DM
-import qualified Data.Set as DS
 
 import APA2.AG
 import Data.Generics.Schemes
@@ -46,7 +45,7 @@ debugInference tm =
     putStrLn "Top level annotation: "
     print annotation
     putStrLn "Constraints:"
-    print (DS.toList constraints)
+    putStrLn (ppSet constraints)
     putStrLn debug
 
 parseProgram :: String -> MH

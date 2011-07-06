@@ -8,14 +8,14 @@ ATTR TyScheme Qual
 
 SEM TyScheme
   | Forall  lhs.binders = let (Binders vars avars cs ty) = @ts.binders
-                          in  Binders (@a:vars) avars cs ty
+                          in   Binders (@a:vars) avars cs ty
   | AnnSig  lhs.binders = let (Binders vars avars cs ty) = @ts.binders
-                          in  Binders vars (@a:avars) cs ty
+                          in   Binders vars (@a:avars) cs ty
 
 SEM Qual
   | Ty   lhs.binders = Binders [] [] DS.empty @ty.copy
   | Qual lhs.binders = let (Binders tvs avs cs ty) = @q.binders
-                       in  Binders tvs avs (DS.insert @c.copy cs) ty
+                       in   Binders tvs avs (DS.insert @c.copy cs) ty
 
 {
 collectBinders :: TyScheme -> Binders
