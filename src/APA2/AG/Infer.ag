@@ -16,16 +16,23 @@ ATTR MH
     constraints USE {`DS.union`} {DS.empty} : {Constraints}
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
-    substitution : {SimpleSubstitution}
-    lhsTy USE {`mplus`} {Nothing} : {Maybe Ty}
-    annotation   : {Maybe SAnn}
-    debug        USE {++} {""} : {String}
+    substitution                            : {SimpleSubstitution}
+    lhsTy     USE {`mplus`} {Nothing}       : {Maybe Ty}
+    annotation                              : {Maybe SAnn}
+    debug     USE {++} {""}                 : {String}
+    annotDict USE {`DM.union`} {DM.empty}   : {Map SAnn MH}
+    cp : SELF
   ]
+
+SEM MH
+  | *
+      lhs.annotDict = case @loc.annotation of
+                          Just x  -> DM.singleton x @loc.cp
+                          Nothing -> DM.empty
 
 SEM MH
   | CaseBlck
       loc.beta : UNIQUEREF counter
-
       loc.beta' = mkAnnVar @loc.beta
 
       -- TODO: Unify types of case (expression) of and the left-hand sides of
@@ -60,7 +67,8 @@ SEM MH
 
 
       lhs.substitution = @loc.theta
-      lhs.annotation   =
+      lhs.annotation = @loc.annotation
+      loc.annotation = 
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -81,7 +89,8 @@ SEM MH
       lhs.ty = @loc.ty
       lhs.substitution = @loc.theta
 
-      lhs.annotation = 
+      lhs.annotation = @loc.annotation
+      loc.annotation = 
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -93,13 +102,15 @@ SEM MH
     lhs.ty = Bool
     lhs.substitution = Identity
     lhs.constraints  = DS.empty
-    lhs.annotation   = Nothing
+    lhs.annotation = @loc.annotation
+    loc.annotation   = Nothing
 
   | VInt
     lhs.ty = Nat
     lhs.substitution = Identity
     lhs.constraints  = DS.empty
-    lhs.annotation   = Nothing
+    lhs.annotation = @loc.annotation
+    loc.annotation   = Nothing
 
   | Nil
     loc.alpha : UNIQUEREF counter
@@ -114,7 +125,8 @@ SEM MH
 
     lhs.constraints = DS.empty
 
-    lhs.annotation = Just (AnnVar @loc.beta')
+    lhs.annotation = @loc.annotation
+    loc.annotation = Just (AnnVar @loc.beta')
 
   | Cons
     loc.beta : UNIQUEREF counter
@@ -137,7 +149,8 @@ SEM MH
           cs = c1 `DS.union` c2 `DS.union` c3
       in applySubst @loc.theta cs 
 
-    lhs.annotation = Just (AnnVar @loc.beta')
+    lhs.annotation = @loc.annotation
+    loc.annotation = Just (AnnVar @loc.beta')
 
     e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
     e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
@@ -174,7 +187,8 @@ SEM MH
       e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
       e2.annEnvironment  = applySubst @loc.theta1 @lhs.annEnvironment
 
-      lhs.annotation = Just (AnnVar @loc.beta')
+      lhs.annotation = @loc.annotation
+      loc.annotation = Just (AnnVar @loc.beta')
 
   | Var
       loc.beta : UNIQUEREF counter
