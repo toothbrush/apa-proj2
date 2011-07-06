@@ -132,9 +132,7 @@ simplify env tau c =
   let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
       ranges = trace ("active vars: "++show active++"\n") $
                      worklist c
-      theta  = satisfiable active ranges
-      c'     = applySubst theta c
-  in  partition env c'
+  in  partition env c
 
 testPA :: Set AnnVar
 testPA = pseudoActive (DS.fromList [AnnVar "b1", AnnVar "b2", AnnVar "b3"])
@@ -151,27 +149,6 @@ pseudoActive active c =
         else let extrVar (AnnVar x) xs = DS.insert x xs
                  extrVar _          xs = xs
              in DS.fold extrVar DS.empty vars
-
--- TODO: Determine what we need to do here.
-satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
-satisfiable _ _ = Identity
--- TODO: Implementation is ugly, refactor. It helps if we get a set of SAnn here
-{- satisfiable active analysis =-}
-{-   let act'          = DS.map AnnVar active-}
-{-       ana'          = DM.mapKeys AnnVar analysis-}
-{-       func beta l-}
-{-         | l <= beta = if beta `DS.notMember` act'-}
-{-                         then if l == beta-}
-{-                                then Identity-}
-{-                                else case beta of-}
-{-                                       (AnnVar v) -> case l of-}
-{-                                                       (AnnVar v') -> AnnSub v v'-}
-{-                                                       _          -> error "satisfiable: should not happen"-}
-{-                                       _          -> error "sat should not happen"-}
-{-                         else Identity-}
-{-         | otherwise = error "lower bound is larger than upper bound, ?? we don't track lower and upper bounds..."-}
-{-       substLst      = DM.mapWithKey func ana'-}
-{-   in DM.fold Dot Identity substLst-}
 
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs =
