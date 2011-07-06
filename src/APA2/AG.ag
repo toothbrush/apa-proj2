@@ -44,7 +44,7 @@ absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
   where mkMap  s = let mf (Constraint x _) xs = DM.insert x s xs
                    in  DS.fold mf DM.empty cstr
         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-        infl     = DS.fold (\x xs -> inflx_ x `DM.union` xs) DM.empty cstr
+        infl     = DS.fold (DM.union . inflx_) DM.empty cstr
         inflx_ cxt@(Constraint _ t) =
           let cf x' m = DM.singleton x' (DS.singleton cxt `DS.union` inflx' x') `DM.union` m
           in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
