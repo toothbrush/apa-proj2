@@ -164,9 +164,8 @@ simplify env tau c =
 
 -- | todo: is this necessary?
 nubTriv :: Constraints -> Constraints
-nubTriv x = DS.fold f DS.empty x
-     where f c@(Constraint k v) | k == v    = DS.union  DS.empty
-                                | otherwise = DS.insert c
+nubTriv = DS.filter triv
+     where triv (Constraint k v) = k == v
 
 satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution
 satisfiable active analysis =
