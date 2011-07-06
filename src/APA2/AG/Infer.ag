@@ -468,7 +468,7 @@ beta <:? Just phi = DS.singleton (constrain beta phi)
 _    <:? _        = DS.empty
 
 constrain :: AnnVar -> SAnn -> Constraint
-constrain beta phi = Constraint beta phi
+constrain = Constraint
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
 dot = Dot
@@ -508,7 +508,8 @@ instantiate seed ts = let ss = tySubs `dot` annSubs
         (tySubs,fresh') = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
         (annSubs,_)     = forallFresh AnnSub fresh' annvars
 
-forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String] -> (SimpleSubstitution, [String])
+forallFresh :: (String -> String -> SimpleSubstitution) -> [String] -> [String]
+            -> (SimpleSubstitution, [String])
 forallFresh subst fresh = foldr o (Identity, fresh)
   where o a (b, f:fs) = (Dot (subst a f) b, fs)
         o _ (_, [])   = (Identity, [])
