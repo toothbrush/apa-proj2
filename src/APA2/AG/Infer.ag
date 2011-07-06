@@ -492,9 +492,9 @@ generalise env ann tau c =
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = (applySubst subst cs, applySubst subst ty)
   where (Binders tyvars annvars cs ty) = collectBinders ts
-        fresh   prefix = map (\x -> prefix : show seed ++ show x) ([0..] :: [Int])
-        tySubs         = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
-        annSubs        = zipWith AnnSub annvars (fresh 'β')
-        subst          = foldr Dot Identity (tySubs ++ annSubs)
+        fresh   pfx = map (\x -> pfx : show seed ++ show x) ([0..] :: [Int])
+        tySubs      = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
+        annSubs     = zipWith AnnSub annvars (fresh 'β')
+        subst       = foldr Dot Identity (tySubs ++ annSubs)
 
 }
