@@ -217,7 +217,7 @@ unifyAnn v v' | v == v'   = Identity
 unifyTyVar :: Ty -> Ty -> SimpleSubstitution
 unifyTyVar a@(TyVar x) t | a == t                 = Identity
                          | x `DS.notMember` ftv t = TySub x t
-                         | otherwise             = occursCheck a t
+                         | otherwise              = occursCheck a t
 unifyTyVar _           _ = error "First argument to unifyTyVar must be a TyVar"
 
 occursCheck :: (Show a, Show b) => a -> b -> t
