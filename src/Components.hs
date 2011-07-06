@@ -2,6 +2,7 @@
 module Components where
 import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
+import Data.Map (Map)
 import qualified Data.Map as DM
 
 import APA2.AG
@@ -15,17 +16,18 @@ initialInheritedAttributes =
          , counter_Inh_MH = 0
          }
 
-w :: MH -> (Ty, Maybe SAnn, SimpleSubstitution, Constraints, String)
+w :: MH -> (Ty, Maybe SAnn, SimpleSubstitution, Constraints, String, Map SAnn MH)
 w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
        in  ( ty_Syn_MH           wrappedDS
            , annotation_Syn_MH   wrappedDS
            , substitution_Syn_MH wrappedDS
            , constraints_Syn_MH  wrappedDS
-           , debug_Syn_MH  wrappedDS
+           , debug_Syn_MH        wrappedDS
+           , annotDict_Syn_MH    wrappedDS
            )
 
 inferTypes :: MH -> Ty
-inferTypes tm = let (ty,_,_,_,_) = w tm
+inferTypes tm = let (ty,_,_,_,_,_) = w tm
                 in ty
 
 debugFile :: FilePath -> IO ()
@@ -36,7 +38,7 @@ debugFile fl = do
 debugInference :: MH -> IO ()
 debugInference tm =
   do
-    let (ty, annotation, subst, constraints, debug) = w tm
+    let (ty, annotation, subst, constraints, debug, dict) = w tm
     putStrLn ("Program: \n    " ++ show tm)
     putStrLn "Substitution:"
     print subst
@@ -47,6 +49,8 @@ debugInference tm =
     putStrLn "Constraints:"
     putStrLn (ppSet constraints)
     putStrLn debug
+    putStrLn "Annotation dictionary:"
+    putStrLn (ppMap dict)
 
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
