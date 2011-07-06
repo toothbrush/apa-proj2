@@ -72,12 +72,8 @@ iterAbsWl infl eval wlst ana
 {-         o c@(Constraint _ (AnnSet _)) (cs'', cs') = (DS.insert c cs'', cs')-}
 {-         o (Constraint _ AnnEmpty)     _           = error "should not happen"-}
 
-qq :: Lattice a => SAnn -> Map SAnn a -> a
-qq = DM.findWithDefault bottom
-
-
 worklist :: Lattice a => Constraints -> Map SAnn a
-worklist cs = absWl cs qq
+worklist cs = absWl cs (DM.findWithDefault bottom)
 {- worklist :: Constraints -> Map AnnVar SAnn-}
 {- worklist cs =-}
 {-   let-}
@@ -165,17 +161,21 @@ nubTriv :: Constraints -> Constraints
 nubTriv = DS.filter triv
      where triv (Constraint k v) = k == v
 
+{- satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution-}
+{- satisfiable active analysis =-}
+{-   let act' = DS.map AnnVar active-}
+{-       ana' = analysis -- DM.mapKeys AnnVar analysis-}
+{-       func (AnnVar beta) (AnnVar l) | not (beta `DS.member` active) = AnnSub beta l-}
+{-       func _             _          = Identity-}
+{-       substLst = DM.mapWithKey func ana'-}
+{-   in DM.fold Dot Identity substLst-}
+
 satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution
 satisfiable active analysis =
-  let act' = DS.map AnnVar active
-      ana' = analysis -- DM.mapKeys AnnVar analysis
-      func (AnnVar beta) (AnnVar l) | not (beta `DS.member` active) = AnnSub beta l 
-                                    | otherwise                     = Identity
-      func (AnnVar beta) l          = Identity
-      func beta          (AnnVar l) = Identity
-      func beta          l          = Identity
-      substLst = DM.mapWithKey func ana'
-  in DM.fold Dot Identity substLst
+  let f (AnnVar β) (AnnVar β') acc
+        | β `DS.notMember` active = AnnSub β β' `dot` acc
+      f _            _         acc = acc
+  in  DM.foldrWithKey f Identity analysis
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
