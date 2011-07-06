@@ -449,10 +449,10 @@ SEM MH
 
 {
 freshVar :: Int -> Ty
-freshVar i = TyVar $ 'v' : show i
+freshVar i = TyVar $ 'τ' : show i
 
 mkAnnVar :: Int -> AnnVar
-mkAnnVar i = "b" ++ show i
+mkAnnVar i = 'β' : show i
 
 mkProgramPoint :: Var -> Int -> SAnn
 mkProgramPoint v p = AnnSet (DS.singleton (v ++ show p))
@@ -504,7 +504,7 @@ instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = let ss = tySubs `dot` annSubs
                       in  (applySubst ss cs, applySubst ss ty)
   where (Binders tyvars annvars cs ty) = trace ("collectBinders") collectBinders ts
-        fresh           = map (\x -> show seed ++ show x) ([0..] :: [Int])
+        fresh           = map (\x -> 'τ' : show seed ++ show x) ([0..] :: [Int]) -- TODO: Not very clean, but  hey
         (tySubs,fresh') = forallFresh (\a b -> TySub a (TyVar b)) fresh tyvars
         (annSubs,_)     = forallFresh AnnSub fresh' annvars
 
