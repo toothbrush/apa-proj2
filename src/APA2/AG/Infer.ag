@@ -476,14 +476,6 @@ dot = Dot
 nextUnique :: Int -> (Int, Int)
 nextUnique u = (u+1, u)
 
--- | Look up a variable's type in the given environment.
-getVar :: Var -> TyEnv -> TyScheme
-getVar x env =
-  case DM.lookup x env of
-    Just scheme -> scheme
-    _           -> error ("This shouldn't happen. '" ++ x ++
-                          "'\nwasn't found in the environment.")
-
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c =
   let ftvs   = ftv tau DS.\\ ftv env
