@@ -30,14 +30,14 @@ type Worklist = MultiSet Constraint
 class Ord a => Lattice a where
   top     :: a
   bottom  :: a
-  join    :: a -> a -> a
-  pord    :: a -> a -> Bool
+  (⊔)     :: a -> a -> a
+  (⊒)     :: a -> a -> Bool
 
 instance Lattice SAnn where
   top    = error "SAnn does not have a concrete Top value"
-  bottom = AnnSet DS.empty -- TODO: AnnEmpty?
-  join   = (⊔)
-  pord   = (⊒)
+  bottom = AnnEmpty
+  (⊔)    = join
+  (⊒)    = pord
 
 absWl :: Lattice a => Constraints -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
 absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
@@ -54,25 +54,28 @@ iterAbsWl :: Lattice a => Map SAnn (Set Constraint)
           -> Map SAnn a
 iterAbsWl infl eval wlst ana
   | DMS.null wlst          = ana
-  | not $ anaLU `pord` new = iter (wltl `DMS.union` inflx x) newAna
+  | not $ anaLU ⊒ new = iter (wltl `DMS.union` inflx x) newAna
   | otherwise              = iter wltl ana
   where
     new     = eval t ana
     inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl
     anaLU   = DM.fromJust $ DM.lookup x ana
     newAna  = DM.insert x newAnax ana
-    newAnax = anaLU `join` new
+    newAnax = anaLU ⊔ new
     iter    = iterAbsWl infl eval
     wltl    = DMS.delete cp wlst
     cp@(Constraint x t) = DMS.findMin wlst
+
+worklist :: Lattice a => Constraints -> Map SAnn a
+worklist cs = absWl cs (?)
+
 
 {- partitionConstraints :: Constraints -> (Constraints, Constraints)-}
 {- partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs-}
 {-   where o c@(Constraint _ (AnnVar _)) (cs'', cs') = (cs'', DS.insert c cs')-}
 {-         o c@(Constraint _ (AnnSet _)) (cs'', cs') = (DS.insert c cs'', cs')-}
 {-         o (Constraint _ AnnEmpty)     _           = error "should not happen"-}
-worklist :: Lattice a => Constraints -> Map SAnn a
-worklist cs = absWl cs (?)
+
 {- worklist :: Constraints -> Map AnnVar SAnn-}
 {- worklist cs =-}
 {-   let-}
@@ -126,17 +129,17 @@ worklist cs = absWl cs (?)
 (?) :: Ord a => a -> Map a b -> b
 a ? m = fromJust $ DM.lookup a m
 
-(⊒) :: SAnn -> SAnn -> Bool
-AnnEmpty   ⊒ AnnEmpty   = True
-AnnEmpty   ⊒ (AnnSet a) = DS.null a
-(AnnSet a) ⊒ (AnnSet b) = DS.isSubsetOf b a
-_          ⊒ _          = error "no variables allowed"
+pord :: SAnn -> SAnn -> Bool
+pord AnnEmpty   AnnEmpty   = True
+pord AnnEmpty   (AnnSet a) = DS.null a
+pord (AnnSet a) (AnnSet b) = DS.isSubsetOf b a
+pord _          _          = error "no variables allowed"
 
-(⊔) :: SAnn -> SAnn -> SAnn
-AnnEmpty   ⊔ a          = a
-a          ⊔ AnnEmpty   = a
-(AnnSet a) ⊔ (AnnSet b) = AnnSet (DS.union a b)
-_          ⊔ _          = error "no variables allowed"
+join :: SAnn -> SAnn -> SAnn
+join AnnEmpty   a          = a
+join a          AnnEmpty   = a
+join (AnnSet a) (AnnSet b) = AnnSet (DS.union a b)
+join _          _          = error "no variables allowed"
 
 debugStep :: (Show a, Show b) => a -> b -> String
 debugStep w ana =
