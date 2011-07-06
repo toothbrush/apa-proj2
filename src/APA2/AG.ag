@@ -159,16 +159,21 @@ simplify env tau c =
       ranges = trace ("active vars: "++show active++"\n") $
                worklist c
       theta  = satisfiable active ranges
-      c'     = applySubst theta c
-  in  trace ("\nBEFORE satisfiable = "++show c ++ "\nAFTER  satisfiable = "++show c') $ partition env c'
+      c'     = nubTriv (applySubst theta c)
+  in  partition env c'
 
+-- | todo: is this necessary?
+nubTriv :: Constraints -> Constraints
+nubTriv x = DS.fold f DS.empty x
+     where f c@(Constraint k v) | k == v    = DS.union  DS.empty
+                                | otherwise = DS.insert c
 
 satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution
 satisfiable active analysis =
   let act' = DS.map AnnVar active
       ana' = analysis -- DM.mapKeys AnnVar analysis
-      func (AnnVar beta) (AnnVar l) | beta == l || not (beta `DS.member` active) = AnnSub beta l 
-                                    | otherwise                                  = Identity
+      func (AnnVar beta) (AnnVar l) | not (beta `DS.member` active) = AnnSub beta l 
+                                    | otherwise                     = Identity
       func (AnnVar beta) l          = Identity
       func beta          (AnnVar l) = Identity
       func beta          l          = Identity
