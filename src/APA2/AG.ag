@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 -- |
--- Module      :  CCO.HM.AG
+-- Module      :  APA2.AG
 -- Copyright   :  (c) 2008 Utrecht University
 -- License     :  All rights reserved
 --
@@ -71,9 +71,9 @@ worklist cs =
       let o c@(Constraint a (AnnVar b)) (w', ana', infl'') = ( DMS.insert c w'
                                                              , DM.insert a AnnEmpty (DM.insert b AnnEmpty ana')
                                                              , DM.insert a DS.empty (DM.insert b DS.empty infl''))
-          o (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'
-                                                           , DM.insert a AnnEmpty ana'
-                                                           , DM.insert a DS.empty infl'')
+          o   (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'
+                                                             , DM.insert a AnnEmpty ana'
+                                                             , DM.insert a DS.empty infl'')
           o _ _ = error "should not happen"
       in DS.fold o (DMS.empty, DM.empty, DM.empty) cs
 
@@ -231,10 +231,10 @@ instance Substitutable TyScheme where
   applySubst Identity     t = t
   applySubst d@(Dot _ _) t  = dotApply d t
 
-  applySubst s (QualSig t) = QualSig (applySubst s t)
+  applySubst s (QualSig t)  = QualSig (applySubst s t)
 
-  applySubst s@(TySub a _) t@(Forall tv ts) | a == tv   = t
-                                            | otherwise = Forall tv (applySubst s ts)
+  applySubst s@(TySub a _)  t@(Forall tv ts) | a == tv   = t
+                                             | otherwise = Forall tv (applySubst s ts)
 
   applySubst s@(AnnSub a _) t@(AnnSig tv ts) | a == tv   = t
                                              | otherwise = AnnSig tv (applySubst s ts)
@@ -256,9 +256,9 @@ instance Substitutable Ty where
 
   applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) (applySubst s ann)
 
-  applySubst s (List t ann) = List (applySubst s t) (applySubst s ann)
+  applySubst s (List t ann)    = List (applySubst s t) (applySubst s ann)
 
-  applySubst _ Nat  = Nat
+  applySubst _ Nat  = Nat   -- TODO: zijn deze niet redundant?
   applySubst _ Bool = Bool
   applySubst _ t    = t
 
@@ -278,8 +278,8 @@ instance Substitutable Constraint where
   applySubst Identity    cs     = cs
   applySubst d@(Dot _ _) cs     = dotApply d cs
   applySubst s@(AnnSub a b) (Constraint a' b')
-    | a == a'   = Constraint b (applySubst s b')
-    | otherwise = Constraint a' (applySubst s b')
+    | a == a'    = Constraint b (applySubst s b')
+    | otherwise  = Constraint a' (applySubst s b')
   applySubst _ c = c
 
 instance Substitutable Constraints where
@@ -290,8 +290,8 @@ instance Substitutable SAnn where
   applySubst d@(Dot _ _) a@(AnnVar _) = dotApply d a
 
   applySubst (AnnSub b b') a@(AnnVar b'')
-    | b == b''  = AnnVar b'
-    | otherwise = a
+    | b == b''   = AnnVar b'
+    | otherwise  = a
 
   applySubst _ a = a
 
