@@ -13,16 +13,16 @@ ATTR MH
     counter : {Int}
   |
    -- The algW attribute will contain the type of the term.
-    ty : {Ty}
-    constraints USE {`DS.union`} {DS.empty} : {Constraints}
+    ty                                        : {Ty}
+    constraints   USE {`DS.union`} {DS.empty} : {Constraints}
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
-    substitution : {SimpleSubstitution}
-    lhsTy USE {`mplus`} {Nothing} : {Maybe Ty}
-    annotation   : {SAnn}
-    debug        USE {++} {""} : {String}
-    expressions USE {++} {[]} : {Expressions}
-    copy : SELF
+    substitution                              : {SimpleSubstitution}
+    lhsTy         USE {`mplus`}    {Nothing}  : {Maybe Ty}
+    annotation                                : {SAnn}
+    debug         USE {++}         {""}       : {String}
+    expressions   USE {++}         {[]}       : {Expressions}
+    copy                                      : SELF
   ]
 
 SEM MH
