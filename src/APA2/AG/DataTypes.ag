@@ -79,7 +79,6 @@ DATA SAnn
 
 DERIVING SAnn: Eq, Ord
 
--- TODO: a1 needs to become SAnn again
 DATA Constraint
   | Constraint a1 : SAnn a2 : SAnn
 
@@ -87,8 +86,8 @@ DERIVING Constraint: Eq, Ord
 
 DATA SimpleSubstitution
   | Identity
-  | TySub  tv : {TyVar} t  : Ty
-  | AnnSub a1 : {AnnVar}    a2 : {AnnVar} -- annotation substitution
+  | TySub  tv : {TyVar}  t  : Ty
+  | AnnSub a1 : {AnnVar} a2 : {AnnVar} -- annotation substitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
 TYPE TyEnv = MAP {Var} TyScheme

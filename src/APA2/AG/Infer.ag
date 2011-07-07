@@ -434,15 +434,31 @@ SEM MH
 
       loc.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
+-- annotation: Maybe SAnn
       loc.e1ann = @e1.annotation
       loc.e2ann = @e2.annotation
-      -- TODO: FInish
-      {- loc.foo = case @loc.e1ann of-}
-      {-             Nothing -> Just @loc.beta2'-}
-      {-             x       -> x-}
-      {- loc.bar = case @loc.e2ann of-}
-      {-             Nothing -> Just @loc.beta3'-}
-      {-             x       -> x-}
+
+      -- First determine the types of e1 and e2. If one of them is a function
+      -- and the other a variable, we need to generate a fresh annotation for
+      -- the variable, which we will place on the result of the unification as
+      -- only annotation.
+      -- If both are already arrows, generate a new constraint which is a
+      -- superset of both (subeffecting) and place a new annvar on top of both
+      -- arrows.
+      --
+      -- Wait a tick... the example in the slides is misleading. The lambda gets
+      -- a type of a -> Nat, but it does NOT get an H on top of it. Instead, it
+      -- just gets a beta, and a constraint. So it becomes a -β-> Nat and
+      -- β ⊇ {H}. It is then just a matter of fixing the constraints.
+      --
+      --
+      -- TODO: Only do foo and bar if the types are arrows
+      loc.foo = case @loc.e1ann of
+                  Nothing -> Just $ AnnVar @loc.beta2'
+                  x       -> x
+      loc.bar = case @loc.e2ann of
+                  Nothing -> Just $ AnnVar @loc.beta3'
+                  x       -> x
 
       loc.ty =
         case @e2.ty of
