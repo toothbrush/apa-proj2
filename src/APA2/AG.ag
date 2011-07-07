@@ -242,7 +242,7 @@ class Substitutable a where
 
 instance Substitutable TyScheme where
   applySubst Identity     t = t
-  applySubst d@(Dot _ _) t  = dotApply d t
+  applySubst (Dot s1 s2)  t = dotApply s1 s2 t
 
   applySubst s (QualSig t)  = QualSig (applySubst s t)
 
@@ -261,7 +261,7 @@ instance Substitutable Qual where
 
 instance Substitutable Ty where
   applySubst Identity       t  = t
-  applySubst d@(Dot _ _)    t  = dotApply d t
+  applySubst (Dot s1 s2)    t  = dotApply s1 s2 t
 
   applySubst (TySub a t0) tv@(TyVar t)
     | a == t    = t0
@@ -287,7 +287,7 @@ instance Substitutable AnnVar where
 
 instance Substitutable Constraint where
   applySubst Identity    cs     = cs
-  applySubst d@(Dot _ _) cs     = dotApply d cs
+  applySubst (Dot s1 s2) cs     = dotApply s1 s2 cs
   applySubst s@(AnnSub a b) (Constraint (AnnVar a') b')
     | a == a'    = Constraint (AnnVar b) (applySubst s b')
     | otherwise  = Constraint (AnnVar a') (applySubst s b')
@@ -298,7 +298,7 @@ instance Substitutable Constraints where
 
 instance Substitutable SAnn where
   applySubst Identity    a            = a
-  applySubst d@(Dot _ _) a@(AnnVar _) = dotApply d a
+  applySubst (Dot s1 s2) a@(AnnVar _) = dotApply s1 s2 a
 
   applySubst (AnnSub b b') a@(AnnVar b'')
     | b == b''   = AnnVar b'
@@ -306,7 +306,6 @@ instance Substitutable SAnn where
 
   applySubst _ a = a
 
-dotApply :: Substitutable t => SimpleSubstitution -> t -> t
-dotApply (Dot s1 s2) t = applySubst s1 (applySubst s2 t)
-dotApply _           _ = error "dotApply requires a Dot as first argument"
+dotApply :: Substitutable t => SimpleSubstitution -> SimpleSubstitution -> t -> t
+dotApply s1 s2 t = applySubst s1 (applySubst s2 t)
 }
