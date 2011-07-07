@@ -122,11 +122,11 @@ translate = hExpr
   mkCaseBlck (H.Alt _ pat (H.UnGuardedAlt ex) _) = CaseAlt (mkPat pat) (hExpr ex)
   mkCaseBlck _ = undefined -- TODO: Nice error
   mkPat (H.PLit (H.Int n)) = VInt n
+  mkPat (H.PList ps) = foldr (Cons . mkPat) Nil ps
   mkPat (H.PApp (H.UnQual (H.Ident n)) _) = case n of
                                                 "True"  -> VBool True
                                                 "False" -> VBool False
                                                 val     -> Var val
-  mkPat (H.PList []) = Nil
   mkPat e = notSupported e
 
   hQName (H.UnQual (H.Ident x)) = x
