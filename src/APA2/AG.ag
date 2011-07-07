@@ -128,15 +128,21 @@ worklist cs = absWl cs (DM.findWithDefault bottom)
 a ? m = trace "(?) op" (fromJust $ DM.lookup a m)
 
 pord :: SAnn -> SAnn -> Bool
-pord AnnEmpty   AnnEmpty   = True
-pord AnnEmpty   (AnnSet a) = DS.null a
-pord (AnnSet a) (AnnSet b) = DS.isSubsetOf b a
-pord _          _          = error "no variables allowed in partial ordering"
+pord AnnEmpty AnnEmpty         = True
+pord AnnEmpty u@(AnnUnion _ _) = DS.null $ mkAnnPtSet u
+pord a@(AnnUnion _ _) b@(AnnUnion _ _) = DS.isSubsetOf (mkAnnPtSet b) (mkAnnPtSet a)
+pord _        _                = error "no variables allowed in partial ordering"
+
+mkAnnPtSet :: SAnn -> Set Point
+mkAnnPtSet AnnEmpty   = DS.empty
+mkAnnPtSet (AnnPt pt) = DS.singleton pt
+mkAnnPtSet (AnnUnion a1 a2) = mkAnnPtSet a1 `DS.union` mkAnnPtSet a2
+mkAnnPtSet _                = error "Cannot make annptset with variables"
 
 join :: SAnn -> SAnn -> SAnn
 join AnnEmpty   a          = a
 join a          AnnEmpty   = a
-join (AnnSet a) (AnnSet b) = AnnSet (DS.union a b)
+join (AnnUnion a b) (AnnUnion c d) = AnnUnion (join a b) (join c d)
 join _          _          = error "no variables allowed in join"
 
 debugStep :: (Show a, Show b) => a -> b -> String
@@ -228,9 +234,9 @@ unifyAnn v v' | v == v'   = Identity
               | otherwise = AnnSub v v'
 
 unifyTyVar :: TyVar -> Ty -> SimpleSubstitution
-unifyTyVar x t | a == t          = Identity
+unifyTyVar x t | a == t    = Identity
                | x ∉ ftv t = TySub x t
-               | otherwise       = occursCheck a t
+               | otherwise = occursCheck a t
                where a = TyVar x
 
 occursCheck :: (Show a, Show b) => a -> b -> t

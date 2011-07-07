@@ -71,7 +71,7 @@ SEM MH
 
       lhs.substitution = @loc.theta
       lhs.annotation = @loc.annotation
-      loc.annotation = 
+      loc.annotation =
         case @loc.ty of
           Arr _ _ _ -> Just (AnnVar @loc.beta')
           _         -> Nothing
@@ -418,9 +418,13 @@ SEM MH
              Nothing -> apps @lhs.annEnvironment
 
   | If
-      loc.beta   : UNIQUEREF counter
+      loc.beta1   : UNIQUEREF counter
+      loc.beta2   : UNIQUEREF counter
+      loc.beta3   : UNIQUEREF counter
+      loc.beta'  = mkAnnVar @loc.beta1
+      loc.beta2' = mkAnnVar @loc.beta2
+      loc.beta3' = mkAnnVar @loc.beta3
 
-      loc.beta'  = mkAnnVar @loc.beta
       loc.theta0 = @c.substitution
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
@@ -430,7 +434,17 @@ SEM MH
 
       loc.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
-      loc.ty = 
+      loc.e1ann = @e1.annotation
+      loc.e2ann = @e2.annotation
+      -- TODO: FInish
+      {- loc.foo = case @loc.e1ann of-}
+      {-             Nothing -> Just @loc.beta2'-}
+      {-             x       -> x-}
+      {- loc.bar = case @loc.e2ann of-}
+      {-             Nothing -> Just @loc.beta3'-}
+      {-             x       -> x-}
+
+      loc.ty =
         case @e2.ty of
           Arr a b _ -> applySubst @loc.substitution (Arr a b @loc.beta')
           _         -> @e2.ty
@@ -473,7 +487,7 @@ mkAnnVar :: Int -> AnnVar
 mkAnnVar i = 'β' : show i
 
 mkProgramPoint :: Var -> Int -> SAnn
-mkProgramPoint v p = AnnSet (DS.singleton (v ++ show p))
+mkProgramPoint v p = AnnPt (v ++ show p)
 
 operatorType :: String -> (Ty, Ty, Ty)
 operatorType op

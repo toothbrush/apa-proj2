@@ -65,10 +65,17 @@ DERIVING Ty: Eq
 
 -- | We need to make the set operations explicit, since it is also possible to
 -- have something like β∪{h}
+{- DATA SAnn-}
+{-   | AnnVar   var    : {AnnVar}-}
+{-   | AnnEmpty-}
+{-   | AnnSet   points : {Set Point}-}
+
+
 DATA SAnn
-  | AnnVar   var    : {AnnVar}
+  | AnnVar   var : {AnnVar}
   | AnnEmpty
-  | AnnSet   points : {Set Point}
+  | AnnPt    pt  : {Point}
+  | AnnUnion a1  : SAnn    a2 : SAnn
 
 DERIVING SAnn: Eq, Ord
 
@@ -93,9 +100,10 @@ instance Show Constraint where
   show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2
 
 instance Show SAnn where
-  show (AnnVar var) = var
-  show (AnnSet ps)  = ppSet ps
-  show (AnnEmpty)   = "{}"
+  show (AnnVar var)     = var
+  show (AnnPt  pt)      = pt
+  show (AnnUnion a1 a2) = show a1 ++ " ∪ " ++ show a2
+  show AnnEmpty         = "{}"
 
 instance Show MH where
   show (VBool  v           ) = show v
