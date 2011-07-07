@@ -102,48 +102,83 @@ SEM MH
     lhs.substitution = Identity
     lhs.constraints  = DS.empty
     lhs.annotation   = mkAnnVar @loc.beta
-{-
+
   | Nil
     loc.alpha : UNIQUEREF counter
     loc.beta  : UNIQUEREF counter
+    loc.betaf : UNIQUEREF counter
 
     loc.alpha' = freshVar @loc.alpha
-    loc.beta' = mkAnnVar @loc.beta
+    loc.beta'  = mkAnnVar @loc.beta
+    loc.betaf' = mkAnnVar @loc.betaf
 
-    lhs.ty = List @loc.alpha' @loc.beta'
+    loc.ty = List @loc.alpha' @loc.beta'
 
-    lhs.substitution = Identity
+    loc.substitution = Identity
 
-    lhs.constraints = DS.empty
+    loc.constraints = DS.empty :: Constraints
 
-    lhs.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
+
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
+
+    lhs.debug = "Nil: \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n"
+    
+    lhs.expressions = [(@loc.ty,@copy)]
 
   | Cons
-    loc.beta : UNIQUEREF counter
+    loc.beta  : UNIQUEREF counter
+    loc.betaf : UNIQUEREF counter
 
-    loc.beta' = mkAnnVar @loc.beta
+    loc.beta'  = mkAnnVar @loc.beta
+    loc.betaf' = mkAnnVar @loc.betaf
 
-    loc.listTy = List @e1.ty @loc.beta'
+    loc.listTy = List @e1.ty @e1.annotation
     loc.theta1 = @e1.substitution
     loc.theta2 = @e2.substitution
     loc.theta3 = unify @e2.ty (applySubst @loc.theta2 @loc.listTy)
-    loc.theta  = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
-    lhs.ty = applySubst @loc.theta @loc.listTy
+    loc.substitution  = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
-    lhs.constraints =
+    loc.ty = applySubst @loc.substitution @loc.listTy
+
+    loc.constraints =
       let c1 = @e1.constraints
           c2 = @e2.constraints
           c3 = (@loc.beta' <:? @e1.annotation) `DS.union`
-               (@loc.beta' <:? @e2.annotation)
+               (@loc.betaf' <:? @e2.annotation)
           cs = c1 `DS.union` c2 `DS.union` c3
-      in applySubst @loc.theta cs 
+      in applySubst @loc.substitution cs 
 
-    lhs.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
+
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
 
     e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
     e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
--}
+
+    lhs.debug = "Cons: \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n"
+    
+    lhs.expressions = [(@loc.ty,@copy)] -- ++ @e1.expressions ++ @e2.expressions
+
   | Op
       loc.alpha1 : UNIQUEREF counter
       loc.alpha2 : UNIQUEREF counter
