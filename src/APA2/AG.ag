@@ -169,12 +169,12 @@ simplify env tau c =
 {-       substLst = DM.mapWithKey func ana'-}
 {-   in DM.fold Dot Identity substLst-}
 
-notIn :: Ord a => a -> Set a -> Bool
-notIn = DS.notMember
+(∉) :: Ord a => a -> Set a -> Bool
+(∉) = DS.notMember
 
 satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution
 satisfiable act ana =
-  let f (AnnVar β) (AnnVar β') acc | β `notIn` act = AnnSub β β' `dot` acc
+  let f (AnnVar β) (AnnVar β') acc | β ∉ act = AnnSub β β' `dot` acc
       f _          _           acc = acc
   in  DM.foldrWithKey f Identity ana
 
@@ -196,7 +196,7 @@ partition env cs =
                      | isActive a1 || isActive a2 = DS.insert c xs
                    f _ xs = xs
                in  DS.fold f DS.empty cs
-      qual   = let g c xs | c `notIn` prop = DS.insert c xs
+      qual   = let g c xs | c ∉ prop = DS.insert c xs
                           | otherwise             = xs
                in  DS.fold g DS.empty cs
   in (prop, qual)
@@ -229,7 +229,7 @@ unifyAnn v v' | v == v'   = Identity
 
 unifyTyVar :: TyVar -> Ty -> SimpleSubstitution
 unifyTyVar x t | a == t          = Identity
-               | x `notIn` ftv t = TySub x t
+               | x ∉ ftv t = TySub x t
                | otherwise       = occursCheck a t
                where a = TyVar x
 
