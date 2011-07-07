@@ -10,12 +10,16 @@ ATTR TyScheme Ty Constraint SAnn Qual TyEnv AnnEnv
 SEM TyScheme
   | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a
 
+SEM Ty
+  | Arr  lhs.fav = @ty1.fav `DS.union` @ty2.fav `DS.union` @ann1.fav `DS.union` @ann2.fav
+  | List lhs.fav = @ty.fav `DS.union` @ann.fav
+
 SEM SAnn
   | AnnVar lhs.fav = DS.singleton @var
 
 -- TODO: Verify that this implementation is correct
 SEM Constraint
-  | Constraint lhs.fav = DS.insert @a1 @a2.fav
+  | Constraint lhs.fav = DS.union @a1.fav @a2.fav
 
 {
 class FreeAnnVars a where

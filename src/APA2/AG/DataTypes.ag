@@ -50,8 +50,8 @@ DERIVING TyScheme: Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty ty2 : Ty  ann : {AnnVar}
-  | List  ty  : Ty ann : {AnnVar} -- builtin List is an addition
+  | Arr   ty1 : Ty ann1 : SAnn ty2 : Ty ann2 : SAnn
+  | List  ty  : Ty ann : SAnn -- builtin List is an addition
   | Nat
   | Bool
 
@@ -68,23 +68,23 @@ DERIVING SAnn: Eq, Ord
 
 -- TODO: a1 needs to become SAnn again
 DATA Constraint
-  | Constraint a1 : AnnVar a2 : SAnn
+  | Constraint a1 : SAnn a2 : SAnn
 
 DERIVING Constraint: Eq, Ord
 
 DATA SimpleSubstitution
   | Identity
   | TySub  tv : {TyVar} t  : Ty
-  | AnnSub a1 : {AnnVar}    a2 : {AnnVar} -- annotation substitution
+  | AnnSub a1 : {AnnVar}    a2 : {SAnn} -- annotation substitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
 TYPE TyEnv = MAP {Var} TyScheme
 
-TYPE AnnEnv = MAP {Var} {Maybe SAnn}
+TYPE AnnEnv = MAP {Var} {SAnn}
 
 {
 instance Show Constraint where
-  show (Constraint a1 a2) = a1 ++ " ⊇ " ++ show a2
+  show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2
 
 instance Show SAnn where
   show (AnnVar var) = var
@@ -116,15 +116,17 @@ instance Show Qual where
 
 instance Show Ty where
   show (TyVar a)    = a
-  show (Arr t t' a) = show t ++ "--"++ a ++ "-->" ++ show t'
+  show (Arr t a t' a') = tyAnn t a ++ "-->" ++ tyAnn t' a'
   show Nat          = "Nat"
   show Bool         = "Bool"
-  show (List t an)  = "List^{" ++ an ++ "} " ++ show t
+  show (List t an)  = "List^{" ++ show an ++ "} " ++ show t
+
+tyAnn t a = "(" ++ show t ++ ":" ++ show a ++ ")"
 
 instance Show SimpleSubstitution where
   show Identity      = ""
   show (TySub v t)   = v ++ "    |-> " ++ show t
-  show (AnnSub a a') = a ++ "    |-> " ++ a'
+  show (AnnSub a a') = a ++ "    |-> " ++ show a'
   show (Dot s Identity) = show s
   show (Dot s s')       = show s ++ "\n" ++ show s'
 

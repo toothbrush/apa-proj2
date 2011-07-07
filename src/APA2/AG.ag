@@ -28,6 +28,7 @@ import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
 import qualified  Data.Set as DS
 import            Data.Maybe
+import System.IO.Unsafe
 }
 
 INCLUDE "AG/DataTypes.ag"
@@ -68,17 +69,17 @@ worklist cs =
     (solved,unsolved) = partitionConstraints cs
 
     (w, ana, infl) =
-      let o c@(Constraint a (AnnVar b)) (w', ana', infl'') = ( DMS.insert c w'
-                                                             , DM.insert a AnnEmpty (DM.insert b AnnEmpty ana')
-                                                             , DM.insert a DS.empty (DM.insert b DS.empty infl''))
-          o (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'
-                                                           , DM.insert a AnnEmpty ana'
-                                                           , DM.insert a DS.empty infl'')
+      let o c@(Constraint (AnnVar a) (AnnVar b)) (w', ana', infl'') = ( DMS.insert c w'
+                                                                      , DM.insert a AnnEmpty (DM.insert b AnnEmpty ana')
+                                                                      , DM.insert a DS.empty (DM.insert b DS.empty infl''))
+          o (Constraint (AnnVar a) (AnnSet _)) (w', ana', infl'') = ( w'
+                                                                    , DM.insert a AnnEmpty ana'
+                                                                    , DM.insert a DS.empty infl'')
           o _ _ = error "should not happen"
       in DS.fold o (DMS.empty, DM.empty, DM.empty) cs
 
     analysis' =
-      let o (Constraint x x'@(AnnSet _)) a = DM.update (\v -> Just (v ⊔ x')) x a
+      let o (Constraint (AnnVar x) x'@(AnnSet _)) a = DM.update (\v -> Just (v ⊔ x')) x a
           o _ _ = error "should not happen"
       in DS.fold o ana solved
 
@@ -97,8 +98,8 @@ step :: Influence -> Worklist -> Analysis -> (Worklist, Analysis)
 step infl w analysis
   | DMS.null w  = (w, analysis)
   | otherwise   =
-    let ((Constraint x (AnnVar t)), w') = let c = DMS.findMin w
-                                          in (c, DMS.delete c w)
+    let ((Constraint (AnnVar x) (AnnVar t)), w') = let c = DMS.findMin w
+                                                   in (c, DMS.delete c w)
         value    = x ? analysis
         newValue = t ? analysis
     in if not (value ⊒ newValue)
@@ -111,6 +112,7 @@ step infl w analysis
 (⊒) :: SAnn -> SAnn -> Bool
 AnnEmpty   ⊒ AnnEmpty   = True
 AnnEmpty   ⊒ (AnnSet a) = DS.null a
+(AnnSet a) ⊒ AnnEmpty   = DS.null a
 (AnnSet a) ⊒ (AnnSet b) = DS.isSubsetOf b a
 _          ⊒ _          = error "no variables allowed"
 
@@ -120,29 +122,57 @@ a          ⊔ AnnEmpty   = a
 (AnnSet a) ⊔ (AnnSet b) = AnnSet (DS.union a b)
 _          ⊔ _          = error "no variables allowed"
 
-debugStep :: (Show a, Show b) => a -> b -> String
 debugStep w ana =
-  "step: " ++ "\n" ++
-  "W: " ++ show w ++ "\n" ++
-  "ANA: " ++ show ana ++ "\n"
+  case unsafePerformIO (debugStep' w ana) of
+    () -> ""
+
+debugStep' w ana =
+  do 
+    putStrLn "step: "
+    putStrLn "W: " 
+    printW w
+    putStrLn ""
+
+    putStrLn "ANA: "
+    printAnalysis ana
+    putStrLn ""
+
+printW :: Worklist -> IO ()
+printW w = 
+  DMS.fold (\v b -> putStr (' ' : show v) >>= \_ -> b) (return ()) w 
+
+printAnalysis :: DM.Map AnnVar SAnn -> IO ()
+printAnalysis a = DM.foldWithKey (\k v next -> do putStr (k ++ " : ")
+                                                  printAnalysisResult v
+                                                  next) (return ()) a
+
+printActiveAnnVars :: Set AnnVar -> IO ()
+printActiveAnnVars s = 
+  do putStrLn "active annvars: "
+     DS.fold (\v b -> putStr (' ' : v) >>= \_ -> b) (return ()) s
+
+printAnalysisResult (AnnSet s) = DS.fold (\x b -> putStr (x ++ ",") >>= \_ -> b) (return ()) s
+printAnalysisResult AnnEmpty = putStr "{}"
 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
   let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
-      ranges = trace ("active vars: "++show active++"\n") $
-                     worklist c
-      theta  = satisfiable active ranges
+      analysis = case unsafePerformIO (printActiveAnnVars active) of
+                  () -> worklist c
+      theta  = satisfiable active analysis
       c'     = applySubst theta c
   in  partition env c'
 
+{-
 testPA = pseudoActive (DS.fromList [AnnVar "b1", AnnVar "b2", AnnVar "b3"])
                       (DS.fromList [ Constraint "b2" (AnnVar "b6")
                                    , Constraint "b6" (AnnVar "b4")])
+-}
 
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
-  let extrAnn (Constraint l u) xs | AnnVar l `DS.member` active = DS.insert u xs
-                                  | otherwise                   = xs
+  let extrAnn (Constraint l@(AnnVar _) u) xs | l `DS.member` active = DS.insert u xs
+                                             | otherwise            = xs
       vars = DS.fold extrAnn DS.empty c `DS.union` active
   in  if DS.null (vars `DS.intersection` active)
         then pseudoActive vars c
@@ -152,7 +182,11 @@ pseudoActive active c =
 
 -- TODO: Determine what we need to do here.
 satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
-satisfiable _ _ = Identity
+satisfiable active analysis = 
+  DM.foldWithKey o Identity analysis
+  where o beta value next | beta `DS.notMember` active = Dot (AnnSub beta value) next
+                          | otherwise                  = next
+
 -- TODO: Implementation is ugly, refactor. It helps if we get a set of SAnn here
 {- satisfiable active analysis =-}
 {-   let act'          = DS.map AnnVar active-}
@@ -174,7 +208,7 @@ satisfiable _ _ = Identity
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs =
   let prop   = let isActive a = a `DS.member` fav env
-                   f c@(Constraint a1 (AnnVar a2)) xs
+                   f c@(Constraint (AnnVar a1) (AnnVar a2)) xs
                      | isActive a1 || isActive a2 = DS.insert c xs
                    f _ xs = xs
                in  DS.fold f DS.empty cs
@@ -182,6 +216,7 @@ partition env cs =
                           | otherwise             = xs
                in  DS.fold g DS.empty cs
   in (prop, qual)
+
 
 (?) :: Ord a => a -> Map a b -> b
 a ? m = fromJust $ DM.lookup a m
@@ -198,21 +233,25 @@ unify (List t an) (List t' an') =
 unify a@(TyVar _) t = unifyTyVar a t
 unify t a@(TyVar _) = unifyTyVar a t
 
-unify (Arr t11 t12 an) (Arr t21 t22 an') =
+unify (Arr t11 a11 t12 a12) (Arr t21 a21 t22 a22) =
   let theta1 = unify t11 t21
-      theta2 = unify (applySubst theta1 t12)
-                     (applySubst theta1 t22)
-      theta3 = let th21 = theta2 `dot` theta1
-               in unifyAnn (applySubst th21 an) (applySubst th21 an')
-  in theta3 `dot` theta2 `dot` theta1
+      theta2 = unifyAnn (applySubst theta1 a11) (applySubst theta1 a21)
+
+      theta3 = unify (applySubst (theta2 `dot` theta1) t12)
+                     (applySubst (theta2 `dot` theta1) t22)
+ 
+      theta4 = let th21 = theta3 `dot` theta2 `dot` theta1
+               in unifyAnn (applySubst th21 a12) (applySubst th21 a22)
+  in theta4 `dot` theta3 `dot` theta2 `dot` theta1
 
 unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
 
-unifyAnn :: AnnVar -> AnnVar -> SimpleSubstitution
-unifyAnn v v' | v == v'   = Identity
-              | otherwise = AnnSub v v'
+unifyAnn :: SAnn -> SAnn -> SimpleSubstitution
+unifyAnn (AnnVar v) (AnnVar v') | v == v'   = Identity
+                                | otherwise = AnnSub v (AnnVar v')
+unifyAnn _          _ = error "Unification failed, can only unify annotation variables"
 
 unifyTyVar :: Ty -> Ty -> SimpleSubstitution
 unifyTyVar a@(TyVar x) t | a == t                 = Identity
@@ -254,7 +293,8 @@ instance Substitutable Ty where
     | a == t    = t0
     | otherwise = tv
 
-  applySubst s (Arr t1 t2 ann) = Arr (applySubst s t1) (applySubst s t2) (applySubst s ann)
+  applySubst s (Arr t1 a1 t2 a2) = Arr (applySubst s t1) (applySubst s a1) 
+                                       (applySubst s t2) (applySubst s a2)
 
   applySubst s (List t ann) = List (applySubst s t) (applySubst s ann)
 
@@ -266,10 +306,10 @@ instance Substitutable TyEnv where
   applySubst s = DM.map (applySubst s)
 
 instance Substitutable AnnEnv where
-  applySubst s = DM.map (maybe Nothing (Just . applySubst s))
+  applySubst s = DM.map (applySubst s)
 
 instance Substitutable AnnVar where
-  applySubst (AnnSub a b) a'
+  applySubst (AnnSub a (AnnVar b)) a'
     | a == a'    = b
     | otherwise  = a'
   applySubst _ a = a
@@ -277,9 +317,9 @@ instance Substitutable AnnVar where
 instance Substitutable Constraint where
   applySubst Identity    cs     = cs
   applySubst d@(Dot _ _) cs     = dotApply d cs
-  applySubst s@(AnnSub a b) (Constraint a' b')
+  applySubst s@(AnnSub a b) (Constraint (AnnVar a') b')
     | a == a'   = Constraint b (applySubst s b')
-    | otherwise = Constraint a' (applySubst s b')
+    | otherwise = Constraint (AnnVar a') (applySubst s b')
   applySubst _ c = c
 
 instance Substitutable Constraints where
@@ -290,7 +330,7 @@ instance Substitutable SAnn where
   applySubst d@(Dot _ _) a@(AnnVar _) = dotApply d a
 
   applySubst (AnnSub b b') a@(AnnVar b'')
-    | b == b''  = AnnVar b'
+    | b == b''  = b'
     | otherwise = a
 
   applySubst _ a = a

@@ -4,6 +4,7 @@ import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
 import qualified Data.Map as DM
 import qualified Data.Set as DS
+import qualified  Data.MultiSet as DMS
 
 import APA2.AG
 import Data.Generics.Schemes
@@ -16,7 +17,7 @@ initialInheritedAttributes =
          , counter_Inh_MH = 0
          }
 
-w :: MH -> (Ty, Maybe SAnn, SimpleSubstitution, Constraints, String)
+w :: MH -> (Ty, SAnn, SimpleSubstitution, Constraints, String)
 w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
        in  ( ty_Syn_MH           wrappedDS
            , annotation_Syn_MH   wrappedDS
@@ -24,6 +25,9 @@ w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
            , constraints_Syn_MH  wrappedDS
            , debug_Syn_MH  wrappedDS
            )
+
+getConstraints :: (Ty, SAnn, SimpleSubstitution, Constraints, String) -> Constraints
+getConstraints (_,_,_,c,_) = c
 
 inferTypes :: MH -> Ty
 inferTypes tm = let (ty,_,_,_,_) = w tm
