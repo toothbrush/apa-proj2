@@ -169,9 +169,12 @@ simplify env tau c =
 {-       substLst = DM.mapWithKey func ana'-}
 {-   in DM.fold Dot Identity substLst-}
 
+notIn :: Ord a => a -> Set a -> Bool
+notIn = DS.notMember
+
 satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution
 satisfiable act ana =
-  let f (AnnVar β) (AnnVar β') acc | β `DS.notMember` act = AnnSub β β' `dot` acc
+  let f (AnnVar β) (AnnVar β') acc | β `notIn` act = AnnSub β β' `dot` acc
       f _          _           acc = acc
   in  DM.foldrWithKey f Identity ana
 
@@ -193,7 +196,7 @@ partition env cs =
                      | isActive a1 || isActive a2 = DS.insert c xs
                    f _ xs = xs
                in  DS.fold f DS.empty cs
-      qual   = let g c xs | c `DS.notMember` prop = DS.insert c xs
+      qual   = let g c xs | c `notIn` prop = DS.insert c xs
                           | otherwise             = xs
                in  DS.fold g DS.empty cs
   in (prop, qual)
@@ -202,39 +205,40 @@ unify :: Ty -> Ty -> SimpleSubstitution
 unify (List t an) (List t' an') =
   let theta1 = unify t t'
       theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
-  in theta2 `dot` theta1
+  in  theta2 `dot` theta1
 
-unify a@(TyVar _) t = unifyTyVar a t
-unify t a@(TyVar _) = unifyTyVar a t
+unify (TyVar a) t = unifyTyVar a t
+unify t (TyVar a) = unifyTyVar a t
 
 unify (Arr t11 t12 an) (Arr t21 t22 an') =
-  let theta1 = unify t11 t21
-      theta2 = unify (applySubst theta1 t12)
-                     (applySubst theta1 t22)
-      theta3 = let th21 = theta2 `dot` theta1
-               in unifyAnn (applySubst th21 an) (applySubst th21 an')
-  in theta3 `dot` theta2 `dot` theta1
+  let theta0 = unifyAnn an an'
+      theta1 = unify (applySubst theta0 t11)
+                     (applySubst theta0 t21)
+      theta2 = let th10 = theta1 `dot` theta0
+               in  unify (applySubst th10 t12)
+                         (applySubst th10 t22)
+  in  theta2 `dot` theta1 `dot` theta0
 
 unify t1 t2 | t1 == t2  = Identity
-            | otherwise = error $ "Unification failure. \nt_1 = " ++
-                                  show t1 ++ "\nt_2 = " ++ show t2
+            | otherwise = error $ "Unification failure. \nτ_1 = " ++
+                                  show t1 ++ "\nτ_2 = " ++ show t2
 
 unifyAnn :: AnnVar -> AnnVar -> SimpleSubstitution
 unifyAnn v v' | v == v'   = Identity
               | otherwise = AnnSub v v'
 
-unifyTyVar :: Ty -> Ty -> SimpleSubstitution
-unifyTyVar a@(TyVar x) t | a == t                 = Identity
-                         | x `DS.notMember` ftv t = TySub x t
-                         | otherwise              = occursCheck a t
-unifyTyVar _           _ = error "First argument to unifyTyVar must be a TyVar"
+unifyTyVar :: TyVar -> Ty -> SimpleSubstitution
+unifyTyVar x t | a == t          = Identity
+               | x `notIn` ftv t = TySub x t
+               | otherwise       = occursCheck a t
+               where a = TyVar x
 
 occursCheck :: (Show a, Show b) => a -> b -> t
 occursCheck tv t = error $ "Occurs check: " ++ show tv ++ " = " ++ show t
                                             ++ "\nCannot create infinite type."
 
-class Substitutable subject where
-  applySubst :: SimpleSubstitution -> subject -> subject
+class Substitutable a where
+  applySubst :: SimpleSubstitution -> a -> a
 
 instance Substitutable TyScheme where
   applySubst Identity     t = t
