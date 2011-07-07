@@ -198,7 +198,7 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.phi = trace ("does the (?) break here? "++ @x++"?"++show @lhs.annEnvironment ) $ 
+      loc.phi = trace ("does the (?) break here? "++ @x++"?"++ppMap @lhs.annEnvironment ) $ 
                 @x ? @lhs.annEnvironment
 
       loc.(c, ty) = 
