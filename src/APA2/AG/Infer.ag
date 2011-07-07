@@ -371,62 +371,80 @@ SEM MH
 
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
 -- but is can be passed into a function..
-{-
   | LetRec
-      loc.alpha1 : UNIQUEREF counter
-      loc.alpha2 : UNIQUEREF counter
-      loc.ppoint : UNIQUEREF counter
-      loc.beta   : UNIQUEREF counter
-      loc.beta1  : UNIQUEREF counter
+      loc.alphax : UNIQUEREF counter
+      loc.alphar : UNIQUEREF counter
+      loc.betax  : UNIQUEREF counter
+      loc.betar  : UNIQUEREF counter
+      loc.betaf  : UNIQUEREF counter
 
-      loc.alpha1' = freshVar @loc.alpha1
-      loc.alpha2' = freshVar @loc.alpha2
-      loc.beta'   = mkAnnVar @loc.beta
-      loc.beta''  = mkAnnVar @loc.beta1
-      loc.pi      = mkProgramPoint @f @loc.ppoint
+      loc.alphax' = freshVar @loc.alphax
+      loc.alphar' = freshVar @loc.alphar
+      loc.betax'  = mkAnnVar @loc.betax
+      loc.betar'  = mkAnnVar @loc.betar
+      loc.betaf'  = mkAnnVar @loc.betaf
 
       loc.theta0 = @e1.substitution
-      loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alpha2')
-      loc.theta  = @loc.theta1 `dot` @loc.theta0
+      loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alphar')
+      loc.theta2 = unifyAnn (applySubst @loc.theta1 @e1.annotation) (applySubst @loc.theta1 @loc.betar')
+        
+      loc.theta  = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
-      lhs.ty = @e2.ty
+      loc.ty = @e2.ty
 
-      lhs.substitution = @loc.theta
+      loc.substitution = @loc.theta
 
       -- | not sure about correctness
-      lhs.constraints =
+      loc.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
-            c3 = applySubst @loc.theta (@loc.beta' <:? @e2.annotation)
+            c3 = applySubst @loc.theta (@loc.betaf' <:? @e2.annotation)
         in c1 `DS.union` c2 `DS.union` c3
 
-      loc.annotation = @loc.beta''
+      loc.annotation = applySubst @loc.substitution @loc.betaf'
+
+      lhs.ty = @loc.ty
+      lhs.constraints = @loc.constraints
+      lhs.substitution = @loc.substitution
       lhs.annotation = @loc.annotation
 
       e1.typeEnvironment =
         case @x of
-          Just x  -> DM.insert @f (QualSig . Ty $ Arr @loc.alpha1' @loc.alpha2' @loc.beta') (
-                      DM.insert x (QualSig $ Ty @loc.alpha1') @lhs.typeEnvironment
-                     )
+          Just x  -> DM.insert @f (QualSig . Ty $ Arr @loc.alphax' @loc.betax' @loc.alphar' @loc.betar')
+                     (DM.insert x (QualSig $ Ty @loc.alphax') @lhs.typeEnvironment)
+                     
           -- A recursive let binding without arguments, e.g. let loop = loop in loop
-          Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') @lhs.typeEnvironment
-
+          Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') @lhs.typeEnvironment
+  
+      e1.annEnvironment =
+        case @x of
+          Just x  -> DM.insert @f @loc.betaf' (DM.insert x @loc.betax' @lhs.annEnvironment)
+          Nothing -> DM.insert @f @loc.betaf' @lhs.annEnvironment
+          
       e2.typeEnvironment =
-        let newEnv = applySubst @loc.theta0 @lhs.typeEnvironment
+        let newEnv = applySubst @loc.theta @lhs.typeEnvironment
         in case @x of
-            Just _  -> let ty  = Arr (applySubst @loc.theta @alpha1')
-                                     (applySubst @loc.theta1 @e1.ty)
-                                     (applySubst @loc.theta @loc.beta')
-                           ty' = snd $ generalise newEnv @loc.annotation ty @e1.constraints
-                       in  DM.insert @f ty' newEnv
-            Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
+            Just _  -> let ty    = Arr @loc.alphax' @loc.betax' @e1.ty @e1.annotation
+                           ty'   = applySubst @loc.theta ty
+                           genTy = snd $ generalise newEnv @e1.annotation ty' @e1.constraints
+                       in  DM.insert @f genTy newEnv
+            Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') newEnv -- not sure about this
 
       e2.annEnvironment =
-        let apps t = applySubst @e1.substitution (DM.insert @f @loc.beta' t)
+        let apps t = applySubst @loc.theta (DM.insert @f @e1.annotation t)
         in case @x of
-             Just x' -> apps (DM.insert x' @e1.annotation @lhs.annEnvironment)
+             Just x' -> apps (DM.insert x' @loc.betax' @lhs.annEnvironment)
              Nothing -> apps @lhs.annEnvironment
--}
+
+      lhs.debug = "LetRec("++ @f ++ show @x ++ "): \n" ++
+                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "ty:" ++ show @loc.ty ++ "\n" ++
+                  "annotation: " ++ show @loc.annotation ++ "\n" ++
+                  "substitution: " ++ show @loc.substitution ++ "\n" ++
+                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                  @e1.debug ++ @e2.debug
+
   | If
       loc.beta   : UNIQUEREF counter
 
