@@ -94,6 +94,7 @@ translate = hExpr
   mkCaseBlck (H.Alt _ pat (H.UnGuardedAlt ex) _) = CaseAlt (mkPat pat) (hExpr ex)
   mkCaseBlck _ = undefined -- TODO: Nice error
   mkPat (H.PLit (H.Int n)) = VInt n
+  mkPat (H.PVar (H.Ident n)) = Var n
   mkPat (H.PParen p) = mkPat p
   mkPat (H.PList ps) = foldr (Cons . mkPat) Nil ps
   mkPat (H.PInfixApp p (H.Special H.Cons) (H.PList [])) = Cons (mkPat p) Nil
