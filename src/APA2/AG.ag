@@ -106,7 +106,7 @@ step infl w analysis
         then let analysis'  = DM.insert x (value ⊔ newValue) analysis
                  successors = DMS.fromSet (x ? infl)
                  augmentedW = successors `DMS.union` w'
-             in trace ("insert new") (augmentedW, analysis')
+             in (augmentedW, analysis')
         else (w', analysis)
 
 (⊒) :: SAnn -> SAnn -> Bool
@@ -122,10 +122,11 @@ a          ⊔ AnnEmpty   = a
 (AnnSet a) ⊔ (AnnSet b) = AnnSet (DS.union a b)
 _          ⊔ _          = error "no variables allowed"
 
-debugStep w ana =
+debugStep w ana = ""
+{-
   case unsafePerformIO (debugStep' w ana) of
     () -> ""
-
+-}
 debugStep' w ana =
   do 
     putStrLn "step: "

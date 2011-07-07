@@ -10,7 +10,7 @@ type Var    = String
 type Point  = String
 type AnnVar = String
 type Constraints = Set Constraint
-type Expressions = [(SAnn,MH)]
+type Expressions = [(Ty,MH)]
 }
 -------------------------------------------------------------------------------
 -- Syntax

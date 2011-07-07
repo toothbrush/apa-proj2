@@ -58,12 +58,27 @@ debugInference tm =
     putStrLn ""
     putStrLn debug
 
+analysisResult :: MH -> IO ()
+analysisResult tm = 
+  do 
+    let (ty, annotation, subst, constraints, exprs, debug) = w tm
+    putStrLn "Analysis result: " 
+    printExpressions (applySubst (solutionSubst constraints) exprs)
+
+solutionSubst cs = 
+  DM.foldWithKey (\var result next -> Dot (AnnSub var result) next) Identity (worklist cs)
+
+printExpressions' exprs = 
+  foldr (\(ty,e) acc -> show e ++ " : " ++ show ty ++ acc) "" exprs
+
 printExpressions exprs = 
-  foldr (\(AnnVar var,e) next -> do { putStrLn (show e ++ " : " ++ var) ; next })
+  mapM_ (\(a,e) -> putStrLn (show e ++ " : " ++ show a)) exprs
+
+{-
+  foldr (\(a,e) next -> do { putStrLn (show e ++ " : " ++ show a) ; next })
         (return ())
         exprs
-  
-
+  -}
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
 

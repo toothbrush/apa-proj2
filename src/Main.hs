@@ -5,5 +5,7 @@ import Components
 main :: IO ()
 main = do
   input <- getContents
-  (debugInference . parseProgram) input
-  --print $ (inferTypes . parseProgram) input
+  let p = parseProgram input
+  print p
+  putStrLn "\n"
+  analysisResult p
