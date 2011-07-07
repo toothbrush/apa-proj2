@@ -199,9 +199,6 @@ partition env cs =
   in (prop, qual)
 
 unify :: Ty -> Ty -> SimpleSubstitution
-unify Nat  Nat  = Identity
-unify Bool Bool = Identity
-
 unify (List t an) (List t' an') =
   let theta1 = unify t t'
       theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
@@ -218,9 +215,9 @@ unify (Arr t11 t12 an) (Arr t21 t22 an') =
                in unifyAnn (applySubst th21 an) (applySubst th21 an')
   in theta3 `dot` theta2 `dot` theta1
 
-unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
-                      show t1 ++ "\nt_2 = " ++
-                      show t2
+unify t1 t2 | t1 == t2  = Identity
+            | otherwise = error $ "Unification failure. \nt_1 = " ++
+                                  show t1 ++ "\nt_2 = " ++ show t2
 
 unifyAnn :: AnnVar -> AnnVar -> SimpleSubstitution
 unifyAnn v v' | v == v'   = Identity
