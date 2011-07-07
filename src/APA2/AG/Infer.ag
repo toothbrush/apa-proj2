@@ -20,15 +20,18 @@ ATTR MH
     lhsTy     USE {`mplus`} {Nothing}       : {Maybe Ty}
     annotation                              : {Maybe SAnn}
     debug     USE {++} {""}                 : {String}
-    annotDict USE {`DM.union`} {DM.empty}   : {Map SAnn MH}
+    annotDict USE {`DM.union`} {DM.empty}   : {Map String MH}
     cp : SELF
   ]
 
 SEM MH
-  | *
-      lhs.annotDict = case @loc.annotation of
-                          Just x  -> DM.singleton x @loc.cp
-                          Nothing -> DM.empty
+  | Lambda
+      lhs.annotDict = DM.singleton (@x ++ show @loc.ppoint) @loc.cp
+                        `DM.union` @e.annotDict
+  | LetRec
+      lhs.annotDict = DM.singleton (@f ++ show @loc.ppoint) @loc.cp
+                        `DM.union` @e2.annotDict
+                        `DM.union` @e1.annotDict
 
 SEM MH
   | CaseBlck
@@ -195,7 +198,8 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.phi = @x ? @lhs.annEnvironment
+      loc.phi = trace ("does the (?) break here? "++ @x++"?"++ppMap @lhs.annEnvironment ) $ 
+                @x ? @lhs.annEnvironment
 
       loc.(c, ty) = 
         maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))

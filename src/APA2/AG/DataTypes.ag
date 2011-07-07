@@ -148,8 +148,8 @@ instance Show a => PrintSet a where
 
 
 ppMapStr :: Show b => Map String b -> String
-ppMapStr x = let f (a, b) = a ++ " :: " ++ show b
-                 l        = map f $ M.toList x
+ppMapStr x = let f (a, b) = a ++ " :: " ++ show b    -- I don't really agree with the "::" here... seems to imply a 
+                 l        = map f $ M.toList x       -- type, while a map maps values. 
              in  "Map{" ++ intercalate "," l ++ "}"
 ppMap :: (Show a, Show b) => Map a b -> String
 ppMap x = let f (a, b) = show a ++ " :: " ++ show b
