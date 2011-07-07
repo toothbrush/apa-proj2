@@ -1,11 +1,21 @@
 module Main where
-
+import System.Environment ( getArgs )
+import Language.Haskell.Exts.Parser
 import Components
 
 main :: IO ()
 main = do
+  args  <- getArgs
   input <- getContents
-  let p = parseProgram input
-  print p
-  putStrLn "\n"
-  analysisResult p
+  case args of
+    [] -> doDefault input
+    xs -> case head xs of 
+            "debug"    -> (debugInference . parseProgram) input
+            "parse-mh" -> print $ parseProgram input
+            "parse-hs" -> print $ parseExp input
+            _          -> do putStrLn ("Argument not recognized")
+                             putStrLn usage
+
+doDefault input = (analysisResult . parseProgram)  input
+
+usage = "no usage description yet"  

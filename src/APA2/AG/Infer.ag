@@ -26,7 +26,6 @@ ATTR MH
   ]
 
 SEM MH
-{-
   | CaseBlck
       loc.beta : UNIQUEREF counter
 
@@ -85,7 +84,7 @@ SEM MH
       lhs.annotation = @loc.beta'
 
       lhs.lhsTy = Just @pat.ty
--}
+
 SEM MH
   | VBool
     loc.beta  : UNIQUEREF counter
