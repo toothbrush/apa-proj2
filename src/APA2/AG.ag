@@ -130,6 +130,7 @@ a ? m = trace "(?) op" (fromJust $ DM.lookup a m)
 pord :: SAnn -> SAnn -> Bool
 pord AnnEmpty AnnEmpty         = True
 pord AnnEmpty u@(AnnUnion _ _) = DS.null $ mkAnnPtSet u
+pord (AnnUnion _ _) AnnEmpty   = False
 pord a@(AnnUnion _ _) b@(AnnUnion _ _) = DS.isSubsetOf (mkAnnPtSet b) (mkAnnPtSet a)
 pord _        _                = error "no variables allowed in partial ordering"
 
@@ -140,10 +141,11 @@ mkAnnPtSet (AnnUnion a1 a2) = mkAnnPtSet a1 `DS.union` mkAnnPtSet a2
 mkAnnPtSet _                = error "Cannot make annptset with variables"
 
 join :: SAnn -> SAnn -> SAnn
-join AnnEmpty   a          = a
-join a          AnnEmpty   = a
+join AnnEmpty   a            = a
+join a          AnnEmpty     = a
+join a@(AnnPt _) b@(AnnPt _) = AnnUnion a b
 join (AnnUnion a b) (AnnUnion c d) = AnnUnion (join a b) (join c d)
-join _          _          = error "no variables allowed in join"
+join _          _            = error "no variables allowed in join"
 
 debugStep :: (Show a, Show b) => a -> b -> String
 debugStep w ana =
