@@ -21,6 +21,8 @@ ATTR MH
     lhsTy USE {`mplus`} {Nothing} : {Maybe Ty}
     annotation   : {SAnn}
     debug        USE {++} {""} : {String}
+    expressions USE {++} {[]} : {[(SAnn,MH)]}
+    copy : SELF
   ]
 
 SEM MH
@@ -142,7 +144,6 @@ SEM MH
     e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
     e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 -}
-{-
   | Op
       loc.alpha1 : UNIQUEREF counter
       loc.alpha2 : UNIQUEREF counter
@@ -164,19 +165,16 @@ SEM MH
 
       lhs.substitution = @loc.theta
 
-      lhs.constraints =
-        let c1 = @e1.constraints
-            c2 = @e2.constraints
-            c3 = (@loc.beta' <:? @e1.annotation) `DS.union`
-                 (@loc.beta' <:? @e2.annotation)
-            cs = c1 `DS.union` c2 `DS.union` c3
-        in applySubst @loc.theta cs
+      -- | no subeffecting because our operators only work on primitive types
+      lhs.constraints = DS.empty :: Constraints 
 
       e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
       e2.annEnvironment  = applySubst @loc.theta1 @lhs.annEnvironment
 
       lhs.annotation = @loc.beta'
--}
+
+      lhs.expressions = [(@loc.beta',@copy)] ++ @e1.expressions ++ @e2.expressions
+
   | Var
       loc.beta : UNIQUEREF counter
 
@@ -202,6 +200,8 @@ SEM MH
       lhs.ty = @loc.ty
       lhs.annotation = @loc.annotation
       lhs.substitution = @loc.substitution
+
+      lhs.expressions = [(@loc.beta',@copy)]
 
       lhs.debug = "Var("++ @x ++ "): \n" ++
                   "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
@@ -248,6 +248,8 @@ SEM MH
                   "constraints: " ++ show @loc.constraints ++ "\n\n" ++
                   @e.debug
 
+      lhs.expressions = [(@loc.beta',@copy)] ++ @e.expressions
+
 
   | App
       loc.alpha  : UNIQUEREF counter
@@ -292,6 +294,8 @@ SEM MH
       e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
       e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
+      lhs.expressions = [(@loc.betaf',@copy)] ++ @e1.expressions ++ @e2.expressions
+
       lhs.debug = "App: \n" ++
                   "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
@@ -302,7 +306,6 @@ SEM MH
                   "unify: " ++ show @loc.unify1 ++ ", " ++ show @loc.unify2 ++ "\n\n" ++
                   @e1.debug ++ @e2.debug
 
-{-
   | Let
       loc.beta : UNIQUEREF counter
 
@@ -335,6 +338,8 @@ SEM MH
 
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
 
+      lhs.expressions = [(@loc.beta',@copy)] ++ @e1.expressions ++ @e2.expressions
+
       lhs.debug = "Let("++ @x ++ "): \n" ++
                   "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
@@ -343,7 +348,7 @@ SEM MH
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ show @loc.constraints ++ "\n\n" ++
                   @e1.debug ++ @e2.debug
--}
+
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
 -- but is can be passed into a function..
 {-
@@ -436,6 +441,8 @@ SEM MH
       e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
+      lhs.expressions = [(@loc.beta',@copy)] ++ @c.expressions ++ @e1.expressions ++ @e2.expressions
+
       lhs.debug = "If: \n" ++
                   "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
@@ -489,13 +496,13 @@ dot = Dot
 -- to an attribute.
 nextUnique :: Int -> (Int, Int)
 nextUnique u = (u+1, u)
-{-
+
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c = let free      = ftv tau DS.\\ ftv env
                                genTyVars = DS.fold Forall (QualSig $ Ty tau) free
                            in (undefined, genTyVars)
--}
 
+{-
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c = 
   let (c', c'')       = simplify env tau c
@@ -512,22 +519,17 @@ generalise env ann tau c =
       quantifyAnnVars = DS.fold AnnSig quantifyTyVars activeAnnVars
 
   in (c'', quantifyAnnVars)
-
-{-
-generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
-generalise env ann tau c =
-  let ftvs   = ftv tau DS.\\ ftv env
-      favs   = fav tau DS.\\ fav env DS.\\ fav ann
-      fcvs   = fav c DS.\\ favs
-      (c', c'') = simplify env tau c
-      qtdCs  = let fld x (QualSig x') = QualSig $ Qual x x'
-                   fld _ xs           = xs
-               in  DS.fold fld (QualSig $ Ty tau) c'
-      qtdTVs = DS.fold Forall qtdCs ftvs
-      qtdAVs = DS.fold AnnSig qtdTVs (favs `DS.union` fcvs)
-  in  (c'', qtdAVs)
 -}
 
+instantiate :: Int -> TyScheme -> (Constraints, Ty)
+instantiate seed ts = (undefined, applySubst subst ty)
+  where (Binders tyvars annvars cs ty) = collectBinders ts
+        fresh   prefix = map (\x -> prefix : show seed ++ show x) ([0..] :: [Int])
+        tySubs         = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
+        annSubs        = []
+        subst          = foldr Dot Identity (tySubs ++ annSubs)
+
+{-
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = (applySubst subst cs, applySubst subst ty)
   where (Binders tyvars annvars cs ty) = collectBinders ts
@@ -535,5 +537,6 @@ instantiate seed ts = (applySubst subst cs, applySubst subst ty)
         tySubs         = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
         annSubs        = zipWith (\x y -> AnnSub x (AnnVar y)) annvars (fresh 'β')
         subst          = foldr Dot Identity (tySubs ++ annSubs)
+-}
 
 }

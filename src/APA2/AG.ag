@@ -302,6 +302,10 @@ instance Substitutable Ty where
   applySubst _ Bool = Bool
   applySubst _ t    = t
 
+instance Substitutable Expressions where
+  applySubst s []         = []
+  applySubst s ((a,e):xs) = (applySubst s a,e) : applySubst s xs
+
 instance Substitutable TyEnv where
   applySubst s = DM.map (applySubst s)
 
