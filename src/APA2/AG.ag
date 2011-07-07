@@ -131,6 +131,7 @@ pord :: SAnn -> SAnn -> Bool
 pord AnnEmpty AnnEmpty         = True
 pord AnnEmpty u@(AnnUnion _ _) = DS.null $ mkAnnPtSet u
 pord (AnnUnion _ _) AnnEmpty   = False
+pord (AnnPt a) (AnnPt b)       = b == a
 pord a@(AnnUnion _ _) b@(AnnUnion _ _) = DS.isSubsetOf (mkAnnPtSet b) (mkAnnPtSet a)
 pord _        _                = error "no variables allowed in partial ordering"
 
