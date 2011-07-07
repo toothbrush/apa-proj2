@@ -131,13 +131,13 @@ pord :: SAnn -> SAnn -> Bool
 pord AnnEmpty   AnnEmpty   = True
 pord AnnEmpty   (AnnSet a) = DS.null a
 pord (AnnSet a) (AnnSet b) = DS.isSubsetOf b a
-pord _          _          = error "no variables allowed"
+pord _          _          = error "no variables allowed in partial ordering"
 
 join :: SAnn -> SAnn -> SAnn
 join AnnEmpty   a          = a
 join a          AnnEmpty   = a
 join (AnnSet a) (AnnSet b) = AnnSet (DS.union a b)
-join _          _          = error "no variables allowed"
+join _          _          = error "no variables allowed in join"
 
 debugStep :: (Show a, Show b) => a -> b -> String
 debugStep w ana =
