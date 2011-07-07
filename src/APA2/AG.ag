@@ -308,5 +308,5 @@ instance Substitutable SAnn where
 
 dotApply :: Substitutable t => SimpleSubstitution -> t -> t
 dotApply (Dot s1 s2) t = applySubst s1 (applySubst s2 t)
-dotApply _           _ = error "not allowed"
+dotApply _           _ = error "dotApply requires a Dot as first argument"
 }
