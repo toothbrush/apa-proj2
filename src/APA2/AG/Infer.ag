@@ -198,7 +198,8 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.phi = @x ? @lhs.annEnvironment
+      loc.phi = trace ("does the (?) break here? "++ @x++"?"++show @lhs.annEnvironment ) $ 
+                @x ? @lhs.annEnvironment
 
       loc.(c, ty) = 
         maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))

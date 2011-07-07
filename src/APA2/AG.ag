@@ -58,8 +58,8 @@ iterAbsWl infl eval wlst ana
   | otherwise              = iter wltl ana
   where
     new     = eval t ana
-    inflx   = DMS.fromSet . DM.fromJust . flip DM.lookup infl
-    anaLU   = DM.fromJust $ DM.lookup x ana
+    inflx   = trace "inflx" $ DMS.fromSet . DM.fromJust . flip DM.lookup infl
+    anaLU   = trace "anaLU" $ DM.fromJust $ DM.lookup x ana
     newAna  = DM.insert x newAnax ana
     newAnax = anaLU ⊔ new
     iter    = iterAbsWl infl eval
@@ -129,7 +129,7 @@ worklist cs = absWl cs qq
 
 -- Is this the eval function? It seems so. So, we could just try to plug this into the absWl alg.
 (?) :: Ord a => a -> Map a b -> b
-a ? m = fromJust $ DM.lookup a m
+a ? m = trace "(?) op" (fromJust $ DM.lookup a m)
 
 pord :: SAnn -> SAnn -> Bool
 pord AnnEmpty   AnnEmpty   = True
