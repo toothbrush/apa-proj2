@@ -249,10 +249,10 @@ These rules are formulated in a syntax-directed fashion.
         } \\
 ~&~\\
         $ [$\emph{t-letrec}$] $& \inference{
-        & \Gamma[f \mapsto (\tau_x^{\varphi_x} -> \tau_r^{\varphi_r}, \varphi),x \mapsto (\tau_x, \varphi_x)],
+        & \Gamma[f \mapsto (\tau_x^{\varphi_x} -> \tau_r^{\varphi_r}, \varphi),x \mapsto (\tau_x, \varphi_x)]
         & C |- e_1 : \tau_r^{\varphi_r}, \\
-        & \sigma = gen(\tau_r),
-        & \Gamma[f \mapsto (\sigma, \varphi_r)],
+        & \sigma = gen(\tau_r)
+        & \Gamma[f \mapsto (\sigma, \varphi_r)]
         & C |- e_2 : \tau_2^{\varphi_2}
         & C |- \varphi_3 \sqsupseteq \varphi_2
         }
