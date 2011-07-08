@@ -149,10 +149,16 @@ instance Show Ty where
 
 tyLayout :: Map AnnVar SAnn -> Ty -> String
 tyLayout _   (TyVar a)       = a -- we probably don't want to see this here. 
-tyLayout con (Arr t a t' a') = "(" ++ tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  " ++ tyAnnCont con t' ((fromSAnn a') `from` con) ++ ")"
+tyLayout con (Arr t@(TyVar _) a t'@(TyVar _) a') = "" ++ tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  " ++ tyAnnCont con t' ((fromSAnn a') `from` con) ++ ""
+tyLayout con (Arr t@(TyVar _) a t'           a') = "" ++ tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  (" ++ tyAnnCont con t' ((fromSAnn a') `from` con) ++ ")"
+tyLayout con (Arr t           a t'@(TyVar _) a') = "(" ++ tyAnnCont con t ((fromSAnn a) `from` con) ++ ") ➔  " ++ tyAnnCont con t' ((fromSAnn a') `from` con) ++ ""
+tyLayout con (Arr t           a t'           a') = "(" ++ tyAnnCont con t ((fromSAnn a) `from` con) ++ ") ➔  (" ++ tyAnnCont con t' ((fromSAnn a') `from` con) ++ ")"
 tyLayout _   Nat             = "Nat"
 tyLayout _   Bool            = "Bool"
-tyLayout con (List t an)     = "(List " ++ tyLayout con t ++ "" ++ (colonOpt $ (fromSAnn an) `from` con) ++ ")"
+tyLayout con (List t an)     = "List " ++ case t of 
+                                            TyVar x -> inner
+                                            _       -> "(" ++ inner ++ ")"
+                                        where inner = tyLayout con t ++ "" ++ (colonOpt $ (fromSAnn an) `from` con)
 
 from :: AnnVar -> Map AnnVar SAnn -> String
 from ann con = show $ DM.findWithDefault (AnnVar ann) ann con
