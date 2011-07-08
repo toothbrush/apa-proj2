@@ -1,6 +1,13 @@
+optpragmas {
+{-# LANGUAGE FlexibleContexts,
+             FlexibleInstances,
+             UndecidableInstances,
+             MultiParamTypeClasses #-}
+}
 imports
 {
 import Data.Set (Set, toList)
+import qualified Data.Map as M (toList)
 import Data.List (intercalate)
 }
 
@@ -156,4 +163,5 @@ instance Show SimpleSubstitution where
   show (AnnSub a a') = "AnnSub (" ++ show a ++ ") (" ++ show a' ++ ")"
   show (Dot s s') = "Dot (" ++ show s ++ ") (" ++ show s' ++ ")"
 -}
+
 }
