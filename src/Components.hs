@@ -46,7 +46,7 @@ debugFile fl = do
 debugInference :: MH -> IO ()
 debugInference tm =
   do
-    let (ty, annotation, subst, constraints, exprs, debug, annots) = w tm
+    let (_, annotation, subst, constraints, _, debug, annots) = w tm
     putStrLn "Substitution:"
     print subst
     putStrLn ""
