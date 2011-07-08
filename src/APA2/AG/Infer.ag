@@ -539,7 +539,7 @@ SEM MH
       let newEnv = applySubst @loc.substitution @lhs.typeEnvironment
       in case @x of
           Just _  -> let ty    = Arr @loc.alphax' @loc.betax' @e1.ty @e1.annotation
-                         ty'   = applySubst @loc.theta ty
+                         ty'   = applySubst @loc.substitution ty
                          genTy = snd $ generalise newEnv @e1.annotation ty' @e1.constraints
                      in  DM.insert @f genTy newEnv
           Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') newEnv -- not sure about this

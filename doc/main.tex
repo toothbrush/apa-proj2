@@ -252,13 +252,12 @@ These rules are formulated in a syntax-directed fashion.
         } \\
 ~&~\\
         $ [$\emph{t-case}$] $& \inference{
-        & \Gamma, C |- e_0 : [\tau]^\varphi
-        & \sigma = gen(\tau_r)
-        & \Gamma[f \mapsto (\sigma, \varphi_r)],C |- e_2 : \tau_2^{\varphi_2}
+        & \Gamma, C |- e_0 : [\tau_0]^\varphi
+        & C |- \varphi_3 \sqsupseteq \varphi_1
         & C |- \varphi_3 \sqsupseteq \varphi_2
         }
         {
-        \Gamma,C |- \<case>\:\ e_0\ \<of>\ e_2 : \tau_2^{ \varphi_3}
+        \Gamma,C |- \<case>\:\ e_0\ \<of>\ \{ pat : \tau_0 \hookrightarrow e_1 : \tau_1^{\varphi_1} ; pat : \tau_0 \hookrightarrow e_2 : \tau_1^{\varphi_2} \} : \tau_2^{ \varphi_3}
         } \\
 ~&~\\
 %         $ [$\emph{t-app}$] $& \inference{
