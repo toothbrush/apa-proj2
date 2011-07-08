@@ -452,11 +452,9 @@ SEM MH
     loc.substitution = @loc.theta2 `dot` @loc.theta1
 
     loc.constraints =
-      let c1 = @e1.constraints
-          c2 = @e2.constraints
-          c3 = @loc.betaf' <:? @e2.annotation
-          cs = c1 `DS.union` c2 `DS.union` c3
-      in applySubst @loc.theta2 cs
+      let cs = @e1.constraints `DS.union` @e2.constraints `DS.union`
+               (@loc.betaf' <:? @e2.annotation)
+      in applySubst @loc.substitution cs
 
     loc.annotation = @loc.betaf'
 

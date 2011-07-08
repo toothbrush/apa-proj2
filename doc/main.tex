@@ -213,9 +213,8 @@ These rules are formulated in a syntax-directed fashion.
         \Gamma, C |- e_0 : Bool^{\varphi_0}
         & \Gamma, C |- e_1 : \tau^{\varphi_1}
         & \Gamma, C |- e_2 : \tau^{\varphi_2}
-        & C |- \varphi_0 \tyrel \varphi
-        & C |- \varphi_1 \tyrel \varphi
-        & C |- \varphi_2 \tyrel \varphi
+        & C |- \varphi \sqsupseteq \varphi_1
+        & C |- \varphi \sqsupseteq \varphi_2
         }
         {
         \Gamma,C|- \<if>\: e_0\: \<then>\: e_1\: \<else>\: e_2 : \tau^{\varphi}
@@ -224,22 +223,31 @@ These rules are formulated in a syntax-directed fashion.
         $ [$\emph{t-bin-op}$] $& \inference{ % what about all the annotated simple vars?
         \Gamma, C |- e_1 : \tau_{1\oplus}^{\varphi_1}
         & \Gamma, C |- e_2 : \tau_{2\oplus}^{\varphi_2}
-        & C |- \varphi_1 \tyrel \varphi
-        & C |- \varphi_2 \tyrel \varphi
+        & C |- \varphi \sqsupseteq \varphi_1
+        & C |- \varphi \sqsupseteq \varphi_2
         }
         {
         \Gamma, C|- e_1 \oplus e_2 : \tau_{\oplus}^\varphi
         } \\
 ~&~\\
-% todo do we need rules for case statements involving head and tail of lists??
         $ [$\emph{t-let}$] $& \inference{
-        \Gamma, C' |- e_1 : \tau_1^{\varphi_1}
-        & (C'',\sigma) = gen(C', \tau_1)
-        & \Gamma[x \mapsto (\sigma, \varphi_1)],C\cup C'' |- e_2 : \tau_2^{\varphi_2}
-        & C\cup C'' |- \varphi_2 \tyrel \varphi_3
+        \Gamma, C |- e_1 : \tau_1^{\varphi_1}
+        & \sigma = gen(\tau_1)
+        & \Gamma[x \mapsto (\sigma, \varphi_1)],C |- e_2 : \tau_2^{\varphi_2}
+        & C |- \varphi_3 \sqsupseteq \varphi_2
         }
         {
-        \Gamma,C\cup C'' |- \<let>\: x = e_1\: \<in>\: e_2 : \tau_2^{\varphi_3}
+        \Gamma,C |- \<let>\: x = e_1\: \<in>\: e_2 : \tau_2^{\varphi_3}
+        } \\
+~&~\\
+        $ [$\emph{t-letrec}$] $& \inference{
+        \Gamma, C |- e_1 : \tau_1^{\varphi_1}
+        & \sigma = gen(\tau_1)
+        & \Gamma[x \mapsto (\sigma, \varphi_1)],C |- e_2 : \tau_2^{\varphi_2}
+        & C |- \varphi_3 \sqsupseteq \varphi_2
+        }
+        {
+        \Gamma,C |- \<let>\: x = e_1\: \<in>\: e_2 : \tau_2^{\varphi_3}
         } \\
 ~&~\\
 %         $ [$\emph{t-app}$] $& \inference{
