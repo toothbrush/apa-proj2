@@ -49,11 +49,12 @@ debugInference tm =
     print subst
     putStrLn ""
     putStrLn "Ty:"
-    print ty
+    let solved = worklist constraints
+    putStrLn $ ("("++ tyLayout solved ty ++ ") :::: " ++  ((fromSAnn annotation) `from` solved))
     putStrLn ""
     putStrLn "Top level annotation: "
     print annotation
-    let ppoint = DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) (worklist constraints)
+    let ppoint = DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) solved
     putStr $ "... which maps to: " ++ show ppoint ++ "\n"
     putStr $ DS.fold (\x->(++) (
         x ++ " is in fact \"" ++ show (annots DM.! x) ++ "\"\n"
@@ -65,20 +66,12 @@ debugInference tm =
     putStrLn "Constraints: "
     print (DS.toList constraints)
     putStrLn "\nNew_Constraints: "
-    printAnalysis (worklist constraints)
+    printAnalysis solved
     putStrLn ""
     putStrLn "Expressions: "
     printExpressions (applySubst subst exprs)
     putStrLn ""
     putStrLn debug
-
-fromSAnn :: SAnn -> String
-fromSAnn (AnnVar v) = v
-fromSAnn _          = error "danger will robinson"
-
-toSet :: SAnn -> Set Point
-toSet    (AnnSet x) = x
-toSet    _          = DS.empty
 
 analysisResult :: MH -> IO ()
 analysisResult tm = 

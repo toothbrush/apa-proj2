@@ -7,6 +7,8 @@ optpragmas {
 imports
 {
 import Data.Set (Set, toList)
+import qualified Data.Map as DM
+import Data.Map (Map)
 import qualified Data.Map as M (toList)
 import Data.List (intercalate)
 }
@@ -120,11 +122,14 @@ instance Show TyScheme where
   show (AnnSig a ts) = "∀" ++ a ++ ". " ++ show ts
 
 instance Show Qual where
-  show (Ty t)     = show t
+  show (Ty t)     = tyLayout DM.empty t
   show (Qual c q) = show c ++ " => " ++ show q
 
 tyAnn :: (Show a1, Show a) => a -> a1 -> [Char]
 tyAnn t a = "(" ++ show t ++ ":" ++ show a ++ ")"
+
+tyAnnCont :: Show a => Map AnnVar SAnn -> a -> AnnVar -> [Char]
+tyAnnCont con t a = "(" ++ show t ++ ":" ++ a `from` con ++ ")"
 
 instance Show SAnn where
   show (AnnVar var) = var
@@ -137,6 +142,25 @@ instance Show Ty where
   show Nat          = "Nat"
   show Bool         = "Bool"
   show (List t an)  = "(List " ++ show t ++ ") : " ++ show an
+
+tyLayout :: Map AnnVar SAnn -> Ty -> String
+tyLayout _   (TyVar a)       = a
+tyLayout con (Arr t a t' a') = tyAnnCont con t ((fromSAnn a) `from` con) ++ "-->" ++ tyAnnCont con t' ((fromSAnn a') `from` con)
+tyLayout _   Nat             = "Nat"
+tyLayout _   Bool            = "Bool"
+tyLayout con (List t an)     = "((List " ++ tyLayout con t ++ ") : " ++ ((fromSAnn an) `from` con) ++ ")"
+
+from :: AnnVar -> Map AnnVar SAnn -> String
+from ann con = show $ DM.findWithDefault (AnnVar "") ann con
+
+fromSAnn :: SAnn -> String
+fromSAnn (AnnVar v) = v
+fromSAnn _          = error "danger will robinson"
+
+toSet :: SAnn -> Set Point
+toSet    (AnnSet x) = x
+toSet    _          = DS.empty
+
 
 instance Show SimpleSubstitution where
   show Identity      = ""
