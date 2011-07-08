@@ -82,7 +82,7 @@ analysisResult tm =
     putStrLn "Type of full program:\n"
     let solved = worklist constraints
     let ty' = applySubst (solutionSubst constraints) (applySubst subst ty)
-    putStrLn $ (tyLayout solved ty' ++ " :::: " ++  ((fromSAnn annotation) `from` solved))
+    putStrLn (tyLayout solved ty' ++ " :::: " ++  (fromSAnn annotation `from` solved))
     putStrLn "\nMapping of program points to code: \n" 
     putStrLn (ppMap annots)
     putStrLn "\nAnalysis result for all sub-expressions: \n" 

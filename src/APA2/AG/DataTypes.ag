@@ -154,7 +154,7 @@ tyLayout _   Bool            = "Bool"
 tyLayout con (List t an)     = "List " ++ case t of
                                             TyVar _ -> inner
                                             _       -> "(" ++ inner ++ ")"
-                                        where inner = tyLayout con t ++ "" ++ (colonOpt $ (fromSAnn an) `from` con)
+                                        where inner = tyLayout con t ++ "" ++ (colonOpt $ fromSAnn an `from` con)
 
 from :: AnnVar -> Map AnnVar SAnn -> String
 from ann con = show $ DM.findWithDefault (AnnVar ann) ann con
