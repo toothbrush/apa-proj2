@@ -1,4 +1,0 @@
-let x = True
-in  case x of
-      True  -> 1
-      False -> 0
