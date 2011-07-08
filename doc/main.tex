@@ -21,7 +21,8 @@
 \section{Introduction}
 
 This project aims to implement a tool which can do a control-flow analysis on a lambda-calculus language with support for
-data structures. The focus is on lists and pairs, for now.
+data structures. The focus is on lists%and pairs
+, for now.
 %todo: more. 
 
 \section{Design}
@@ -31,7 +32,8 @@ supports. In Tables \ref{tab:elems} and \ref{tab:grammar} one can see the
 grammar of the language. It is based on Haskell (in fact we use the Haskell
 source extensions parser), but of course only a subset is supported. 
 
-We include support for pairs and lists, as well as a case statement in which one
+We include support for% pairs and
+ lists, as well as a case statement in which one
 can pattern-match on these data structures. There is not yet support for general
 data structures.
 
@@ -66,11 +68,11 @@ is only supported inside \textbf{let}s.
         $t$    & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \lambda_\pi x . t_1$ \\
                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\:  \textbf{ let } x = t_1 \textbf{ in } t_2$\\
                & $|$ & $\mu f.\textbf{ let } x = t_1 \textbf{ in } t_2$\\
-               & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
+               & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2   $\\%     \: | \: (t_1,t_2)_\pi $ \\ 
                & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
         $alts$ & ::= & $alt_1; \ldots ; alt_n$ \\
         $alt$  & ::= & $patt\rightarrow t$ \\
-        $patt$ & ::= & $x \:|\: (patt, patt)$ \\
+        $patt$ & ::= & $x             $\\%                \:|\: (patt, patt)$ \\
                & $|$ & $(x: patt)  \:|\: [\,]$\\
                & $|$ & $\_$\\
         \hline
@@ -110,8 +112,8 @@ the type system.
         & $|$ & $\widehat{\tau}_1^{\varphi_1}
                            \stackrel{\varphi}{\rightarrow} 
                            \widehat{\tau}_2^{\varphi_2} $ \\
-                           & $|$ & $ \widehat{\tau}_1 \times^\varphi
-                           \widehat{\tau}_2 \:|\: [\widehat{\tau}]^\varphi   $ \\ 
+                           & $|$ & $ % \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 \:|\: 
+                           [\widehat{\tau}]^\varphi   $ \\ 
         $\widehat{\sigma}$ & ::= & $\widehat{\tau} \:|\: \forall \alpha. \widehat{\sigma}_1 $ \\ 
         $\widehat{\Gamma}$ & ::= & $[\,] \:|\: \widehat{\Gamma}_1[x \mapsto \widehat{\sigma}] $ \\
     \end{tabular}
@@ -127,7 +129,7 @@ These rules are formulated in a syntax-directed fashion.
 \begin{table}
     \centering
     \begin{tabular}{ll}
-%TODO FIXME 
+%TODO FIXME
         \hline
         $ [$\emph{t-var}$] $& \inference{\widehat{\Gamma}(x) = \widehat{\sigma}}
 {\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}} \\
@@ -144,13 +146,13 @@ $[$\emph{t-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma}
  \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
 {\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]} \\
 ~&~\\
-$[$\emph{t-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau}_1 &  \widehat{\Gamma} |-_{CFA} t_2 : \widehat{\tau}_2   } 
-{\widehat{\Gamma} |-_{CFA} (t_1,t_2) : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 } \\
-~&~\\
-$[$\emph{t-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
-&  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
-{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
-~&~\\
+% $[$\emph{t-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau}_1 &  \widehat{\Gamma} |-_{CFA} t_2 : \widehat{\tau}_2   } 
+% {\widehat{\Gamma} |-_{CFA} (t_1,t_2) : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 } \\
+% ~&~\\
+% $[$\emph{t-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
+% &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
+% {\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
+% ~&~\\
 $[$\emph{t-case-nil}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat{\tau}_1] &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
 {\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: [] \Rightarrow e_1 : \widehat{\tau} }, if $e_0$ empty\\
 ~&~\\
@@ -178,8 +180,8 @@ aforementioned table are shown.
         $ [$\emph{ns-con}$] $& $ |- c --> c$ \\ ~&~\\
         $ [$\emph{ns-fn}$]  $& $ |- \lambda_\pi x.t_1 --> \lambda_\pi x.t_1$ \\ ~&~\\
         $ [$\emph{ns-fn$_{rec}$}$]  $& $ |- \mu f.\lambda_\pi x.t_1 --> \lambda_\pi x.(t_1[f \mapsto \lambda_\pi x.t_1 ])$ \\ ~&~\\
-        $ [$\emph{ns-case$_{pair}$}$] $& \inference{|- e_0 --> (x_1,x_2) & |- x_1 --> v_1 & |- x_2 --> v_2}
-{|- (\<case>\: e_0\: \<of>\: (x_1,x_2) -> e_1) --> e_1[x_1\mapsto v_1, x_2 \mapsto v_2]} \\ ~&~\\
+%         $ [$\emph{ns-case$_{pair}$}$] $& \inference{|- e_0 --> (x_1,x_2) & |- x_1 --> v_1 & |- x_2 --> v_2}
+% {|- (\<case>\: e_0\: \<of>\: (x_1,x_2) -> e_1) --> e_1[x_1\mapsto v_1, x_2 \mapsto v_2]} \\ ~&~\\
         $ [$\emph{ns-case$_{list1}$}$] $& \inference{|- e_0 --> [] }
 {|- (\<case>\: e_0\: \<of>\: [] -> e_1; (x\<:>xs) -> e_2) --> e_1} \\ ~&~\\
         $ [$\emph{ns-case$_{list2}$}$] $& \inference{|- e_0 --> (x\<:>xs) & x --> v & xs --> vs }
@@ -222,13 +224,13 @@ $[$\emph{cfa-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma
  \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
 {\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]} \\
 ~&~\\
-$[$\emph{cfa-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau}_1 &  \widehat{\Gamma} |-_{CFA} t_2 : \widehat{\tau}_2   } 
-{\widehat{\Gamma} |-_{CFA} (t_1,t_2) : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 } \\
-~&~\\
-$[$\emph{cfa-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
-&  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
-{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
-~&~\\
+% $[$\emph{cfa-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau}_1 &  \widehat{\Gamma} |-_{CFA} t_2 : \widehat{\tau}_2   } 
+% {\widehat{\Gamma} |-_{CFA} (t_1,t_2) : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 } \\
+% ~&~\\
+% $[$\emph{cfa-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
+% &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
+% {\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
+% ~&~\\
 $[$\emph{cfa-case-nil}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat{\tau}_1] &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
 {\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: [] \Rightarrow e_1 : \widehat{\tau} }, if $e_0$ empty\\
 ~&~\\
