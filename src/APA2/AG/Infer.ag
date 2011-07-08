@@ -183,12 +183,15 @@ SEM MH
 
       loc.phi = @x ? @lhs.annEnvironment
 
-      loc.(c, ty) = 
+      loc.(c, ty) =
         maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))
               (instantiate @loc.beta)
               (DM.lookup @x @lhs.typeEnvironment)
 
-      -- this does not work for a case like: let f = \x -> true in let g = \k -> if f 0 then k else \y -> false in g f
+      -- this does not work for a case like:
+      -- let f = \x -> true in
+      --    let g = \k -> if f 0 then k else \y -> false in
+      --        g f
       loc.constraints = @loc.c `DS.union` (@loc.beta' <:? @loc.phi)
 
       loc.annotation =
