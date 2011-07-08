@@ -21,7 +21,7 @@
 \newcommand{\tyrel}{\sqsubseteq}
 % end semantic
 
-\author{Jurri\"en Stutterheim\footnote{3555003}\and Ruben de Gooijer\footnote{3508617}\and Paul van der Walt}
+\author{Jurri\"en Stutterheim\footnote{3555003}\and Ruben de Gooijer\footnote{3508617}\and Paul van der Walt\footnote{3120805}}
 \date{\today} 
 \title{Implementation notes for Type and Effect Systems}
 
@@ -56,7 +56,7 @@ The basic elements of the language can be found in Table \ref{tab:elems}. The
 language includes natural number constants, variables, and operators. Program
 points are introduced whenever a lambda-expression is encountered.
 \begin{table}
-    \centering
+    \begin{centering}
     \begin{tabular}{rcll}
         $n$ &           $\in$ & \textbf{Num = $\mathds{N}$}& numerals \\
         $f,x$ &         $\in$ & \textbf{Var}               & variables \\
@@ -64,8 +64,8 @@ points are introduced whenever a lambda-expression is encountered.
         $\pi$ &         $\in$ & \textbf{Pnt}               & program points  \\
         $t$ &           $\in$ & \textbf{Tm}                & terms \\
     \end{tabular}
-    \caption{Basic elements}
-    \label{tab:elems}
+    \caption{\label{tab:elems}Basic elements}
+    \end{centering}
 \end{table}
 
 In Table \ref{tab:grammar} one can see what constructs are valid in our subset
@@ -73,7 +73,7 @@ of Haskell, since only a very limited subset is supported. Note that recursion
 is only supported inside \textbf{let}s. 
 
 \begin{table}
-    \centering
+    \begin{centering}
     \begin{tabular}{lcl}
         \hline
         $t$    & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1 \:$ \\
@@ -89,6 +89,7 @@ is only supported inside \textbf{let}s.
     \end{tabular}
     \caption{Abstract syntax. $t$ is a term.}
     \label{tab:grammar}
+    \end{centering}
 \end{table}
 
 \subsection{Type System}
@@ -104,7 +105,7 @@ system. Table \ref{tab:typingelems} and \ref{tab:typing} show the elements of
 the type system. 
 
 \begin{table}
-    \centering
+    \begin{centering}
     \begin{tabular}{rcll}
         $\varphi$ &               $\in$ & \textbf{Ann}                   & annotations \\ 
         $\widehat{\tau}$&         $\in$ & $\widehat{\textbf{Ty}      } $ & annotated types \\
@@ -113,9 +114,10 @@ the type system.
     \end{tabular}
     \caption{Typing elements, annotated types}
     \label{tab:typingelems}
+    \end{centering}
 \end{table}
 \begin{table}
-    \centering
+    \begin{centering}
     \begin{tabular}{lcl}
         $ \varphi$         & ::= & $ \emptyset \:|\: \{\pi\} \:|\: \varphi_1 \cup \varphi_2 $ \\
         $\widehat{\tau}$   & ::= & $\alpha \:|\: Nat \: | \: Bool \: | \: $ \\
@@ -129,6 +131,7 @@ the type system.
     \end{tabular}
     \caption{Typing}
     \label{tab:typing}
+    \end{centering}
 \end{table}
 
 Next a list of typing judgements will be given. This constitutes the final type
@@ -137,7 +140,7 @@ system. %See weijers fig 5.3 for a reference.
 These rules are formulated in a syntax-directed fashion. 
 
 \begin{table}
-    \centering
+    \begin{centering}
     \begin{tabular}{ll}
         \hline \\
         $ [$\emph{t-nat}$] $& \inference{}
@@ -237,6 +240,7 @@ These rules are formulated in a syntax-directed fashion.
     \end{tabular}
     \caption{Typing judgements}
     \label{tab:typing-rules}
+    \end{centering}
 \end{table}
 
 \subsection{Example Derivation}
@@ -282,7 +286,7 @@ for reference. Our listing isn't complete, only the additions with respect to th
 aforementioned table are shown. 
 
 \begin{table}
-    \centering
+    \begin{centering}
     \begin{tabular}{ll}
         \hline
         $ [$\emph{ns-con}$] $& $ |- c --> c$ \\ ~&~\\
@@ -300,6 +304,7 @@ aforementioned table are shown.
     \end{tabular}
     \caption{Natural semantics for the language}
     \label{tab:natural-semantics}
+    \end{centering}
 \end{table}
 
 \subsection{Control Flow Analysis}
@@ -314,7 +319,7 @@ for reference.
 
 
 \begin{table}
-    \centering
+    \begin{centering}
     \begin{tabular}{ll}
         \hline
         $ [$\emph{cfa-var}$] $& \inference{\widehat{\Gamma}(x) = \widehat{\sigma}}
@@ -349,7 +354,28 @@ $[$\emph{cfa-case-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\wideha
     \end{tabular}
     \caption{Control Flow Analysis rules. }
     \label{tab:cfa-rules}
+    \end{centering}
 \end{table}
+
+
+\section{Program design}
+The program compiles to a single executable, named \emph{cfa}. It relies heavily
+on the UU Attribute Grammar system. Below is a list with filenames and a short
+description what every one of these files does.
+
+\begin{description}
+\item [Components.hs] Uses haskell-src-exts to parse Haskell code and convert
+it into a simplified AST. It also provides functions to start the analysis.
+\item [Main.hs] Main file containing the program entry point.
+\item [AG.ag] Main AG file which includes all other AG files. Contains the worklist,
+unification and substitution algorithms.
+\item [CollectBinders.ag] Disects a quantified type into separate parts.
+\item [DataTypes.ag] Contains all of our data types.
+\item [FreeAnnVars.ag] Collects all free annotation variables from the AST.
+\item [FreeTyVars.ag] Collects all free type variables from the AST.
+\item [FreeVars.ag] Collects all free variables from the AST.
+\item [Infer.ag] Contains algorithm W and the generalise and instantiate functions.
+\end{description}
 
 \section{Approach}
 
