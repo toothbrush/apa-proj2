@@ -1,16 +1,29 @@
+
+%outline:
+
+% a type system
+% specification and an explanation of both the type system, a run through of one
+% or two examples and an architectural description of the implementation.
+% Features and limitations should be prominently displayed in your documentation. 
+
 \documentclass[a4paper]{article}
 
 \usepackage{semantic}
 \usepackage{dsfont}
+\usepackage{a4wide}
 \usepackage{array}
+\usepackage{bussproofs}
+\usepackage{latexsym}
+
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
-\command{let,in,:,case,of}
+\command{let,in,:,case,of,if,then,else}
 \mathlig{-->}{\longrightarrow}
+\newcommand{\tyrel}{\sqsubseteq}
 % end semantic
 
-\author{Jurri\"en Stutterheim\and Ruben de Gooijer \and Paul van der Walt} 
+\author{Jurri\"en Stutterheim\and Ruben de Gooijer (3508617) \and Paul van der Walt (3120805)} 
 \date{\today} 
 \title{Implementation notes for Type and Effect Systems}
 
@@ -21,15 +34,29 @@
 \section{Introduction}
 
 This project aims to implement a tool which can do a control-flow analysis on a lambda-calculus language with support for
-data structures. The focus is on lists and pairs, for now.
+data structures. The focus is on lists%and pairs
+, for now.
 %todo: more. 
 
 \section{Design}
+
+Here we will detail the design of the language, for example which features it
+supports. In Tables \ref{tab:elems} and \ref{tab:grammar} one can see the
+grammar of the language. It is based on Haskell (in fact we use the Haskell
+source extensions parser), but of course only a subset is supported. 
+
+We include support for% pairs and
+ lists, as well as a case statement in which one
+can pattern-match on these data structures. There is not yet support for general
+data structures.
 
 \subsection{A simple functional language}
 
 %todo: copied from slides, may need adjustment.
 
+The basic elements of the language can be found in Table \ref{tab:elems}. The
+language includes natural number constants, variables, and operators. Program
+points are introduced whenever a lambda-expression is encountered.
 \begin{table}
     \centering
     \begin{tabular}{rcll}
@@ -43,23 +70,41 @@ data structures. The focus is on lists and pairs, for now.
     \label{tab:elems}
 \end{table}
 
+In Table \ref{tab:grammar} one can see what constructs are valid in our subset
+of Haskell, since only a very limited subset is supported. Note that recursion
+is only supported inside \textbf{let}s. 
+
 \begin{table}
     \centering
     \begin{tabular}{lcl}
         \hline
-        $t$     & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
-                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
-                & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
-                & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
-        $alts$  & ::= & $alt_1; \ldots ; alt_n$ \\
-        $alt$   & ::= & $pattern \rightarrow t$ \\
+        $t$    & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \lambda_\pi x . t_1$ \\
+               & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\:  \textbf{ let } x = t_1 \textbf{ in } t_2$\\
+               & $|$ & $\mu f.\textbf{ let } x = t_1 \textbf{ in } t_2$\\
+               & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2   $\\%     \: | \: (t_1,t_2)_\pi $ \\ 
+               & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
+        $alts$ & ::= & $alt_1; \ldots ; alt_n$ \\
+        $alt$  & ::= & $patt\rightarrow t$ \\
+        $patt$ & ::= & $x             $\\%                \:|\: (patt, patt)$ \\
+               & $|$ & $(x: patt)  \:|\: [\,]$\\
+               & $|$ & $\_$\\
         \hline
     \end{tabular}
-    \caption{Grammar}
+    \caption{Abstract syntax. $t$ is a term.}
     \label{tab:grammar}
 \end{table}
 
-\subsection{Typing}
+\subsection{Type System}
+
+Here we will detail the type system which has been implemented in this project.
+It consists of a polymorphic type system, with the important addition of
+annotations. We use annotations and constraints to be able to do a control-flow
+analysis, eventually telling us which functions one may expect to be used where. 
+
+Our type system has variables, arrows, and type environments, as well as
+annotations, which is what makes it different from a normal polymorphic type
+system. Table \ref{tab:typingelems} and \ref{tab:typing} show the elements of
+the type system. 
 
 \begin{table}
     \centering
@@ -76,13 +121,139 @@ data structures. The focus is on lists and pairs, for now.
     \centering
     \begin{tabular}{lcl}
         $ \varphi$         & ::= & $ \emptyset \:|\: \{\pi\} \:|\: \varphi_1 \cup \varphi_2 $ \\
-        $\widehat{\tau}$   & ::= & $\alpha \:|\: Nat \: | \: Bool \: | \: \widehat{\tau}_1 \stackrel{\varphi}{\rightarrow} \widehat{\tau}_2 \:|\: \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 \:|\: \widehat{\tau}~\texttt{list}^\varphi   $ \\ 
+        $\widehat{\tau}$   & ::= & $\alpha \:|\: Nat \: | \: Bool \: | \: $ \\
+        & $|$ & $\widehat{\tau}_1^{\varphi_1}
+                           \stackrel{\varphi}{\rightarrow} 
+                           \widehat{\tau}_2^{\varphi_2} $ \\
+                           & $|$ & $ % \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 \:|\: 
+                           [\widehat{\tau}]^\varphi   $ \\ 
         $\widehat{\sigma}$ & ::= & $\widehat{\tau} \:|\: \forall \alpha. \widehat{\sigma}_1 $ \\ 
         $\widehat{\Gamma}$ & ::= & $[\,] \:|\: \widehat{\Gamma}_1[x \mapsto \widehat{\sigma}] $ \\
     \end{tabular}
     \caption{Typing}
     \label{tab:typing}
 \end{table}
+
+Next a list of typing judgements will be given. This constitutes the final type
+system. %See weijers fig 5.3 for a reference. 
+
+These rules are formulated in a syntax-directed fashion. 
+
+\begin{table}
+    \centering
+    \begin{tabular}{ll}
+%TODO FIXME
+        \hline
+        $ [$\emph{t-cons}$] $& \inference{
+        {\Gamma},C |- e_1 : \tau^{\varphi_1}
+        & \Gamma,C |- e_2 : ([\tau^{\varphi_2}]^{\varphi_3}
+        & C |- \varphi_2 \tyrel \varphi_1
+        & C |- \varphi_3 \tyrel \varphi
+        }
+        {
+        {\Gamma},C |- e_1 \<:> e_2  : ([\tau^{\varphi_1}])^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-var}$] $& \inference{
+        {\Gamma}(x) = ({\sigma},\varphi)
+        & C |- \varphi \tyrel \varphi_1 
+        & inst(\sigma) = C' => \tau
+        }
+        {
+        {\Gamma},C\cup C' |- x  : {\tau^{\varphi_1}}
+        } \\
+~&~\\
+        $ [$\emph{t-app}$] $& \inference{
+        \Gamma,C |- e_1 : \tau_2^{\varphi_2} ->^{\varphi} \tau_0^{\varphi_0}
+        & \Gamma,C|- e_2 : \tau_2^{\varphi_3}
+        & C|- \varphi_3 \tyrel \varphi_2
+        & C|- \varphi   \tyrel \varphi_4
+        & C|- \varphi_0 \tyrel \varphi_4
+        }
+        {
+        \Gamma, C |- e_1 e_2 : \tau_0^{\varphi_4}
+        } \\
+~&~\\
+        $ [$\emph{t-if}$] $& \inference{
+        \Gamma, C |- e_0 : Bool^{\varphi_0}
+        & \Gamma, C |- e_1 : \tau^{\varphi_1}
+        & \Gamma, C |- e_2 : \tau^{\varphi_2}
+        & C |- \varphi_0 \tyrel \varphi
+        & C |- \varphi_1 \tyrel \varphi
+        & C |- \varphi_2 \tyrel \varphi
+        }
+        {
+        \Gamma,C|- \<if>\: e_0\: \<then>\: e_1\: \<else>\: e_2 : \tau^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-bin-op}$] $& \inference{ % what about all the annotated simple vars?
+        \Gamma, C |- e_1 : \tau_{1\oplus}^{\varphi_1}
+        & \Gamma, C |- e_2 : \tau_{2\oplus}^{\varphi_2}
+        & C |- \varphi_1 \tyrel \varphi
+        & C |- \varphi_2 \tyrel \varphi
+        }
+        {
+        \Gamma, C|- e_1 \oplus e_2 : \tau_{\oplus}^\varphi
+        } \\
+~&~\\
+% todo do we need rules for case statements involving head and tail of lists??
+        $ [$\emph{t-let}$] $& \inference{
+        \Gamma, C' |- e_1 : \tau_1^{\varphi_1}
+        & (C'',\sigma) = gen(C', \tau_1)
+        & \Gamma[x \mapsto (\sigma, \varphi_1)],C\cup C'' |- e_2 : \tau_2^{\varphi_2}
+        & C\cup C'' |- \varphi_2 \tyrel \varphi_3
+        }
+        {
+        \Gamma,C\cup C'' |- \<let>\: x = e_1\: \<in>\: e_2 : \tau_2^{\varphi_3}
+        } \\
+~&~\\
+%         $ [$\emph{t-app}$] $& \inference{
+% ~ 
+%         }
+%         {
+% ~ 
+%         } \\
+% ~&~\\
+%TODO FIXME 
+        \hline
+    \end{tabular}
+    \caption{Typing judgements}
+    \label{tab:typing-rules}
+\end{table}
+
+\subsection{Example Derivation}
+
+%\begin{prooftree}
+%\small
+%\AxiomC{$$}
+%\RightLabel{\scriptsize{id}}
+%\UnaryInfC{$A\ a \Vdash A\ a$}
+%  \AxiomC{$instance\ A\ a \Rightarrow A\ (Maybe\ a)$}
+%  \RightLabel{\scriptsize{inst}}
+%\BinaryInfC{$A\ a \Vdash A\ Maybe(\ a)$}
+%\RightLabel{\scriptsize{closure}}
+%\UnaryInfC{$A\ (Maybe\ a) \Vdash A\ (Maybe\ (Maybe\ a))$}
+%  \AxiomC{$$}
+%  \RightLabel{\scriptsize{id}} 
+%  \UnaryInfC{$A\ a \Vdash A\ a$}
+%    \AxiomC{$instance A\ a \Rightarrow A\ (Maybe\ a)$} 
+%  \RightLabel{\scriptsize{inst}}
+%  \BinaryInfC{$A\ a \Vdash A\ (Maybe\ a)$}
+%\RightLabel{\scriptsize{trans}}
+%\BinaryInfC{$A\ a \Vdash A\ (Maybe\ (Maybe\ a))$}
+%\RightLabel{\scriptsize{closure}}
+%\UnaryInfC{$A\ Int \Vdash A\ (Maybe\ (Maybe\ Int))$}
+%  \AxiomC{$$}
+%  \RightLabel{\scriptsize{id}}
+%  \UnaryInfC{$B\ a \Vdash B\ a$}
+%    \AxiomC{$class\ (A\ a) \Rightarrow B\ a$}
+%  \BinaryInfC{$B\ a \Vdash A\ a$}
+%  \RightLabel{\scriptsize{closure}}
+%  \UnaryInfC{$B\ Int \Vdash A\ Int$}
+%\RightLabel{\scriptsize{trans}}
+%\BinaryInfC{$B\ Int \Vdash A\ (Maybe\ (Maybe\ Int))$}
+%\end{prooftree}
+
 
 \subsection{Natural semantics}
 
@@ -98,9 +269,9 @@ aforementioned table are shown.
         \hline
         $ [$\emph{ns-con}$] $& $ |- c --> c$ \\ ~&~\\
         $ [$\emph{ns-fn}$]  $& $ |- \lambda_\pi x.t_1 --> \lambda_\pi x.t_1$ \\ ~&~\\
-        $ [$\emph{ns-fn$_{rec}$}$]  $& $ |- \mu f.\lambda_\pi x.t_1 --> \lambda_\pi x.(t_1[f \mapsto \lambda_\pi x.t_1 ])$ \\ ~&~\\
-        $ [$\emph{ns-case$_{pair}$}$] $& \inference{|- e_0 --> (x_1,x_2) & |- x_1 --> v_1 & |- x_2 --> v_2}
-{|- (\<case>\: e_0\: \<of>\: (x_1,x_2) -> e_1) --> e_1[x_1\mapsto v_1, x_2 \mapsto v_2]} \\ ~&~\\
+%        $ [$\emph{ns-fn$_{rec}$}$]  $& $ |- \mu f.\lambda_\pi x.t_1 --> \lambda_\pi x.(t_1[f \mapsto \lambda_\pi x.t_1 ])$ \\ ~&~\\
+%         $ [$\emph{ns-case$_{pair}$}$] $& \inference{|- e_0 --> (x_1,x_2) & |- x_1 --> v_1 & |- x_2 --> v_2}
+% {|- (\<case>\: e_0\: \<of>\: (x_1,x_2) -> e_1) --> e_1[x_1\mapsto v_1, x_2 \mapsto v_2]} \\ ~&~\\
         $ [$\emph{ns-case$_{list1}$}$] $& \inference{|- e_0 --> [] }
 {|- (\<case>\: e_0\: \<of>\: [] -> e_1; (x\<:>xs) -> e_2) --> e_1} \\ ~&~\\
         $ [$\emph{ns-case$_{list2}$}$] $& \inference{|- e_0 --> (x\<:>xs) & x --> v & xs --> vs }
@@ -143,13 +314,13 @@ $[$\emph{cfa-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma
  \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
 {\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]} \\
 ~&~\\
-$[$\emph{cfa-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau}_1 &  \widehat{\Gamma} |-_{CFA} t_2 : \widehat{\tau}_2   } 
-{\widehat{\Gamma} |-_{CFA} (t_1,t_2) : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 } \\
-~&~\\
-$[$\emph{cfa-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
-&  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
-{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
-~&~\\
+% $[$\emph{cfa-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau}_1 &  \widehat{\Gamma} |-_{CFA} t_2 : \widehat{\tau}_2   } 
+% {\widehat{\Gamma} |-_{CFA} (t_1,t_2) : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 } \\
+% ~&~\\
+% $[$\emph{cfa-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
+% &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
+% {\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
+% ~&~\\
 $[$\emph{cfa-case-nil}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat{\tau}_1] &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
 {\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: [] \Rightarrow e_1 : \widehat{\tau} }, if $e_0$ empty\\
 ~&~\\
@@ -162,93 +333,6 @@ $[$\emph{cfa-case-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\wideha
     \label{tab:cfa-rules}
 \end{table}
 
-In Table \ref{tab:algoU} we see the unification algorithm used for CFA. If none
-of the cases match, the algorithm fails, which is correct behaviour. The last
-rule, for lists, was added to the default implementation.
-
-\begin{table}
-    \centering
-    \begin{tabular}{rcb{7cm}}
-        \hline
-        $\mathcal{W}_{CFA}(\widehat{\Gamma},[])$ & = & $(\tau\: \texttt{list}^{\alpha}, id, \emptyset)$ with $\tau,\alpha$ fresh \\
-        $\mathcal{W}_{CFA}(\widehat{\Gamma},(x\<:>xs))$ & = &  $ 
-\begin{array}{lll}
-    let & \beta & \textnormal{fresh annotation variable}\\
-        & (listTy,\theta_1,c_1) & = \mathcal{W}_{CFA}(\widehat{\Gamma}, x)\\
-    & (\sigma, \theta_2, c_2) & = \mathcal{W}_{CFA}(\theta_1 \widehat{\Gamma}, xs)\\
-    & \theta_3 & = \mathcal{U}_{CFA} (\sigma, \theta_2\: listTy) \\ 
-        & \theta&  =  \theta_3 \circ \theta_2 \circ \theta_1\\ 
-        & c_3 & = \beta \leq listTy \cup \beta \leq \sigma \\ 
-        & cs & = c_1 \cup c_2 \cup c_3 \\
-         in & ~  & (\theta\: (listTy\: \texttt{list}^\beta), \theta, \theta\: cs)
-\end{array}
- $  
-\\
-
-
-
-
-        \hline
-    \end{tabular}
-    \caption{Algorithm~W for lambda calculus including data structures. }
-    \label{tab:algoW}
-\end{table}
-\begin{table}
-    \centering
-    \begin{tabular}{rcb{7cm}}
-        \hline
-        $\mathcal{U}_{CFA}(Nat,Nat)$ & = & $id$ \\
-        $\mathcal{U}_{CFA}(Bool,Bool)$ & = & $id$ \\
-        $\mathcal{U}_{CFA}(\tau_1,\tau_2)$ & = & \parbox{0.3\textwidth}{$ \left\{
-\begin{array}{ll}
-    id                      & if \tau_1 = \tau_2         \\
-    \left[ \tau_1 \mapsto \tau_2\right] & if \tau_1 \notin fv(\tau_2)\\
-    \left[ \tau_2 \mapsto \tau_1\right] & if \tau_2 \notin fv(\tau_1)\\
-    fail& otherwise
-\end{array}
-\right. $ } \\
-        $\mathcal{U}_{CFA}(\beta,\tau)$ & = & \parbox{\textwidth}{$ \left\{
-\begin{array}{ll}
-    \left[ \tau \mapsto \beta\right] & if \tau \notin fv(\beta)\\
-    occurs check & otherwise
-\end{array}
-\right. $ } \\
-        $\mathcal{U}_{CFA}(\tau,\beta)$ & = & $\mathcal{U}_{CFA}(\beta,\tau)$ \\
-        $\mathcal{U}_{CFA}(\tau_1 \stackrel{\varphi}{->} \tau_2,
-                           \tau_1' \stackrel{\varphi'}{->} \tau_2')$ & = & 
-                           \parbox{\textwidth}{$ 
-\begin{array}{ll}
-    let & \theta_1 = \mathcal{U}'_{CFA}(\varphi,\varphi')  \\
-        & \theta_2 = \mathcal{U}_{CFA}(\theta_1 \tau_1, \theta_1 \tau_1') \\
-        & \theta_3 = \mathcal{U}_{CFA}(\theta_2 (\theta_1 \tau_2), \theta_2(\theta_1 \tau_2')) \\
-    in  & \theta_3 \circ \theta_2 \circ \theta_1
-\end{array}
- $ } 
-\\
-        $\mathcal{U}_{CFA}([\tau]^\varphi,
-        [\tau']^{\varphi'})$ & = & 
-                           \parbox{0.3\textwidth}{$ 
-\begin{array}{ll}
-    let & \theta_1 = \mathcal{U}_{CFA}(\tau,\tau')  \\
-        & \theta_2 = \mathcal{U}'_{CFA}(\theta_1 \varphi, \theta_1 \varphi') \\
-    in  & \theta_2 \circ \theta_1
-\end{array}
- $ } 
-\\
-
-        $\mathcal{U}'_{CFA}(\varphi,\varphi')$ & = & \parbox{\textwidth}{$ \left\{
-\begin{array}{ll}
-    id & if \varphi = \varphi' \\
-    \left[ \varphi' \mapsto \varphi\right] & otherwise 
-\end{array}
-\right. $ } \\
-        $\mathcal{U}'_{CFA}(\_,\_)$ & = & unification error \\
-        \hline
-    \end{tabular}
-    \caption{Unification algorithm for lambda calculus including data structures. $\mathcal{U}'$ is 
-    annotation unification.}
-    \label{tab:algoU}
-\end{table}
 \section{Approach}
 
 

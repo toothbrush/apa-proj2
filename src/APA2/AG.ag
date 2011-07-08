@@ -1,16 +1,3 @@
--------------------------------------------------------------------------------
--- |
--- Module      :  CCO.HM.AG
--- Copyright   :  (c) 2008 Utrecht University
--- License     :  All rights reserved
---
--- Maintainer  :  stefan@cs.uu.nl
--- Stability   :  provisional
--- Portability :  portable
---
--- Attribute grammar for a simple, implicitly typed functional language.
---
--------------------------------------------------------------------------------
 optpragmas {
 {-# LANGUAGE TypeSynonymInstances #-}
 }
@@ -38,6 +25,7 @@ INCLUDE "AG/FreeTyVars.ag"
 INCLUDE "AG/FreeAnnVars.ag"
 
 {
+
 class Ord a => Lattice a where
   top     :: a
   bottom  :: a
@@ -69,12 +57,21 @@ worklist cs =
     (solved,unsolved) = partitionConstraints cs
 
     (w, ana, infl) =
+<<<<<<< HEAD
       let o c@(Constraint (AnnVar a) (AnnVar b)) (w', ana', infl'') = ( DMS.insert c w'
                                                                       , DM.insert a AnnEmpty (DM.insert b AnnEmpty ana')
                                                                       , DM.insert a DS.empty (DM.insert b DS.empty infl''))
           o (Constraint (AnnVar a) (AnnSet _)) (w', ana', infl'') = ( w'
                                                                     , DM.insert a AnnEmpty ana'
                                                                     , DM.insert a DS.empty infl'')
+=======
+      let o c@(Constraint a (AnnVar b)) (w', ana', infl'') = ( DMS.insert c w'
+                                                             , DM.insert a AnnEmpty (DM.insert b AnnEmpty ana')
+                                                             , DM.insert a DS.empty (DM.insert b DS.empty infl''))
+          o   (Constraint a (AnnSet _)) (w', ana', infl'') = ( w'
+                                                             , DM.insert a AnnEmpty ana'
+                                                             , DM.insert a DS.empty infl'')
+>>>>>>> 4574576974ab31652575f36032bd3d6eba74cadc
           o _ _ = error "should not happen"
       in DS.fold o (DMS.empty, DM.empty, DM.empty) cs
 
@@ -156,6 +153,7 @@ printAnalysisResult AnnEmpty = putStr "{}"
 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
+<<<<<<< HEAD
   let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
       analysis = case unsafePerformIO (printActiveAnnVars active) of
                   () -> worklist c
@@ -164,6 +162,14 @@ simplify env tau c =
   in  partition env c'
 
 {-
+=======
+  let --active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
+      --ranges = trace ("active vars: "++show active++"\n") $
+      --               worklist c
+  in  partition env c
+
+testPA :: Set AnnVar
+>>>>>>> 4574576974ab31652575f36032bd3d6eba74cadc
 testPA = pseudoActive (DS.fromList [AnnVar "b1", AnnVar "b2", AnnVar "b3"])
                       (DS.fromList [ Constraint "b2" (AnnVar "b6")
                                    , Constraint "b6" (AnnVar "b4")])
@@ -180,6 +186,7 @@ pseudoActive active c =
                  extrVar _          xs = xs
              in DS.fold extrVar DS.empty vars
 
+<<<<<<< HEAD
 -- TODO: Determine what we need to do here.
 satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
 satisfiable active analysis = 
@@ -205,6 +212,8 @@ satisfiable active analysis =
 {-       substLst      = DM.mapWithKey func ana'-}
 {-   in DM.fold Dot Identity substLst-}
 
+=======
+>>>>>>> 4574576974ab31652575f36032bd3d6eba74cadc
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs =
   let prop   = let isActive a = a `DS.member` fav env
@@ -270,10 +279,10 @@ instance Substitutable TyScheme where
   applySubst Identity     t = t
   applySubst d@(Dot _ _) t  = dotApply d t
 
-  applySubst s (QualSig t) = QualSig (applySubst s t)
+  applySubst s (QualSig t)  = QualSig (applySubst s t)
 
-  applySubst s@(TySub a _) t@(Forall tv ts) | a == tv   = t
-                                            | otherwise = Forall tv (applySubst s ts)
+  applySubst s@(TySub a _)  t@(Forall tv ts) | a == tv   = t
+                                             | otherwise = Forall tv (applySubst s ts)
 
   applySubst s@(AnnSub a _) t@(AnnSig tv ts) | a == tv   = t
                                              | otherwise = AnnSig tv (applySubst s ts)
@@ -296,9 +305,9 @@ instance Substitutable Ty where
   applySubst s (Arr t1 a1 t2 a2) = Arr (applySubst s t1) (applySubst s a1) 
                                        (applySubst s t2) (applySubst s a2)
 
-  applySubst s (List t ann) = List (applySubst s t) (applySubst s ann)
+  applySubst s (List t ann)    = List (applySubst s t) (applySubst s ann)
 
-  applySubst _ Nat  = Nat
+  applySubst _ Nat  = Nat   -- TODO: zijn deze niet redundant?
   applySubst _ Bool = Bool
   applySubst _ t    = t
 
@@ -317,9 +326,15 @@ instance Substitutable AnnVar where
 instance Substitutable Constraint where
   applySubst Identity    cs     = cs
   applySubst d@(Dot _ _) cs     = dotApply d cs
+<<<<<<< HEAD
   applySubst s@(AnnSub a b) (Constraint (AnnVar a') b')
     | a == a'   = Constraint b (applySubst s b')
     | otherwise = Constraint (AnnVar a') (applySubst s b')
+=======
+  applySubst s@(AnnSub a b) (Constraint a' b')
+    | a == a'    = Constraint b (applySubst s b')
+    | otherwise  = Constraint a' (applySubst s b')
+>>>>>>> 4574576974ab31652575f36032bd3d6eba74cadc
   applySubst _ c = c
 
 instance Substitutable Constraints where
@@ -330,8 +345,13 @@ instance Substitutable SAnn where
   applySubst d@(Dot _ _) a@(AnnVar _) = dotApply d a
 
   applySubst (AnnSub b b') a@(AnnVar b'')
+<<<<<<< HEAD
     | b == b''  = b'
     | otherwise = a
+=======
+    | b == b''   = AnnVar b'
+    | otherwise  = a
+>>>>>>> 4574576974ab31652575f36032bd3d6eba74cadc
 
   applySubst _ a = a
 

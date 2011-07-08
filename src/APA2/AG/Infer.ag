@@ -184,16 +184,16 @@ SEM MH
       
       loc.phi = fromJust $ DM.lookup @x @lhs.annEnvironment
 
-      loc.(c, ty) = 
+      loc.(c, ty) =
         maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))
               (instantiate @loc.beta)
               (DM.lookup @x @lhs.typeEnvironment)
 
-      -- | If type environment proofs @x to be a function type
-      --   we synthesize a new fresh annotation variable. This allows us
-      --   to use subeffecting to weaken the annotation whenever deemed necessary without
-      --   poisoning the original annotation. (sketchy explanation...)
-      loc.annotation = @loc.beta'
+      -- this does not work for a case like:
+      -- let f = \x -> true in
+      --    let g = \k -> if f 0 then k else \y -> false in
+      --        g f
+      loc.constraints = @loc.c `DS.union` (@loc.beta' <:? @loc.phi)
 
       loc.constraints = @loc.beta' <:? @loc.phi
 
@@ -204,12 +204,12 @@ SEM MH
       lhs.substitution = @loc.substitution
 
       lhs.debug = "Var("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n"
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n"
 
   | Lambda
       loc.alpha   : UNIQUEREF counter
@@ -240,12 +240,12 @@ SEM MH
       e.annEnvironment  = DM.insert @x @loc.betax' @lhs.annEnvironment
 
       lhs.debug = "Lambda("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e.debug
 
 
@@ -293,13 +293,12 @@ SEM MH
       e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
       lhs.debug = "App: \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n" ++
-                  "unify: " ++ show @loc.unify1 ++ ", " ++ show @loc.unify2 ++ "\n\n" ++
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e1.debug ++ @e2.debug
 
 {-
@@ -336,12 +335,12 @@ SEM MH
       e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
 
       lhs.debug = "Let("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e1.debug ++ @e2.debug
 -}
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
@@ -437,12 +436,12 @@ SEM MH
       e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
       lhs.debug = "If: \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                  "tyEnv: " ++ ppMap @lhs.typeEnvironment ++ "\n" ++
+                  "annEnv: " ++ ppMap @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                  "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @c.debug ++ @e1.debug ++ @e2.debug
 
 {
@@ -531,9 +530,9 @@ generalise env ann tau c =
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = (applySubst subst cs, applySubst subst ty)
   where (Binders tyvars annvars cs ty) = collectBinders ts
-        fresh   prefix = map (\x -> prefix : show seed ++ show x) ([0..] :: [Int])
-        tySubs         = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
-        annSubs        = zipWith (\x y -> AnnSub x (AnnVar y)) annvars (fresh 'β')
-        subst          = foldr Dot Identity (tySubs ++ annSubs)
+        fresh   pfx = map (\x -> pfx : show seed ++ show x) ([0..] :: [Int])
+        tySubs      = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
+        annSubs     = zipWith AnnSub annvars (fresh 'β')
+        subst       = foldr Dot Identity (tySubs ++ annSubs)
 
 }
