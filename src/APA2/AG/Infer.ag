@@ -76,16 +76,18 @@ SEM MH
     loc.alpha  : UNIQUEREF counter
     loc.betaf1 : UNIQUEREF counter
     loc.betaf2 : UNIQUEREF counter
+    loc.ppoint : UNIQUEREF counter
 
     loc.alpha'  = freshVar @loc.alpha
     loc.betaf1' = freshAnnVar @loc.betaf1
     loc.betaf2' = freshAnnVar @loc.betaf2
+    loc.pi      = mkProgramPoint "L" @loc.ppoint
 
     loc.ty = List @loc.alpha' @loc.betaf1'
 
     loc.substitution = Identity
 
-    loc.constraints = DS.empty :: Constraints
+    loc.constraints = @loc.betaf2' <:? @loc.pi
 
     loc.annotation = @loc.betaf2'
 
