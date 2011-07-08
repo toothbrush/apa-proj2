@@ -26,10 +26,22 @@ data structures. The focus is on lists and pairs, for now.
 
 \section{Design}
 
+Here we will detail the design of the language, for example which features it
+supports. In Tables \ref{tab:elems} and \ref{tab:grammar} one can see the
+grammar of the language. It is based on Haskell (in fact we use the Haskell
+source extensions parser), but of course only a subset is supported. 
+
+We include support for pairs and lists, as well as a case statement in which one
+can pattern-match on these data structures. There is not yet support for general
+data structures.
+
 \subsection{A simple functional language}
 
 %todo: copied from slides, may need adjustment.
 
+The basic elements of the language can be found in Table \ref{tab:elems}. The
+language includes natural number constants, variables, and operators. Program
+points are introduced whenever a lambda-expression is encountered.
 \begin{table}
     \centering
     \begin{tabular}{rcll}
@@ -43,23 +55,34 @@ data structures. The focus is on lists and pairs, for now.
     \label{tab:elems}
 \end{table}
 
+In Table \ref{tab:grammar} one can see what constructs are valid in our subset
+of Haskell, since only a very limited subset is supported.
+
 \begin{table}
     \centering
     \begin{tabular}{lcl}
         \hline
-        $t$     & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \mu f.\lambda_\pi x . t_1$ \\
-                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\: \textbf{ let } x = t_1 \textbf{ in } t_2$\\
+        $t$     & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \lambda_\pi x . t_1$ \\
+                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\:  \textbf{ let } x = t_1 \textbf{ in } t_2$\\
+                & $|$ & $\mu f.\textbf{ let } x = t_1 \textbf{ in } t_2$\\
                 & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
                 & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
         $alts$  & ::= & $alt_1; \ldots ; alt_n$ \\
-        $alt$   & ::= & $pattern \rightarrow t$ \\
+        $alt$   & ::= & $patt\rightarrow t$ \\
+        $patt$  & ::= & $x \:|\: (patt, patt)$ \\
+                & $|$ & $(x: patt)  \:|\: [\,]$\\
+                & $|$ & $\_$\\
+
         \hline
     \end{tabular}
-    \caption{Grammar}
+    \caption{Grammar. $t$ is a term.}
     \label{tab:grammar}
 \end{table}
 
-\subsection{Typing}
+\subsection{Type System}
+
+Here we will detail the type system which has been implemented in this project.
+It consists of 
 
 \begin{table}
     \centering
