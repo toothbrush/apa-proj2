@@ -340,22 +340,11 @@ $[$\emph{cfa-case-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\wideha
 
 \section{Example programs}
 
-%todo: this probably needs fixing. 
-\begin{itemize}
-    \item \texttt{app.hm} An illustration of the function application in action. 
-    \item \texttt{assignment.hm} The example program from the assignment, with
-        the correct output. 
-    \item \texttt{identity.hm} The simplest possible program, the identity
-        function. 
-    \item \texttt{inf.hm} Gives a type error, correctly (the program, $\lambda
-        x.
-        \lambda y . (y x) (x y)$ isn't typable and leads to a so-called
-        \emph{occurs check\footnote{Meaning that the unification algorithm would
-        have to introduce an infinite type to succeed.}}).
-    \item \textit{singleton.hm} Simply illustrates a variable which is out of
-        scope. 
-\end{itemize}
-
+Example programs can be found in the \texttt{examples/} directory of the distribution, 
+and have an extension \texttt{.hm}. Feed the program the files via \emph{stdin}. Each file
+includes comments which describe its expected analysis result, and possible peculiarities
+it may have. Note the directory \texttt{ill-typed/}, in which the examples fail by design.
+They include examples of infinite types, etc. 
 
 
 \begin{thebibliography}{9}
