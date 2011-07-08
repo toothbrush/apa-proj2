@@ -38,10 +38,6 @@
 
   * Subeffecting voor cases checken en implementeren
 
-  * Documentatie voor usage in de Main
-
-  * Documentatie in code (hoeft niet perse met haddock, scheelt werk)
-
   Minder hoog:
 
   * let f = \\x -> x + 1 in let g = \\y -> y * 2 in let h = \\z -> z 3 in h f + h g
@@ -59,5 +55,3 @@
   * Opschonen, verwijderen code die niet wordt aangeroepen. Zaken consistenter maken.
     Alleen waarneer je er zeker van bent dat het niet de code kapot maakt! Code
     die eventueel nog nuttig is voor de docent uitcommenten en laten staan (simplify, generalise..)
-
-

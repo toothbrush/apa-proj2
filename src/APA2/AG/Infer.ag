@@ -609,59 +609,75 @@ SEM MH
                 @c.debug ++ @e1.debug ++ @e2.debug
 
 {
+
+-- | Create a fresh type variable
 freshVar :: Int -> Ty
 freshVar = mkTyVar . show
 
+-- | Create a fresh annotation variable
 freshAnnVar :: Int -> SAnn
 freshAnnVar = mkAnnVar . show
 
+-- | Create the type variable
 mkTyVar :: String -> Ty
 mkTyVar s = TyVar $ 'τ' : s
 
+-- | Create the annotation variable
 mkAnnVar :: String -> SAnn
 mkAnnVar s = AnnVar $ 'β' : s
 
+-- | Create a singleton set with one progam point.
 mkProgramPoint :: Var -> Int -> SAnn
 mkProgramPoint v p = AnnSet (DS.singleton (v ++ show p))
 
+-- | Create fresh type variables based on a set of existing variables
 assignVarsFreshTyVars :: Int -> Set Var -> TyEnv -> TyEnv
 assignVarsFreshTyVars seed vars env =
   let fresh     = map (\x -> QualSig $ Ty $ mkTyVar (show seed ++ show x)) ([0..] :: [Int])
       freshVars = zip (DS.toList vars) fresh
   in foldr (\(var,tyvar) -> DM.insert var tyvar) env freshVars
 
+-- | Create fresh annotation variables based on a set of existing variables
 assignVarsFreshAnnVars :: Int -> Set Var -> AnnEnv -> AnnEnv
 assignVarsFreshAnnVars seed vars env =
   let fresh     = map (\x -> mkAnnVar (show seed ++ show x)) ([0..] :: [Int])
       freshVars = zip (DS.toList vars) fresh
   in foldr (\(var,tyvar) -> DM.insert var tyvar) env freshVars
 
+-- | Refresh the annotation variables of a type based on a seed.
 refreshAnnVars :: Int -> Ty -> Ty
 refreshAnnVars seed ty = applySubst (listToSimpleSubst annSubs) ty
   where
   fresh   prefix = map (\x -> prefix : show seed ++ show x) ([0..] :: [Int])
   annSubs        = zipWith (\a b -> AnnSub a (AnnVar b)) (toList $ fav ty) (fresh 'β')
 
+-- | Convert a list of substitutions to a composed substitution
 listToSimpleSubst :: [SimpleSubstitution] -> SimpleSubstitution
 listToSimpleSubst = foldr Dot Identity
 
+-- | Applies a type transformation f to a substitution of the substitution matches the provided type.
 forallTySubst :: TyVar -> SimpleSubstitution -> (Ty -> Ty) -> SimpleSubstitution
 forallTySubst tyvar s@(TySub tv t) f | tv == tyvar = trace "refresh" TySub tv (f t)
                                      | otherwise   = s
 forallTySubst tyvar (Dot s s') f = Dot (forallTySubst tyvar s f) (forallTySubst tyvar s' f)
 forallTySubst _ s _ = s
 
+-- | Simple and stupid, but effective: for a given binary operator, determine the types that correspond
+-- to both inputs and the output.
 operatorType :: String -> (Ty, Ty, Ty)
 operatorType op
   | op `elem` ["-", "+", "*"]              = (Nat, Nat, Nat)
   | op `elem` ["==", "<", ">", "<=", ">="] = (Nat, Nat, Bool)
   | otherwise                              = error $ "Invalid op: " ++ op
 
+-- | Create a set of constraints from two annotation sets. Only accepts sets which
+-- contain variables. Errors otherwise.
 (<:?) :: SAnn -> SAnn -> Constraints
 _           <:? AnnEmpty = DS.empty
 AnnVar beta <:? phi      = DS.singleton (Constraint (AnnVar beta) phi)
 _           <:? _        = error "only variables allowed"
 
+-- | Shortcut for applying the Dot constructor
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
 dot = Dot
 
@@ -671,6 +687,7 @@ dot = Dot
 nextUnique :: Int -> (Int, Int)
 nextUnique u = (u+1, u)
 
+-- | Generalise a type. Results in a tuple containing Constraints and a type scheme.
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env _ tau _ = let free      = ftv tau DS.\\ ftv env
                              genTyVars = DS.fold Forall (QualSig $ Ty tau) free
@@ -695,6 +712,8 @@ generalise env ann tau c =
   in (c'', quantifyAnnVars)
 -}
 
+-- | Instantiate a quantified type. Results in a tuple containing constraints and the
+-- previously quantified type.
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = (undefined, applySubst subst ty)
   where (Binders tyvars _ _ ty) = collectBinders ts

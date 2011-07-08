@@ -25,17 +25,20 @@ INCLUDE "AG/FreeTyVars.ag"
 INCLUDE "AG/FreeAnnVars.ag"
 
 {
-type Worklist = MultiSet Constraint
-type EvalFunc = SAnn -> Map AnnVar SAnn -> SAnn
+type Worklist  = MultiSet Constraint
+type EvalFunc  = SAnn -> Map AnnVar SAnn -> SAnn
 type Influence = Map AnnVar Constraints
-type Analysis = Map AnnVar SAnn
+type Analysis  = Map AnnVar SAnn
 
+-- | Partitions a set of constraints into a tuple containing annotation variables in the right half
+-- and annotation sets in the left half. It throws an error if it receives an empty set in a constraint.
 partitionConstraints :: Constraints -> (Constraints, Constraints)
 partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs
   where o c@(Constraint _ (AnnVar _)) (cs'', cs') = (cs'', DS.insert c cs')
         o c@(Constraint _ (AnnSet _)) (cs'', cs') = (DS.insert c cs'', cs')
         o (Constraint _ AnnEmpty)     _           = error "should not happen"
 
+-- | Solve the set constraints as much as possible and return a map which goes from annotation variables to sets of annotations.
 worklist :: Constraints -> Map AnnVar SAnn
 worklist cs =
   let
@@ -68,6 +71,8 @@ worklist cs =
                       in  solveConstraints w'' ana''
   in solveConstraints w analysis'
 
+-- | A step in the worklist algorith. It returns the remaining worklist (which may
+-- be extended with new elements to process) and intermediate results.
 step :: Influence -> Worklist -> Analysis -> (Worklist, Analysis)
 step infl w analysis
   | DMS.null w  = (w, analysis)
@@ -83,6 +88,7 @@ step infl w analysis
              in (augmentedW, analysis')
         else (w', analysis)
 
+-- | Check whether the two sets of annotations are a partial order.
 (⊒) :: SAnn -> SAnn -> Bool
 AnnEmpty   ⊒ AnnEmpty   = True
 AnnEmpty   ⊒ (AnnSet a) = DS.null a
@@ -90,12 +96,14 @@ AnnEmpty   ⊒ (AnnSet a) = DS.null a
 (AnnSet a) ⊒ (AnnSet b) = DS.isSubsetOf b a
 _          ⊒ _          = error "no variables allowed"
 
+-- | Join the two sets of annotations. In this case, it's hardcoded to be a union.
 (⊔) :: SAnn -> SAnn -> SAnn
 AnnEmpty   ⊔ a          = a
 a          ⊔ AnnEmpty   = a
 (AnnSet a) ⊔ (AnnSet b) = AnnSet (DS.union a b)
 _          ⊔ _          = error "no variables allowed"
 
+-- | Prints intermediate steps of the worklist to IO if enabled.
 debugStep :: t -> t1 -> [Char]
 debugStep _ _ = ""
 {-
@@ -114,25 +122,30 @@ debugStep' w ana =
     printAnalysis ana
     putStrLn ""
 
+-- | Print a worklist to IO
 printW :: Worklist -> IO ()
 printW w = 
   DMS.fold (\v b -> putStr (' ' : show v) >>= \_ -> b) (return ()) w 
 
+-- | Print an analysis result map to IO
 printAnalysis :: DM.Map AnnVar SAnn -> IO ()
 printAnalysis a = DM.foldWithKey (\k v next -> do putStr (k ++ " : ")
                                                   printAnalysisResult v
                                                   next) (return ()) a
 
+-- | Print the active annotation variables to IO
 printActiveAnnVars :: Set AnnVar -> IO ()
 printActiveAnnVars s = 
   do putStrLn "active annvars: "
      DS.fold (\v b -> putStr (' ' : v) >>= \_ -> b) (return ()) s
 
+-- | Print the analysis result set to IO
 printAnalysisResult :: SAnn -> IO ()
 printAnalysisResult (AnnSet s) = DS.fold (\x b -> putStr (x ++ ", \n") >>= \_ -> b) (return ()) s
 printAnalysisResult AnnEmpty = putStr "{}, "
 printAnalysisResult (AnnVar v) = putStr $ "PROBLEM: "++v
 
+-- | Simplify the constraints by removing redundant constraints. 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
   let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
@@ -142,6 +155,7 @@ simplify env tau c =
       c'     = applySubst theta c
   in  partition env c'
 
+-- | Grab pseudo-active annotation variables. See Patrick's thesis.
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
   let extrAnn (Constraint l@(AnnVar _) u) xs | l `DS.member` active = DS.insert u xs
@@ -155,13 +169,14 @@ pseudoActive active c =
                  extrVar _          xs = xs
              in DS.fold extrVar DS.empty vars
 
--- TODO: Determine what we need to do here.
+-- | Also from Patrick's thesis
 satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
 satisfiable active analysis = 
   DM.foldWithKey o Identity analysis
   where o beta value next | beta `DS.notMember` active = Dot (AnnSub beta value) next
                           | otherwise                  = next
 
+-- | Partition constraints. Also from Patrick's thesis
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs =
   let prop   = let isActive a = a `DS.member` fav env
@@ -175,9 +190,11 @@ partition env cs =
   in (prop, qual)
 
 
+-- | Lookup a key in a map and assume it's in there. Return the corresponding value
 (?) :: Ord a => a -> Map a b -> b
 a ? m = fromJust $ DM.lookup a m
 
+-- | Unification algorithm. Makes sure that both types and annotations are unified.
 unify :: Ty -> Ty -> SimpleSubstitution
 unify Nat  Nat  = Identity
 unify Bool Bool = Identity
@@ -196,7 +213,7 @@ unify (Arr t11 a11 t12 a12) (Arr t21 a21 t22 a22) =
 
       theta3 = unify (applySubst (theta2 `dot` theta1) t12)
                      (applySubst (theta2 `dot` theta1) t22)
- 
+
       theta4 = let th21 = theta3 `dot` theta2 `dot` theta1
                in unifyAnn (applySubst th21 a12) (applySubst th21 a22)
   in theta4 `dot` theta3 `dot` theta2 `dot` theta1
@@ -205,21 +222,26 @@ unify t1 t2 = error $ "Unification failure. \nt_1 = " ++
                       show t1 ++ "\nt_2 = " ++
                       show t2
 
+-- | Unify annotations
 unifyAnn :: SAnn -> SAnn -> SimpleSubstitution
 unifyAnn (AnnVar v) (AnnVar v') | v == v'   = Identity
                                 | otherwise = AnnSub v (AnnVar v')
 unifyAnn _          _ = error "Unification failed, can only unify annotation variables"
 
+-- | Actually unify type variables
 unifyTyVar :: Ty -> Ty -> SimpleSubstitution
 unifyTyVar a@(TyVar x) t | a == t                 = Identity
                          | x `DS.notMember` ftv t = TySub x t
                          | otherwise              = occursCheck a t
 unifyTyVar _           _ = error "First argument to unifyTyVar must be a TyVar"
 
+-- | Throws an occurs check error.
 occursCheck :: (Show a, Show b) => a -> b -> t
 occursCheck tv t = error $ "Occurs check: " ++ show tv ++ " = " ++ show t
                                             ++ "\nCannot create infinite type."
 
+-- | The Substitutable typeclass defines a way to apply a substitution to a type.
+-- Below this typeclass are several implementations for the typeclass for most of our data types. 
 class Substitutable subject where
   applySubst :: SimpleSubstitution -> subject -> subject
 
@@ -296,6 +318,7 @@ instance Substitutable SAnn where
 
   applySubst _ a = a
 
+-- | Compose substitution applications.
 dotApply :: Substitutable t => SimpleSubstitution -> t -> t
 dotApply (Dot s1 s2) t = applySubst s1 (applySubst s2 t)
 dotApply _           _ = error "not allowed"

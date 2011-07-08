@@ -1,16 +1,26 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Components where
+<<<<<<< HEAD
+
+import            Language.Haskell.Exts.Parser
+import qualified  Language.Haskell.Exts.Syntax as H
+import            Data.Map (Map)
+import qualified  Data.Map as DM
+import qualified  Data.Set as DS
+=======
 import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
 import Data.Map (Map)
 import Data.Set (Set)
 import qualified Data.Map as DM
 import qualified Data.Set as DS
+>>>>>>> feb4338a27ce92a55ea205a3e169a2bcbdf2c705
 
 import APA2.AG
 import Data.Generics.Schemes
 import Data.Generics.Aliases
 
+-- | Setup the inherited attributes for the AG
 initialInheritedAttributes :: Inh_MH
 initialInheritedAttributes =
   Inh_MH { typeEnvironment_Inh_MH = DM.empty
@@ -19,6 +29,7 @@ initialInheritedAttributes =
          , matchTy_Inh_MH = undefined -- suppress warning. only used in caseBlock
          }
 
+-- | Execute the annotated Algorithm W on the provided MH AST
 w :: MH -> (Ty, SAnn, SimpleSubstitution, Constraints, Expressions, String, Map String MH)
 w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
        in  ( ty_Syn_MH           wrappedDS
@@ -30,14 +41,21 @@ w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
            , annotDict_Syn_MH    wrappedDS
            )
 
+<<<<<<< HEAD
+-- | Grabs the constraints from the resultt
+getConstraints :: (t, t1, t2, t3, t4, t5, t6) -> t3
+=======
 getConstraints :: (a,b,c,d,e,f,g) -> d
+>>>>>>> feb4338a27ce92a55ea205a3e169a2bcbdf2c705
 getConstraints (_,_,_,c,_,_,_) = c
 
+-- | Accepts a filename and generates debug output for it containing analysis results.
 debugFile :: FilePath -> IO ()
 debugFile fl = do
   cnts <- readFile fl
   debugInference . parseProgram $ cnts
 
+-- | Output detailed information from the inference process for debug purposes.
 debugInference :: MH -> IO ()
 debugInference tm =
   do
@@ -72,14 +90,17 @@ debugInference tm =
     putStrLn ""
     putStrLn debug
 
-fromSAnn :: SAnn -> String
+-- | Unpacks SAnn datatype and returns an AnnVar string
+fromSAnn :: SAnn -> AnnVar
 fromSAnn (AnnVar v) = v
 fromSAnn _          = error "danger will robinson"
 
-toSet :: SAnn -> Set Point
-toSet    (AnnSet x) = x
-toSet    _          = DS.empty
+-- | Unpacks an AnnSet to get the inner set
+toSet :: SAnn -> DS.Set Point
+toSet (AnnSet x) = x
+toSet _          = DS.empty
 
+-- | Prints an analysis result
 analysisResult :: MH -> IO ()
 analysisResult tm = 
   do 
@@ -87,25 +108,24 @@ analysisResult tm =
     putStrLn "Analysis result: " 
     printExpressions (applySubst (solutionSubst constraints) exprs)
 
+-- | Turns a map of constraints into a substitution
 solutionSubst :: Constraints -> SimpleSubstitution
 solutionSubst cs = 
   DM.foldrWithKey (\var result next -> Dot (AnnSub var result) next) Identity (worklist cs)
 
+-- | Converts a list of expressions to a String
 printExpressions' :: (Show a1, Show a) => [(a1, a)] -> String
-printExpressions' = 
-  foldr (\(ty,e) acc -> show e ++ " : " ++ show ty ++ acc) ""
+printExpressions' exprs = foldr (\(ty,e) acc -> show e ++ " : " ++ show ty ++ acc) "" exprs
 
+-- | Prints a list of expressions
 printExpressions :: (Show a1, Show a) => [(a1, a)] -> IO ()
-printExpressions = mapM_ (\(a,e) -> putStrLn (show e ++ " : " ++ show a))
+printExpressions exprs = mapM_ (\(a,e) -> putStrLn (show e ++ " : " ++ show a)) exprs
 
-{-
-  foldr (\(a,e) next -> do { putStrLn (show e ++ " : " ++ show a) ; next })
-        (return ())
-        exprs
-  -}
+-- | Takes a string containing Haskell code and parses it.
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
 
+-- | Takes a haskell-src-exts AST and converts it to our simple lambda-calculus syntax.
 translate :: H.Exp -> MH
 translate = hExpr
   where
