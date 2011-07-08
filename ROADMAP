@@ -30,8 +30,6 @@
 
 
   Minst:
-  
-  * Student nummers op de titel
 
   * Hoofstukje taakverdeling?
 
@@ -52,7 +50,7 @@
       Actual: ((Nat -> t)^{x} -> t)^{z}
 
     Constatatie: h f + h g synthesized verschillende substituties voor een en de zelfde annotatie variabele
-    
+
     Oplossing: niet bekend. ergens wordt misschien een constraint te weinig gegenereerd.
 
   * Documentatie voor het gebruik van het programma in een readme
@@ -60,7 +58,7 @@
   * Documentatie voor usage in de Main
 
   * Documentatie in code (hoeft niet perse met haddock, scheelt werk)
- 
+
   * Hulp programmatje dat alle examples in well-typed/ill-typed directory opent en test of
   ze daadwerkelijk getyped kunnen worden binnen ons systeem.
 
