@@ -53,10 +53,10 @@ debugInference tm =
     putStrLn ""
     putStrLn "Top level annotation: "
     print annotation
-    let ppoint = (DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) (worklist constraints))
+    let ppoint = DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) (worklist constraints)
     putStr $ "... which maps to: " ++ show ppoint ++ "\n"
     putStr $ DS.fold (\x->(++) (
-        x ++ " is in fact \"" ++ show (annots DM.! (x)) ++ "\"\n"
+        x ++ " is in fact \"" ++ show (annots DM.! x) ++ "\"\n"
         ) ) ""
         (toSet ppoint)
     putStrLn "Annotation dictionary:"
@@ -92,12 +92,11 @@ solutionSubst cs =
   DM.foldWithKey (\var result next -> Dot (AnnSub var result) next) Identity (worklist cs)
 
 printExpressions' :: (Show a1, Show a) => [(a1, a)] -> String
-printExpressions' exprs = 
-  foldr (\(ty,e) acc -> show e ++ " : " ++ show ty ++ acc) "" exprs
+printExpressions' = 
+  foldr (\(ty,e) acc -> show e ++ " : " ++ show ty ++ acc) ""
 
 printExpressions :: (Show a1, Show a) => [(a1, a)] -> IO ()
-printExpressions exprs = 
-  mapM_ (\(a,e) -> putStrLn (show e ++ " : " ++ show a)) exprs
+printExpressions = mapM_ (\(a,e) -> putStrLn (show e ++ " : " ++ show a))
 
 {-
   foldr (\(a,e) next -> do { putStrLn (show e ++ " : " ++ show a) ; next })
