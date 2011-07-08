@@ -7,7 +7,6 @@
       data creation tracking
       closure tracking
   * Design sectie afmaken
-    * table2, functie staat dubbel
     * Natural semantics heeft niet echt toegevoegde waarde volgens mij, weg?
     * Belangrijk!! Type system consistent met code. Constraints omdraaien consistent met code. 
       Er missen ook nog een paar rules.
