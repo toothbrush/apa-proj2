@@ -138,14 +138,14 @@ instance Show SAnn where
 
 instance Show Ty where
   show (TyVar a)    = a
-  show (Arr t a t' a') = tyAnn t a ++ "-->" ++ tyAnn t' a'
+  show (Arr t a t' a') = tyAnn t a ++ " ➔  " ++ tyAnn t' a'
   show Nat          = "Nat"
   show Bool         = "Bool"
   show (List t an)  = "(List " ++ show t ++ ") : " ++ show an
 
 tyLayout :: Map AnnVar SAnn -> Ty -> String
 tyLayout _   (TyVar a)       = a
-tyLayout con (Arr t a t' a') = tyAnnCont con t ((fromSAnn a) `from` con) ++ "-->" ++ tyAnnCont con t' ((fromSAnn a') `from` con)
+tyLayout con (Arr t a t' a') = tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  " ++ tyAnnCont con t' ((fromSAnn a') `from` con)
 tyLayout _   Nat             = "Nat"
 tyLayout _   Bool            = "Bool"
 tyLayout con (List t an)     = "((List " ++ tyLayout con t ++ ") : " ++ ((fromSAnn an) `from` con) ++ ")"
@@ -166,8 +166,8 @@ toSet    _          = DS.empty
 
 instance Show SimpleSubstitution where
   show Identity      = ""
-  show (TySub v t)   = v ++ "    |-> " ++ show t
-  show (AnnSub a a') = a ++ "    |-> " ++ show a'
+  show (TySub v t)   = v ++ "  ⟼   " ++ show t
+  show (AnnSub a a') = a ++ "  ⟼   " ++ show a'
   show (Dot s Identity) = show s
   show (Dot s s')       = show s ++ "\n" ++ show s'
 
