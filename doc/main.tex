@@ -56,33 +56,40 @@ points are introduced whenever a lambda-expression is encountered.
 \end{table}
 
 In Table \ref{tab:grammar} one can see what constructs are valid in our subset
-of Haskell, since only a very limited subset is supported.
+of Haskell, since only a very limited subset is supported. Note that recursion
+is only supported inside \textbf{let}s. 
 
 \begin{table}
     \centering
     \begin{tabular}{lcl}
         \hline
-        $t$     & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \lambda_\pi x . t_1$ \\
-                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\:  \textbf{ let } x = t_1 \textbf{ in } t_2$\\
-                & $|$ & $\mu f.\textbf{ let } x = t_1 \textbf{ in } t_2$\\
-                & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
-                & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
-        $alts$  & ::= & $alt_1; \ldots ; alt_n$ \\
-        $alt$   & ::= & $patt\rightarrow t$ \\
-        $patt$  & ::= & $x \:|\: (patt, patt)$ \\
-                & $|$ & $(x: patt)  \:|\: [\,]$\\
-                & $|$ & $\_$\\
-
+        $t$    & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \lambda_\pi x . t_1$ \\
+               & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\:  \textbf{ let } x = t_1 \textbf{ in } t_2$\\
+               & $|$ & $\mu f.\textbf{ let } x = t_1 \textbf{ in } t_2$\\
+               & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2 \: | \: (t_1,t_2)_\pi $ \\ 
+               & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
+        $alts$ & ::= & $alt_1; \ldots ; alt_n$ \\
+        $alt$  & ::= & $patt\rightarrow t$ \\
+        $patt$ & ::= & $x \:|\: (patt, patt)$ \\
+               & $|$ & $(x: patt)  \:|\: [\,]$\\
+               & $|$ & $\_$\\
         \hline
     \end{tabular}
-    \caption{Grammar. $t$ is a term.}
+    \caption{Abstract syntax. $t$ is a term.}
     \label{tab:grammar}
 \end{table}
 
 \subsection{Type System}
 
 Here we will detail the type system which has been implemented in this project.
-It consists of 
+It consists of a polymorphic type system, with the important addition of
+annotations. We use annotations and constraints to be able to do a control-flow
+analysis, eventually telling us which functions one may expect to be used where. 
+
+Our type system has variables, arrows, and type environments, as well as
+annotations, which is what makes it different from a normal polymorphic type
+system. Table \ref{tab:typingelems} and \ref{tab:typing} show the elements of
+the type system. 
 
 \begin{table}
     \centering
@@ -99,7 +106,12 @@ It consists of
     \centering
     \begin{tabular}{lcl}
         $ \varphi$         & ::= & $ \emptyset \:|\: \{\pi\} \:|\: \varphi_1 \cup \varphi_2 $ \\
-        $\widehat{\tau}$   & ::= & $\alpha \:|\: Nat \: | \: Bool \: | \: \widehat{\tau}_1 \stackrel{\varphi}{\rightarrow} \widehat{\tau}_2 \:|\: \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 \:|\: \widehat{\tau}~\texttt{list}^\varphi   $ \\ 
+        $\widehat{\tau}$   & ::= & $\alpha \:|\: Nat \: | \: Bool \: | \: $ \\
+        & $|$ & $\widehat{\tau}_1^{\varphi_1}
+                           \stackrel{\varphi}{\rightarrow} 
+                           \widehat{\tau}_2^{\varphi_2} $ \\
+                           & $|$ & $ \widehat{\tau}_1 \times^\varphi
+                           \widehat{\tau}_2 \:|\: [\widehat{\tau}]^\varphi   $ \\ 
         $\widehat{\sigma}$ & ::= & $\widehat{\tau} \:|\: \forall \alpha. \widehat{\sigma}_1 $ \\ 
         $\widehat{\Gamma}$ & ::= & $[\,] \:|\: \widehat{\Gamma}_1[x \mapsto \widehat{\sigma}] $ \\
     \end{tabular}
