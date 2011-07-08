@@ -22,6 +22,7 @@ ATTR MH
     annotation                                : {SAnn}
     debug         USE {++}         {""}       : {String}
     expressions   USE {++}         {[]}       : {Expressions}
+    annotDict USE {`DM.union`} {DM.empty}     : {Map String MH}
     copy                                      : SELF
   ]
 
@@ -308,6 +309,9 @@ SEM MH
                 "constraints: " ++ show @loc.constraints ++ "\n\n"
 
   | Lambda
+    lhs.annotDict = DM.singleton (@x ++ show @loc.ppoint) @loc.copy
+                      `DM.union` @e.annotDict
+
     loc.alpha   : UNIQUEREF counter
     loc.ppoint  : UNIQUEREF counter
     loc.betax   : UNIQUEREF counter
@@ -451,6 +455,11 @@ SEM MH
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
 -- but is can be passed into a function..
   | LetRec
+ --    not yet?? todo
+ --    lhs.annotDict = DM.singleton @loc.pi @loc.copy
+ --                        `DM.union` @e2.annotDict
+ --                        `DM.union` @e1.annotDict
+
     loc.alphax : UNIQUEREF counter
     loc.alphar : UNIQUEREF counter
     loc.betax  : UNIQUEREF counter

@@ -1,9 +1,8 @@
 
 %outline:
 
-% a type system
-% specification and an explanation of both the type system, a run through of one
-% or two examples and an architectural description of the implementation.
+% an explanation of both the type system, a run through of one or two examples 
+% an architectural description of the implementation.
 % Features and limitations should be prominently displayed in your documentation. 
 
 \documentclass[a4paper]{article}
@@ -14,7 +13,7 @@
 \usepackage{array}
 \usepackage{bussproofs}
 \usepackage{latexsym}
-
+\usepackage{apa}
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
@@ -23,7 +22,7 @@
 \newcommand{\tyrel}{\sqsubseteq}
 % end semantic
 
-\author{Jurri\"en Stutterheim (3555003)\and Ruben de Gooijer (3508617) \and Paul van der Walt (3120805)}
+\author{Jurri\"en Stutterheim\footnote{3555003}\and Ruben de Gooijer\footnote{3508617}\and Paul van der Walt}
 \date{\today} 
 \title{Implementation notes for Type and Effect Systems}
 
@@ -78,7 +77,7 @@ is only supported inside \textbf{let}s.
     \centering
     \begin{tabular}{lcl}
         \hline
-        $t$    & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \lambda_\pi x . t_1$ \\
+        $t$    & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1 \:$ \\
                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\:  \textbf{ let } x = t_1 \textbf{ in } t_2$\\
                & $|$ & $\mu f.\textbf{ let } x = t_1 \textbf{ in } t_2$\\
                & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2   $\\%     \: | \: (t_1,t_2)_\pi $ \\ 
@@ -335,7 +334,14 @@ $[$\emph{cfa-case-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\wideha
 \section{Approach}
 
 
-\section{Implemented}
+\section{Features and Limitations}
+
+The assignment suggested implementing CFA with support for tracking data structure 
+creation, with lists, pairs and a case-statement. Our implementation supports lists and 
+a case statement, with pattern matching and a fall-through case. 
+
+% ???
+The implementation so far only has support for 
 
 \section{Example programs}
 
