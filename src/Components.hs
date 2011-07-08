@@ -91,7 +91,7 @@ solutionSubst :: Constraints -> SimpleSubstitution
 solutionSubst cs = 
   DM.foldWithKey (\var result next -> Dot (AnnSub var result) next) Identity (worklist cs)
 
-printExpressions' :: (Show a1, Show a) => [(a1, a)] -> [Char]
+printExpressions' :: (Show a1, Show a) => [(a1, a)] -> String
 printExpressions' exprs = 
   foldr (\(ty,e) acc -> show e ++ " : " ++ show ty ++ acc) "" exprs
 
