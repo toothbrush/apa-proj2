@@ -7,8 +7,6 @@ Block 4 2010/2011
 Authors: Paul van der Walt (3120805), Ruben de Gooijer (3508617), Jurriën
 Stutterheim (3555003)
 
----------------------------------------
-
 ## System Requirements
 
 Tested on Mac OS X 10.6.7 and 10.7.0 with GHC 7.0.3 and Haskell Platform
