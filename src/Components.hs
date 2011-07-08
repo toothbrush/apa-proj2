@@ -51,6 +51,12 @@ debugInference tm =
     putStrLn ""
     putStrLn "Top level annotation: "
     print annotation
+    let ppoint = ((worklist constraints)DM.!(fromSAnn annotation))
+    putStr $ "... which maps to: " ++ show ppoint ++ "\n"
+    putStr $ DS.fold (\x->(++) (
+        x ++ " is in fact \"" ++ show (annots DM.! (x)) ++ "\"\n"
+        ) ) ""
+        (toSet ppoint)
     putStrLn "Annotation dictionary:"
     putStrLn (ppMap annots)
     putStrLn ""
@@ -63,6 +69,12 @@ debugInference tm =
     printExpressions (applySubst subst exprs)
     putStrLn ""
     putStrLn debug
+
+fromSAnn (AnnVar v) = v
+fromSAnn _          = error "danger will robinson"
+
+toSet    (AnnSet x) = x
+toSet    _          = error "more danger"
 
 analysisResult :: MH -> IO ()
 analysisResult tm = 
