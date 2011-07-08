@@ -43,21 +43,21 @@ SEM MH
     lhs.annotation   = freshAnnVar @loc.beta
 
   | Nil
-    loc.alpha : UNIQUEREF counter
-    loc.beta  : UNIQUEREF counter
-    loc.betaf : UNIQUEREF counter
+    loc.alpha  : UNIQUEREF counter
+    loc.betaf1 : UNIQUEREF counter
+    loc.betaf2 : UNIQUEREF counter
 
-    loc.alpha' = freshVar @loc.alpha
-    loc.beta'  = freshAnnVar @loc.beta
-    loc.betaf' = freshAnnVar @loc.betaf
+    loc.alpha'  = freshVar @loc.alpha
+    loc.betaf1' = freshAnnVar @loc.betaf1
+    loc.betaf2' = freshAnnVar @loc.betaf2
 
-    loc.ty = List @loc.alpha' @loc.beta'
+    loc.ty = List @loc.alpha' @loc.betaf1'
 
     loc.substitution = Identity
 
     loc.constraints = DS.empty :: Constraints
 
-    loc.annotation = @loc.betaf'
+    loc.annotation = @loc.betaf2'
 
     lhs.substitution = @loc.substitution
     lhs.ty = @loc.ty
@@ -75,11 +75,11 @@ SEM MH
     lhs.expressions = [(@loc.ty,@copy)]
 
   | Cons
-    loc.beta  : UNIQUEREF counter
-    loc.betaf : UNIQUEREF counter
+    loc.betaf1 : UNIQUEREF counter
+    loc.ppoint : UNIQUEREF counter
 
-    loc.beta'  = freshAnnVar @loc.beta
-    loc.betaf' = freshAnnVar @loc.betaf
+    loc.betaf1' = freshAnnVar @loc.betaf1
+    loc.pi      = mkProgramPoint "L" @loc.ppoint
 
     loc.listTy = List @e1.ty @e1.annotation
     loc.theta1 = @e1.substitution
@@ -90,15 +90,20 @@ SEM MH
 
     loc.ty = applySubst @loc.substitution @loc.listTy
 
+    loc.listContentAnn = 
+      case @e2.ty of
+        List _ a -> a
+        _        -> error "can only cons lists"
+
     loc.constraints =
       let c1 = @e1.constraints
           c2 = @e2.constraints
-          c3 = (@loc.beta' <:? @e1.annotation) `DS.union`
-               (@loc.betaf' <:? @e2.annotation)
+          c3 = (@e1.annotation <:? @loc.listContentAnn) `DS.union`
+               (@loc.betaf1' <:? @loc.pi) 
           cs = c1 `DS.union` c2 `DS.union` c3
       in applySubst @loc.substitution cs 
 
-    loc.annotation = @loc.betaf'
+    loc.annotation = @loc.betaf1'
 
     lhs.substitution = @loc.substitution
     lhs.ty = @loc.ty
@@ -162,6 +167,8 @@ SEM MH
                 "constraints: " ++ show @loc.constraints ++ "\n\n" ++
                 @e.debug ++ @c1.debug ++ @c2.debug
 
+    lhs.expressions = [(@loc.ty,@copy)] ++ @e.expressions ++ @c1.expressions ++ @c2.expressions
+
   | CaseAlt
     loc.betaf : UNIQUEREF counter
 
@@ -204,6 +211,8 @@ SEM MH
                 "substitution: " ++ show @loc.substitution ++ "\n" ++
                 "constraints: " ++ show @loc.constraints ++ "\n\n" ++
                 @pat.debug ++ @bnd.debug
+
+    lhs.expressions = [(@loc.ty,@copy)] ++ @pat.expressions ++ @bnd.expressions
 
   | Op
     loc.alpha1 : UNIQUEREF counter
@@ -649,17 +658,10 @@ instantiate seed ts = (undefined, applySubst subst ty)
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = (applySubst subst cs, applySubst subst ty)
   where (Binders tyvars annvars cs ty) = collectBinders ts
-<<<<<<< HEAD
         fresh   prefix = map (\x -> prefix : show seed ++ show x) ([0..] :: [Int])
         tySubs         = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
         annSubs        = zipWith (\x y -> AnnSub x (AnnVar y)) annvars (fresh 'β')
         subst          = foldr Dot Identity (tySubs ++ annSubs)
 -}
-=======
-        fresh   pfx = map (\x -> pfx : show seed ++ show x) ([0..] :: [Int])
-        tySubs      = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
-        annSubs     = zipWith AnnSub annvars (fresh 'β')
-        subst       = foldr Dot Identity (tySubs ++ annSubs)
->>>>>>> e583283ad8da30c5fb3ccbcb3c49c21db9f3bdd1
 
 }
