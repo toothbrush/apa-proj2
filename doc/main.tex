@@ -164,15 +164,15 @@ These rules are formulated in a syntax-directed fashion.
         } \\
 ~&~\\
         $ [$\emph{t-if}$] $& \inference{
-        \Gamma, C |- e_0 : Bool % note: no annotation phi0
-        & \Gamma, C |- e_1 : \tau %again no phi1
-        & \Gamma, C |- e_2 : \tau % no phi2
+        \Gamma, C |- e_0 : Bool^{\varphi_0}
+        & \Gamma, C |- e_1 : \tau^{\varphi_1}
+        & \Gamma, C |- e_2 : \tau^{\varphi_2}
         & C |- \varphi_0 \tyrel \varphi
         & C |- \varphi_1 \tyrel \varphi
         & C |- \varphi_2 \tyrel \varphi
         }
         {
-        \Gamma,C|- \<if>\: e_0\: \<then>\: e_1\: \<else>\: e_2 : \tau^{\varphi} %TODO wrong?
+        \Gamma,C|- \<if>\: e_0\: \<then>\: e_1\: \<else>\: e_2 : \tau^{\varphi}
         } \\
 ~&~\\
         $ [$\emph{t-bin-op}$] $& \inference{ % what about all the annotated simple vars?
