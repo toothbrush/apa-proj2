@@ -41,3 +41,12 @@ The program expects a file to be piped to it:
 > cat examples/poisoning.hm | ./dist/build/cfa/cfa
 
 Several examples are available in the examples directory.
+
+
+### Extras
+
+The program can also do a couple of other things. Type
+
+> ./dist/build/cfa/cfa help
+
+to get an overview.
