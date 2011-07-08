@@ -8,6 +8,7 @@
 \reservestyle{\command}{\textbf}
 \command{let,in,:,case,of}
 \mathlig{-->}{\longrightarrow}
+\newcommand{\tyrel}{\sqsubseteq}
 % end semantic
 
 \author{Jurri\"en Stutterheim\and Ruben de Gooijer \and Paul van der Walt} 
@@ -131,33 +132,22 @@ These rules are formulated in a syntax-directed fashion.
     \begin{tabular}{ll}
 %TODO FIXME
         \hline
-        $ [$\emph{t-var}$] $& \inference{\widehat{\Gamma}(x) = \widehat{\sigma}}
-{\widehat{\Gamma} |-_{CFA} x  : \widehat{\sigma}} \\
+        $ [$\emph{t-cons}$] $& \inference{
+        {\Gamma},C |- e_1 : \tau^{\varphi_1}
+        & \Gamma,C |- e_2 : ([\tau^{\varphi_2}]^{\varphi_3}
+        & C |- \varphi_2 \tyrel \varphi_1
+        & C |- \varphi_3 \tyrel \varphi
+        }
+        {
+        {\Gamma},C |- e_1 \<:> e_2  : ([\tau^{\varphi_1}])^{\varphi}
+        } \\
 ~&~\\
-$[$\emph{t-let}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma}_1 
-& \widehat{\Gamma}[x \mapsto \widehat{\sigma}_1] |-_{CFA} t_2 : \widehat{\tau}}
-{\widehat{\Gamma} |-_{CFA}\: \<let>\: x = t_1\: \<in>\: t_2 : \widehat{\tau}} \\
+        $ [$\emph{t-var}$] $& \inference{{\Gamma}(x) = ({\sigma},\varphi)
+        & C |- \varphi \tyrel \varphi_1 
+        & inst(\sigma) = C' => \tau
+        }
+        {{\Gamma},C\cup C' |- x  : {\tau^{\varphi_1}}} \\
 ~&~\\
-$[$\emph{t-nil}$] $& 
-\inference{}
-{\widehat{\Gamma} |-_{CFA} [\,] : [\widehat{\sigma}]} \\
-~&~\\
-$[$\emph{t-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1:\widehat{\sigma} 
- \widehat{\Gamma}|-_{CFA} t_2 : [\widehat{\sigma}]}
-{\widehat{\Gamma} |-_{CFA} t_1 \<:> t_2 :  [\widehat{\sigma}]} \\
-~&~\\
-% $[$\emph{t-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} t_1 : \widehat{\tau}_1 &  \widehat{\Gamma} |-_{CFA} t_2 : \widehat{\tau}_2   } 
-% {\widehat{\Gamma} |-_{CFA} (t_1,t_2) : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 } \\
-% ~&~\\
-% $[$\emph{t-case-pair}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : \widehat{\tau}_1 \times^\varphi \widehat{\tau}_2 
-% &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
-% {\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x_1,x_2) \Rightarrow e_1 : \widehat{\tau} } \\
-% ~&~\\
-$[$\emph{t-case-nil}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat{\tau}_1] &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
-{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: [] \Rightarrow e_1 : \widehat{\tau} }, if $e_0$ empty\\
-~&~\\
-$[$\emph{t-case-cons}$] $& \inference{\widehat{\Gamma} |-_{CFA} e_0 : [\widehat{\tau}_1] &  \widehat{\Gamma} |-_{CFA} e_1 : \widehat{\tau}   } 
-{\widehat{\Gamma} |-_{CFA} \:\<case>\: e_0\: \<of>\: (x\<:>xs) \Rightarrow e_1 : \widehat{\tau} }, if $e_0$ nonempty\\
 %TODO FIXME 
         \hline
     \end{tabular}
