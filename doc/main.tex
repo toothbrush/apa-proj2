@@ -77,7 +77,7 @@ is only supported inside \textbf{let}s.
     \centering
     \begin{tabular}{lcl}
         \hline
-        $t$    & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1\: |\: \lambda_\pi x . t_1$ \\
+        $t$    & ::= & $n\: |\: \textbf{ false }\: |\: \textbf{ true }\: |\: x\: |\: \lambda_\pi x.t_1 \:$ \\
                & $|$ & $t_1 t_2 \:|\: \textbf{ if } t_1 \textbf{ then } t_2 \textbf{ else } t_3 \:|\:  \textbf{ let } x = t_1 \textbf{ in } t_2$\\
                & $|$ & $\mu f.\textbf{ let } x = t_1 \textbf{ in } t_2$\\
                & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2   $\\%     \: | \: (t_1,t_2)_\pi $ \\ 
