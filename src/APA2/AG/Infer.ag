@@ -29,18 +29,48 @@ SEM MH
   | VBool
     loc.beta  : UNIQUEREF counter
 
-    lhs.ty = Bool
-    lhs.substitution = Identity
-    lhs.constraints  = DS.empty
-    lhs.annotation   = freshAnnVar @loc.beta
+    loc.ty           = Bool
+    loc.substitution = Identity
+    loc.constraints  = DS.empty :: Constraints
+    loc.annotation   = freshAnnVar @loc.beta
+
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
+
+    lhs.debug = "VBool" ++
+                "tyEnv: " ++ show @loc.ty ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n"
+
+    lhs.expressions = [(@loc.ty,@copy)]
 
   | VInt
     loc.beta  : UNIQUEREF counter
 
-    lhs.ty = Nat
-    lhs.substitution = Identity
-    lhs.constraints  = DS.empty
-    lhs.annotation   = freshAnnVar @loc.beta
+    loc.ty = Nat
+    loc.substitution = Identity
+    loc.constraints  = DS.empty :: Constraints
+    loc.annotation   = freshAnnVar @loc.beta
+
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
+
+    lhs.debug = "VInt" ++
+                "tyEnv: " ++ show @loc.ty ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n"
+
+    lhs.expressions = [(@loc.ty,@copy)]
 
   | Nil
     loc.alpha  : UNIQUEREF counter
@@ -453,8 +483,6 @@ SEM MH
                 "constraints: " ++ show @loc.constraints ++ "\n\n" ++
                 @e1.debug ++ @e2.debug
 
--- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
--- but is can be passed into a function..
   | LetRec
  --    not yet?? todo
  --    lhs.annotDict = DM.singleton @loc.pi @loc.copy
@@ -483,12 +511,10 @@ SEM MH
 
     loc.substitution = @loc.theta
 
-    -- | not sure about correctness
     loc.constraints =
-      let c1 = @e1.constraints
-          c2 = @e2.constraints
-          c3 = applySubst @loc.theta (@loc.betaf' <:? @e2.annotation)
-      in c1 `DS.union` c2 `DS.union` c3
+      let cs = @e1.constraints `DS.union` @e2.constraints `DS.union`
+               (@loc.betaf' <:? @e2.annotation)
+      in applySubst @loc.substitution cs
 
     loc.annotation = applySubst @loc.substitution @loc.betaf'
 
@@ -497,12 +523,15 @@ SEM MH
     lhs.substitution = @loc.substitution
     lhs.annotation = @loc.annotation
 
+    -- | Since we are in a recursive let we need to insert a recursive reference to our binding
+    --   into the type environment such that the body of @e1 can refer to it. We distinguish
+    --   two cases: let rec with and without a parameter.
     e1.typeEnvironment =
       case @x of
         Just x  -> DM.insert @f (QualSig . Ty $ Arr @loc.alphax' @loc.betax' @loc.alphar' @loc.betar')
                    (DM.insert x (QualSig $ Ty @loc.alphax') @lhs.typeEnvironment)
                    
-        -- A recursive let binding without arguments, e.g. let loop = loop in loop
+        -- A recursive let without parameters, e.g. let loop = loop in loop
         Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') @lhs.typeEnvironment
 
     e1.annEnvironment =
@@ -511,7 +540,7 @@ SEM MH
         Nothing -> DM.insert @f @loc.betaf' @lhs.annEnvironment
         
     e2.typeEnvironment =
-      let newEnv = applySubst @loc.theta @lhs.typeEnvironment
+      let newEnv = applySubst @loc.substitution @lhs.typeEnvironment
       in case @x of
           Just _  -> let ty    = Arr @loc.alphax' @loc.betax' @e1.ty @e1.annotation
                          ty'   = applySubst @loc.theta ty
@@ -520,7 +549,7 @@ SEM MH
           Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') newEnv -- not sure about this
 
     e2.annEnvironment =
-      let apps t = applySubst @loc.theta (DM.insert @f @e1.annotation t)
+      let apps t = applySubst @loc.substitution (DM.insert @f @e1.annotation t)
       in case @x of
            Just x' -> apps (DM.insert x' @loc.betax' @lhs.annEnvironment)
            Nothing -> apps @lhs.annEnvironment
