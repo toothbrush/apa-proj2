@@ -52,6 +52,8 @@ debugInference tm =
     putStrLn ""
     putStrLn "Constraints: "
     print (DS.toList constraints)
+    putStrLn "\nNew_Constraints: "
+    printAnalysis (worklist constraints)
     putStrLn ""
     putStrLn "Expressions: "
     printExpressions (applySubst subst exprs)

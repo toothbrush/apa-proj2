@@ -141,8 +141,8 @@ printActiveAnnVars s =
   do putStrLn "active annvars: "
      DS.fold (\v b -> putStr (' ' : v) >>= \_ -> b) (return ()) s
 
-printAnalysisResult (AnnSet s) = DS.fold (\x b -> putStr (x ++ ",") >>= \_ -> b) (return ()) s
-printAnalysisResult AnnEmpty = putStr "{}"
+printAnalysisResult (AnnSet s) = DS.fold (\x b -> putStr (x ++ ", \n") >>= \_ -> b) (return ()) s
+printAnalysisResult AnnEmpty = putStr "{}, "
 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
