@@ -31,10 +31,24 @@
 
 \section{Introduction}
 
-This project aims to implement a tool which can do a control-flow analysis on a lambda-calculus language with support for
-data structures. The focus is on lists%and pairs
+This project aims to implement a tool which can do a control-flow analysis on a
+lambda-calculus language with support for data structures. The focus is on
+lists%and pairs
 , for now.
-%todo: more. 
+
+Control-flow analysis aims to determine for each function application, which
+functions may be applied. We also track the creation of data structures and that
+of lambda functions. The implementation of our analysis is built on the
+algorithm W type inferencing algorithm, using an annotated type system.
+
+Our implementation currently offers support for monovariance and subeffecting.
+While support for polyvariance has been attempted, we failed to deliver it fully
+operational on time.
+
+This document is organised as follows. First we introduce the design of the
+analysis by showing our target language, its type system, its semantics and
+our analysis rules. We then proceed to the implementation details of the
+analysis.
 
 \section{Design}
 
@@ -142,33 +156,54 @@ These rules are formulated in a syntax-directed fashion.
 \begin{table}
     \begin{centering}
     \begin{tabular}{ll}
-%TODO FIXME
-        \hline
-        $ [$\emph{t-cons}$] $& \inference{
-        {\Gamma},C |- e_1 : \tau^{\varphi_1}
-        & \Gamma,C |- e_2 : ([\tau^{\varphi_2}]^{\varphi_3}
-        & C |- \varphi_2 \tyrel \varphi_1
-        & C |- \varphi_3 \tyrel \varphi
+        \hline \\
+        $ [$\emph{t-nat}$] $& \inference{}
+        {
+        {\Gamma},C |- \mathds{N} : Nat^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-true}$] $& \inference{}
+        {
+        {\Gamma},C |- True : Bool^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-false}$] $& \inference{}
+        {
+        {\Gamma},C |- False : Bool^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-nil}$] $& \inference{
+        {\Gamma},C |- Nil : \tau^{\varphi_1}
+        & C |- \varphi \sqsupseteq \pi
         }
         {
-        {\Gamma},C |- e_1 \<:> e_2  : ([\tau^{\varphi_1}])^{\varphi}
+        {\Gamma},C |- Nil_\pi : [\tau^{\varphi_1}]^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-cons}$] $& \inference{
+        {\Gamma},C |- e_1 : \tau^{\varphi_1}
+        & \Gamma,C |- e_2 : [\tau^{\varphi_2}]^{\varphi_3}
+        & C |- \varphi_1 \sqsupseteq \varphi_2
+        & C |- \varphi \sqsupseteq \pi
+        }
+        {
+        {\Gamma},C |- Cons_\pi\ e_1\ e_2  : [\tau^{\varphi_1}]^{\varphi}
         } \\
 ~&~\\
         $ [$\emph{t-var}$] $& \inference{
         {\Gamma}(x) = ({\sigma},\varphi)
-        & C |- \varphi \tyrel \varphi_1 
-        & inst(\sigma) = C' => \tau
+        & C |- \varphi_1 \sqsupseteq \varphi
+        & inst(\sigma) = \tau
         }
         {
-        {\Gamma},C\cup C' |- x  : {\tau^{\varphi_1}}
+        {\Gamma},C |- x  : {\tau^{\varphi_1}}
         } \\
 ~&~\\
         $ [$\emph{t-app}$] $& \inference{
         \Gamma,C |- e_1 : \tau_2^{\varphi_2} ->^{\varphi} \tau_0^{\varphi_0}
         & \Gamma,C|- e_2 : \tau_2^{\varphi_3}
-        & C|- \varphi_3 \tyrel \varphi_2
-        & C|- \varphi   \tyrel \varphi_4
-        & C|- \varphi_0 \tyrel \varphi_4
+        & C|- \varphi_2 \sqsupseteq \varphi_3
+        & C|- \varphi_4 \sqsupseteq \varphi_0
         }
         {
         \Gamma, C |- e_1 e_2 : \tau_0^{\varphi_4}
