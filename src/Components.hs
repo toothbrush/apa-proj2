@@ -12,7 +12,6 @@ import Data.Generics.Aliases
 initialInheritedAttributes :: Inh_MH
 initialInheritedAttributes =
   Inh_MH { typeEnvironment_Inh_MH = DM.empty
-         , annEnvironment_Inh_MH = DM.empty
          , counter_Inh_MH = 0
          }
 

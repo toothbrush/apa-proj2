@@ -7,7 +7,6 @@ ATTR MH
   [ -- The type environment should start empty, then grow as more lambdas
     -- etc. are encountered.
     typeEnvironment : {TyEnv}
-    annEnvironment  : {AnnEnv}
   | -- The counter is used to generate fresh variable names, which are unique.
     counter : {Int}
   |
@@ -127,8 +126,7 @@ SEM MH
 
       lhs.constraints = DS.empty
 
-      lhs.annotation = @loc.annotation
-      loc.annotation = Just @loc.beta'
+      lhs.annotation = Nothing
 
   | Cons
       loc.beta : UNIQUEREF counter
@@ -152,11 +150,9 @@ SEM MH
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta cs 
 
-      lhs.annotation = @loc.annotation
-      loc.annotation = Just @loc.beta'
+      lhs.annotation = Nothing
 
       e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
-      e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
   | Op -- TODO: Verify
       loc.alpha1 : UNIQUEREF counter
@@ -189,10 +185,8 @@ SEM MH
         in applySubst @loc.theta cs
 
       e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
-      e2.annEnvironment  = applySubst @loc.theta1 @lhs.annEnvironment
 
-      lhs.annotation = @loc.annotation
-      loc.annotation = Just @loc.beta'
+      lhs.annotation = Nothing
 
   | Var
       loc.beta : UNIQUEREF counter
@@ -209,18 +203,16 @@ SEM MH
               (DM.lookup @x @lhs.typeEnvironment)
 
       -- this does not work for a case like: let f = \x -> true in let g = \k -> if f 0 then k else \y -> false in g f
-      loc.annotation   = Nothing
       loc.constraints  = @loc.c
       loc.substitution = Identity
 
-      lhs.annotation   = @loc.annotation
+      lhs.annotation   = Nothing
       lhs.constraints  = @loc.constraints
       lhs.substitution = @loc.substitution
       lhs.ty           = @loc.ty
 
       lhs.debug = "Var("++ @x ++ "): \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n"
@@ -234,24 +226,21 @@ SEM MH
       loc.beta'  = mkAnnVar @loc.beta
       loc.pi     = mkProgramPoint @x @loc.ppoint
 
-      loc.annotation   = Just @loc.pi
-      loc.constraints  = @e.constraints `DS.union` (@loc.beta' <:? Just (AnnPts $ DS.singleton @loc.pi))
+      loc.constraints  = @e.constraints `DS.union` (@loc.beta' <:? (AnnPts $ DS.singleton @loc.pi))
       loc.substitution = @e.substitution
       loc.ty           = Arr (applySubst @loc.substitution @loc.alpha') @e.ty (DS.singleton @loc.beta')
 
-      lhs.annotation   = @loc.annotation
+      lhs.annotation   = Just @loc.pi
       lhs.constraints  = @loc.constraints
       lhs.substitution = @loc.substitution
       lhs.ty           = @loc.ty
 
-      e.annEnvironment  = DM.insert @x Nothing @lhs.annEnvironment
       e.typeEnvironment = DM.insert @x (Ty @loc.alpha') @lhs.typeEnvironment
 
       lhs.debug = "Lambda("++ @x ++ "): \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
-                  "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.pi ++ "\n" ++
+                  "ty: " ++ show @loc.ty ++ "\n" ++
+                  "annotation: " ++ @loc.pi ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e.debug
@@ -273,7 +262,6 @@ SEM MH
 
       loc.ty = applySubst @loc.theta3 @loc.alpha'
 
-      loc.annotation = Nothing
 -- TODO: We might actually still require some constraint juggling here
       -- | We do not generate constraints for an application of a
       --   function to a primitive type.
@@ -288,17 +276,15 @@ SEM MH
             {- c4 = @loc.beta' <:? @e2.annotation-}
         in  sc1 `DS.union` sc2
 
-      lhs.annotation   = @loc.annotation
+      lhs.annotation   = Nothing
       lhs.constraints  = @loc.constraints
       lhs.substitution = @loc.substitution
       lhs.ty           = @loc.ty
 
-      e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
       e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
       lhs.debug = "App: \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
@@ -316,23 +302,14 @@ SEM MH
 
       loc.substitution = @loc.theta2 `dot` @loc.theta1
 
-      loc.constraints =
-        let c1 = @e1.constraints
-            c2 = @e2.constraints
-            c3 = DS.empty
-            {- c3 = @loc.beta' <:? @e2.annotation-}
-            cs = c1 `DS.union` c2 `DS.union` c3
-        in applySubst @loc.theta2 cs
+      loc.constraints = let c1 = @e1.constraints
+                            c2 = applySubst @loc.theta2 @e2.constraints
+                        in  c1 `DS.union` c2
 
-      loc.annotation = Nothing
-        {- case @loc.ty of-}
-          {- Arr _ _ _ -> Just (AnnVar @loc.beta')-}
-          {- _         -> Nothing-}
-
-      lhs.ty = @loc.ty
-      lhs.annotation = @loc.annotation
-      lhs.constraints = @loc.constraints
+      lhs.annotation   = Nothing
+      lhs.constraints  = @loc.constraints
       lhs.substitution = @loc.substitution
+      lhs.ty = @loc.ty
 
       e2.typeEnvironment =
         let newEnv  = applySubst @e1.substitution @lhs.typeEnvironment
@@ -340,12 +317,8 @@ SEM MH
             ty'     = maybe (Ty @e1.ty) (gen . DS.singleton) @e1.annotation
         in  DM.insert @x ty' newEnv
 
-      {- e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment-}
-      e2.annEnvironment = @lhs.annEnvironment
-
       lhs.debug = "Let("++ @x ++ "): \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
@@ -503,13 +476,10 @@ existing Arr.
       lhs.ty           = @loc.ty
 
       e1.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
-      e1.annEnvironment  = applySubst @loc.theta1 @lhs.annEnvironment
       e2.typeEnvironment = applySubst (@loc.theta2 `dot` @loc.theta1) @lhs.typeEnvironment
-      e2.annEnvironment  = applySubst (@loc.theta2 `dot` @loc.theta1) @lhs.annEnvironment
 
       lhs.debug = "If: \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
@@ -523,7 +493,7 @@ mkAnnVar :: Int -> AnnVar
 mkAnnVar i = 'β' : show i
 
 mkProgramPoint :: Var -> Int -> Point
-mkProgramPoint v p = v ++ show p
+mkProgramPoint v p = 'π' : v ++ show p
 
 operatorType :: String -> (Ty, Ty, Ty)
 operatorType op
@@ -531,9 +501,8 @@ operatorType op
   | op `elem` ["==", "<", ">", "<=", ">="] = (Nat, Nat, Bool)
   | otherwise                              = error $ "Invalid op: " ++ op
 
-(<:?) :: AnnVar -> Maybe RhsConstr -> Constraints
-v <:? Just phi = DS.singleton (Constraint v phi)
-_ <:? _        = DS.empty
+(<:?) :: AnnVar -> RhsConstr -> Constraints
+v <:? phi = DS.singleton (Constraint v phi)
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
 dot = Dot
