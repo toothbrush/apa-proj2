@@ -158,20 +158,19 @@ SEM MH
       loc.theta2 = @e2.substitution
       loc.theta3 = unify (applySubst @loc.theta2 @e1.ty) @loc.ty
       loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) @loc.ty'
-      loc.theta  = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
+
+      loc.th43  = @loc.theta4 `dot` @loc.theta3
+      loc.th432 = @loc.th43 `dot` @loc.theta2
+      loc.theta = @loc.th432 `dot` @loc.theta1
 
       lhs.ty = @loc.r
 
       lhs.substitution = @loc.theta
 
       lhs.constraints =
-        let c1 = @e1.constraints
-            c2 = @e2.constraints
-            c3 = DS.empty
-            {- c3 = (@loc.beta' <:? @e1.annotation) `DS.union`-}
-                 {- (@loc.beta' <:? @e2.annotation)-}
-            cs = c1 `DS.union` c2 `DS.union` c3
-        in applySubst @loc.theta cs
+        let c1 = applySubst @loc.th432 @e1.constraints
+            c2 = applySubst @loc.th43 @e2.constraints
+        in c1 `DS.union` c2
 
       e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
 
