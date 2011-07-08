@@ -67,7 +67,7 @@ worklist cs =
 
     solveConstraints w' ana'
       | DMS.null w' = ana'
-      | otherwise   = let (w'', ana'') = trace (debugStep w' ana') (step infl' w' ana')
+      | otherwise   = let (w'', ana'') = (step infl' w' ana')
                       in  solveConstraints w'' ana''
   in solveConstraints w analysis'
 
@@ -104,12 +104,6 @@ a          ⊔ AnnEmpty   = a
 _          ⊔ _          = error "no variables allowed"
 
 -- | Prints intermediate steps of the worklist to IO if enabled.
-debugStep :: t -> t1 -> [Char]
-debugStep _ _ = ""
-{-
-  case unsafePerformIO (debugStep' w ana) of
-    () -> ""
--}
 debugStep' :: Worklist -> Map AnnVar SAnn -> IO ()
 debugStep' w ana =
   do 

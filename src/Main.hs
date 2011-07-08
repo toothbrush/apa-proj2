@@ -19,7 +19,7 @@ main = do
 
 -- | Default action if no argument is provided to the executable. It parses the program, executes the analysis and prints the results.
 doDefault :: String -> IO ()
-doDefault input = (analysisResult . parseProgram)  input
+doDefault = analysisResult . parseProgram
 
 -- | The help message
 usage :: String

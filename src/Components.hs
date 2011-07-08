@@ -83,7 +83,7 @@ analysisResult :: MH -> IO ()
 analysisResult tm = 
   do 
     let (_, _, _, constraints, exprs, _, _) = w tm
-    putStrLn "Analysis result: " 
+    putStrLn "Analysis result: \n" 
     printExpressions (applySubst (solutionSubst constraints) exprs)
 
 -- | Turns a map of constraints into a substitution
