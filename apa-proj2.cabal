@@ -2,7 +2,6 @@ name:                  apa-proj2
 version:               0.1
 synopsis:              Utilities for a simple, implicitly typed functional
                        language.
-description:           APA assignment for type and effect systems. Type inferencer tracking data structure creation.
 license:               MIT
 license-file:          LICENSE
 category:              Compilers/Interpreters
@@ -10,30 +9,9 @@ author:                Jurriën, Ruben, Paul
 maintainer:            paul@denknerd.org
 stability:             provisional
 homepage:              http://www.cs.uu.nl/wiki/Apa
-tested-with:           GHC == 6.8.2, GHC == 6.8.3, GHC == 6.10.1,
-                       GHC == 7.0.3
+tested-with:           GHC == 6.8.2, GHC == 6.8.3, GHC == 6.10.1
 build-type:            Simple
 cabal-version:         >= 1.6
-extra-source-files:    src/Components.hs,
-                       src/APA2/AG.ag,
-                       src/APA2/AG/CollectBinders.ag,
-                       src/APA2/AG/DataTypes.ag,
-                       src/APA2/AG/FreeAnnVars.ag,
-                       src/APA2/AG/FreeTyVars.ag,
-                       src/APA2/AG/FreeVars.ag,
-                       src/APA2/AG/Infer.ag,
-                       examples/*.hm,
-                       examples/well-typed/*.hm,
-                       examples/ill-typed/*.hm,
-                       doc/main.tex,
-                       doc/main.pdf,
-                       AUTHORS,
-                       Makefile,
-                       README.md
-
-source-repository head
-  type:     git
-  location: https://toothbrush@github.com/toothbrush/apa-proj2.git
 
 executable cfa
   main-is:             Main.hs
