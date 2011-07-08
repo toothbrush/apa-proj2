@@ -27,7 +27,7 @@ clean :
 	-rm doc/main.toc
 	cabal clean
 
-dist: haskell doc
+dist: doc
 	cabal configure
 	cabal sdist
 	tar tf dist/apa-proj2-0.1.tar.gz
