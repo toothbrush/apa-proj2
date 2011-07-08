@@ -180,25 +180,4 @@ ppMap :: (Show b) => Map String b -> String
 ppMap x = let f (a, b) = a ++ " == " ++ show b
               l = map f $ M.toList x
           in "{\n" ++ intercalate "\n" l ++ "\n}"
-
-{-
-instance Show Ty where
-  show (TyVar a)    = "TyVar \"" ++ a ++ "\""
-  show (Arr t a t' a') = "Arr ("++show t++") ("++show a++") ("++show t'++") ("++show a'++")"
-  show Nat          = "Nat"
-  show Bool         = "Bool"
-  show (List t an)  = "List (" ++ show t ++ ") (" ++ show an ++ ")"
-
-instance Show SAnn where
-  show (AnnVar var) = "AnnVar (\""++var++"\")"
-  show (AnnSet ps)  = "{" ++  intercalate ", " (toList ps) ++  "}"
-  show (AnnEmpty)   = "{}"
-
-instance Show SimpleSubstitution where
-  show Identity      = "Identity"
-  show (TySub v t)   = "TySub (\"" ++ v ++ "\") (" ++ show t ++ ")"
-  show (AnnSub a a') = "AnnSub (" ++ show a ++ ") (" ++ show a' ++ ")"
-  show (Dot s s') = "Dot (" ++ show s ++ ") (" ++ show s' ++ ")"
--}
-
 }
