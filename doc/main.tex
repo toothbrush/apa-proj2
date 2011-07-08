@@ -47,8 +47,9 @@ operational on time.
 
 This document is organised as follows. First we introduce the design of the
 analysis by showing our target language, its type system, its semantics and
-our analysis rules. We then proceed to the implementation details of the
-analysis.
+our analysis rules. We then proceed to the code level implementation details of
+the analysis, after which we discuss in more detail what does and does not work
+in our current implementation.
 
 \section{Design}
 
@@ -265,38 +266,38 @@ These rules are formulated in a syntax-directed fashion.
     \end{centering}
 \end{table}
 
-\subsection{Example Derivation}
+% \subsection{Example Derivation}
 
-\begin{prooftree}
-\small
-\AxiomC{$asdf$}
-\RightLabel{\scriptsize{id}}
-\UnaryInfC{$A a \vdash A a$}
-  \AxiomC{$instance A a \Rightarrow A (Maybe a)$}
-  \RightLabel{\scriptsize{inst}}
-\BinaryInfC{$A a oplus A Maybe( a)$}
-\RightLabel{\scriptsize{closure}}
-\UnaryInfC{$A (Maybe a) oplus A (Maybe (Maybe a))$}
-  \AxiomC{$$}
-  \RightLabel{\scriptsize{id}} 
-  \UnaryInfC{$A a oplus A a$}
-    \AxiomC{$instance A a \Rightarrow A (Maybe a)$} 
-  \RightLabel{\scriptsize{inst}}
-  \BinaryInfC{$A a oplus A (Maybe a)$}
-\RightLabel{\scriptsize{trans}}
-\BinaryInfC{$A  a oplus A (Maybe (Maybe a))$}
-\RightLabel{\scriptsize{closure}}
-\UnaryInfC{$A Int oplus A (Maybe (Maybe Int))$}
-  \AxiomC{$asdf$}
-  \RightLabel{\scriptsize{id}}
-  \UnaryInfC{$B a oplus B a$}
-    \AxiomC{$class (A a) \Rightarrow B a$}
-  \BinaryInfC{$B a oplus A a$}
-  \RightLabel{\scriptsize{closure}}
-  \UnaryInfC{$B Int oplus A Int$}
-\RightLabel{\scriptsize{trans}}
-\BinaryInfC{$B Int oplus A (Maybe (Maybe Int))$}
-\end{prooftree}
+% \begin{prooftree}
+% \small
+% \AxiomC{$asdf$}
+% \RightLabel{\scriptsize{id}}
+% \UnaryInfC{$A a \vdash A a$}
+%   \AxiomC{$instance A a \Rightarrow A (Maybe a)$}
+%   \RightLabel{\scriptsize{inst}}
+% \BinaryInfC{$A a oplus A Maybe( a)$}
+% \RightLabel{\scriptsize{closure}}
+% \UnaryInfC{$A (Maybe a) oplus A (Maybe (Maybe a))$}
+%   \AxiomC{$$}
+%   \RightLabel{\scriptsize{id}} 
+%   \UnaryInfC{$A a oplus A a$}
+%     \AxiomC{$instance A a \Rightarrow A (Maybe a)$} 
+%   \RightLabel{\scriptsize{inst}}
+%   \BinaryInfC{$A a oplus A (Maybe a)$}
+% \RightLabel{\scriptsize{trans}}
+% \BinaryInfC{$A  a oplus A (Maybe (Maybe a))$}
+% \RightLabel{\scriptsize{closure}}
+% \UnaryInfC{$A Int oplus A (Maybe (Maybe Int))$}
+%   \AxiomC{$asdf$}
+%   \RightLabel{\scriptsize{id}}
+%   \UnaryInfC{$B a oplus B a$}
+%     \AxiomC{$class (A a) \Rightarrow B a$}
+%   \BinaryInfC{$B a oplus A a$}
+%   \RightLabel{\scriptsize{closure}}
+%   \UnaryInfC{$B Int oplus A Int$}
+% \RightLabel{\scriptsize{trans}}
+% \BinaryInfC{$B Int oplus A (Maybe (Maybe Int))$}
+% \end{prooftree}
 
 
 \subsection{Natural semantics}
@@ -404,12 +405,28 @@ unification and substitution algorithms.
 
 \section{Features and Limitations}
 
-The assignment suggested implementing CFA with support for tracking data structure 
+The assignment suggested implementing CFA with support for tracking data structure
 creation, with lists, pairs and a case-statement. Our implementation supports lists and 
-a case statement, with pattern matching and a fall-through case. 
+a case statement, with pattern matching and a fall-through case. As mentioned in
+the introduction, we do not offer support for pairs.
 
-% ???
-The implementation so far only has support for 
+Currently we only support a monovariant analysis. One of the most prominent issues
+preventing us from fully implementing a polyvariant analysis was that it was not
+entirely clear yet how we should go about resolving constraints during the anlysis.
+In addition, the role of the qualified type (or rather, qualified constraints)
+was not completely clear either. While we did have support for quantifying over
+annotation variables and generating several constraints on the quantified types,
+we were unfortunately forced to remove this support in order to make the monovariant
+analysis work correctly.
+
+We are currently also missing support for pairs. Instead, we offer support for
+lists. While pairs pose the problem of potentially having two different types in
+the pair, their fixed size would make them relatively straight-forward to implement.
+
+Another limitation is that our case blocks only support exactly two alternatives.
+Generalising to $n$ alternatives would be quite straight-forward, but was dropped
+due to time constraints.
+
 
 \section{Example programs}
 

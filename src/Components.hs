@@ -82,7 +82,7 @@ debugInference tm =
 analysisResult :: MH -> IO ()
 analysisResult tm = 
   do 
-    let (ty, annotation, _, constraints, exprs, _, annots) = w tm
+    let (ty, annotation, subst, constraints, exprs, _, annots) = w tm
     putStrLn "Pretty printed program:\n"
     print tm
     putStrLn "Type of full program:\n"
@@ -93,7 +93,7 @@ analysisResult tm =
     putStrLn "\nAnalysis result for all sub-expressions: \n" 
     putStrLn "Expression\t\tType"
     putStrLn horiz
-    printExpressions solved (applySubst (solutionSubst constraints) exprs)
+    printExpressions solved (applySubst (solutionSubst constraints) (applySubst subst exprs))
     putStrLn "Note: if you would like to see more info, invoke the program with the keyword 'debug'."
 
 -- | Turns a map of constraints into a substitution
