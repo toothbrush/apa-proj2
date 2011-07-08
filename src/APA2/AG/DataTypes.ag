@@ -129,7 +129,7 @@ tyAnn :: (Show a1, Show a) => a -> a1 -> [Char]
 tyAnn t a = "(" ++ show t ++ (colonOpt $ show a) ++ ")"
 
 tyAnnCont :: Show a => Map AnnVar SAnn -> a -> AnnVar -> [Char]
-tyAnnCont con t a = "(" ++ show t ++ (colonOpt $ a `from` con)
+tyAnnCont con t a = "(" ++ show t ++ (colonOpt $ a `from` con) ++ ")"
 
 colonOpt []   = ""
 colonOpt xs   = " : " ++ xs
