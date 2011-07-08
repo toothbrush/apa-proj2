@@ -328,7 +328,7 @@ existing Arr.
 -}
 
       loc.ty = case (@e1.ty, @e2.ty) of
-                 (Arr _ _ _, t2@(Arr _ _ _)) -> t2
+                 (Arr _ _ c1, t2@(Arr a b c2)) -> Arr a b (c1 `DS.union` c2)
                  (Arr _ _ cs, t2) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t2
                                      in  Arr a1 a2 (DS.insert @loc.beta3' cs)
                  (t1, Arr _ _ cs) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t1
