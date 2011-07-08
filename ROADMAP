@@ -42,6 +42,12 @@
 
   * Subeffecting voor cases checken en implementeren
 
+  * Documentatie voor het gebruik van het programma in een readme
+
+  * Documentatie voor usage in de Main
+
+  * Documentatie in code (hoeft niet perse met haddock, scheelt werk)
+
   Minder hoog:
 
   * let f = \\x -> x + 1 in let g = \\y -> y * 2 in let h = \\z -> z 3 in h f + h g
@@ -52,12 +58,6 @@
     Constatatie: h f + h g synthesized verschillende substituties voor een en de zelfde annotatie variabele
 
     Oplossing: niet bekend. ergens wordt misschien een constraint te weinig gegenereerd.
-
-  * Documentatie voor het gebruik van het programma in een readme
-
-  * Documentatie voor usage in de Main
-
-  * Documentatie in code (hoeft niet perse met haddock, scheelt werk)
 
   * Hulp programmatje dat alle examples in well-typed/ill-typed directory opent en test of
   ze daadwerkelijk getyped kunnen worden binnen ons systeem.
