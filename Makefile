@@ -14,6 +14,7 @@ haskell: src/APA2/AG.hs
 
 doc: doc/main.tex
 	pdflatex -output-directory=doc doc/main.tex
+	pdflatex -output-directory=doc doc/main.tex
 
 lint:
 	hlint src/*.hs
@@ -26,7 +27,7 @@ clean :
 	-rm doc/main.toc
 	cabal clean
 
-dist: haskell doc
+dist: doc
 	cabal configure
 	cabal sdist
 	tar tf dist/apa-proj2-0.1.tar.gz
