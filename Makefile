@@ -14,6 +14,7 @@ haskell: src/APA2/AG.hs
 
 doc: doc/main.tex
 	pdflatex -output-directory=doc doc/main.tex
+	pdflatex -output-directory=doc doc/main.tex
 
 lint:
 	hlint src/*.hs
