@@ -13,11 +13,11 @@ main = do
             "debug"    -> (debugInference . parseProgram) input
             "parse-mh" -> print $ parseProgram input
             "parse-hs" -> print $ parseExp input
-            _          -> do putStrLn ("Argument not recognized")
+            _          -> do putStrLn "Argument not recognized"
                              putStrLn usage
 
 doDefault :: String -> IO ()
-doDefault input = (analysisResult . parseProgram)  input
+doDefault = analysisResult . parseProgram
 
 usage :: String
 usage = "no usage description yet"
