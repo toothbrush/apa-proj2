@@ -12,6 +12,9 @@
 \usepackage{dsfont}
 \usepackage{a4wide}
 \usepackage{array}
+\usepackage{bussproofs}
+\usepackage{latexsym}
+
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
@@ -217,6 +220,40 @@ These rules are formulated in a syntax-directed fashion.
     \caption{Typing judgements}
     \label{tab:typing-rules}
 \end{table}
+
+\subsection{Example Derivation}
+
+%\begin{prooftree}
+%\small
+%\AxiomC{$$}
+%\RightLabel{\scriptsize{id}}
+%\UnaryInfC{$A\ a \Vdash A\ a$}
+%  \AxiomC{$instance\ A\ a \Rightarrow A\ (Maybe\ a)$}
+%  \RightLabel{\scriptsize{inst}}
+%\BinaryInfC{$A\ a \Vdash A\ Maybe(\ a)$}
+%\RightLabel{\scriptsize{closure}}
+%\UnaryInfC{$A\ (Maybe\ a) \Vdash A\ (Maybe\ (Maybe\ a))$}
+%  \AxiomC{$$}
+%  \RightLabel{\scriptsize{id}} 
+%  \UnaryInfC{$A\ a \Vdash A\ a$}
+%    \AxiomC{$instance A\ a \Rightarrow A\ (Maybe\ a)$} 
+%  \RightLabel{\scriptsize{inst}}
+%  \BinaryInfC{$A\ a \Vdash A\ (Maybe\ a)$}
+%\RightLabel{\scriptsize{trans}}
+%\BinaryInfC{$A\ a \Vdash A\ (Maybe\ (Maybe\ a))$}
+%\RightLabel{\scriptsize{closure}}
+%\UnaryInfC{$A\ Int \Vdash A\ (Maybe\ (Maybe\ Int))$}
+%  \AxiomC{$$}
+%  \RightLabel{\scriptsize{id}}
+%  \UnaryInfC{$B\ a \Vdash B\ a$}
+%    \AxiomC{$class\ (A\ a) \Rightarrow B\ a$}
+%  \BinaryInfC{$B\ a \Vdash A\ a$}
+%  \RightLabel{\scriptsize{closure}}
+%  \UnaryInfC{$B\ Int \Vdash A\ Int$}
+%\RightLabel{\scriptsize{trans}}
+%\BinaryInfC{$B\ Int \Vdash A\ (Maybe\ (Maybe\ Int))$}
+%\end{prooftree}
+
 
 \subsection{Natural semantics}
 
