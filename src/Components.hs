@@ -55,7 +55,8 @@ debugInference tm =
     putStrLn ""
     putStrLn "Ty:"
     let solved = worklist constraints
-    putStrLn $ ("("++ tyLayout solved ty ++ ") :::: " ++  ((fromSAnn annotation) `from` solved))
+    let ty' = applySubst (solutionSubst constraints) (applySubst subst ty)
+    putStrLn $ ("("++ tyLayout solved ty' ++ ") :::: " ++  ((fromSAnn annotation) `from` solved))
     putStrLn ""
     putStrLn "Top level annotation: "
     print annotation
@@ -74,7 +75,7 @@ debugInference tm =
     printAnalysis solved
     putStrLn ""
     putStrLn "Expressions: "
-    printExpressions solved (applySubst subst exprs)
+    printExpressions solved (applySubst (solutionSubst constraints) (applySubst subst exprs))
     putStrLn ""
     putStrLn debug
 
@@ -87,7 +88,8 @@ analysisResult tm =
     print tm
     putStrLn "Type of full program:\n"
     let solved = worklist constraints
-    putStrLn $ ("("++ tyLayout solved ty ++ ") :::: " ++  ((fromSAnn annotation) `from` solved))
+    let ty' = applySubst (solutionSubst constraints) (applySubst subst ty)
+    putStrLn $ ("("++ tyLayout solved ty' ++ ") :::: " ++  ((fromSAnn annotation) `from` solved))
     putStrLn "\nMapping of program points to code: \n" 
     putStrLn (ppMap annots)
     putStrLn "\nAnalysis result for all sub-expressions: \n" 

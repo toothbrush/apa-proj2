@@ -33,7 +33,7 @@
 
 This project aims to implement a tool which can do a control-flow analysis on a
 lambda-calculus language with support for data structures. The focus is on
-lists%and pairs
+ lists%and pairs
 , for now.
 
 Control-flow analysis aims to determine for each function application, which
@@ -58,7 +58,7 @@ supports. In Tables \ref{tab:elems} and \ref{tab:grammar} one can see the
 grammar of the language. It is based on Haskell (in fact we use the Haskell
 source extensions parser), but of course only a subset is supported. 
 
-We include support for% pairs and
+We include support for % pairs and
  lists, as well as a case statement in which one
 can pattern-match on these data structures. There is not yet support for general
 data structures.
@@ -426,7 +426,7 @@ the introduction, we do not offer support for pairs.
 
 Currently we only support a monovariant analysis. One of the most prominent issues
 preventing us from fully implementing a polyvariant analysis was that it was not
-entirely clear yet how we should go about resolving constraints during the anlysis.
+entirely clear yet how we should go about resolving constraints during the analysis.
 In addition, the role of the qualified type (or rather, qualified constraints)
 was not completely clear either. While we did have support for quantifying over
 annotation variables and generating several constraints on the quantified types,
@@ -437,7 +437,7 @@ how to support it in the generalisation and instantiation functions and which
 constraints we should generate for it.
 
 We are currently also missing support for pairs. Instead, we offer support for
-lists. While pairs pose the problem of potentially having two different types in
+ lists. While pairs pose the problem of potentially having two different types in
 the pair, their fixed size would make them relatively straight-forward to implement.
 
 Another limitation is that our case blocks only support exactly two alternatives.

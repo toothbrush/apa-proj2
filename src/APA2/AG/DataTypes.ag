@@ -129,7 +129,7 @@ tyAnn :: (Show a1, Show a) => a -> a1 -> [Char]
 tyAnn t a = "(" ++ show t ++ ":" ++ show a ++ ")"
 
 tyAnnCont :: Show a => Map AnnVar SAnn -> a -> AnnVar -> [Char]
-tyAnnCont con t a = "(" ++ show t ++ (colonOpt $ a `from` con)
+tyAnnCont con t a = "(" ++ show t ++ (colonOpt $ a `from` con) ++ ")"
 
 colonOpt []   = ""
 colonOpt xs   = " : " ++ xs
@@ -147,7 +147,7 @@ instance Show Ty where
   show (List t an)  = "(List " ++ show t ++ ") " ++ (colonOpt $ show an)
 
 tyLayout :: Map AnnVar SAnn -> Ty -> String
-tyLayout _   (TyVar a)       = a
+tyLayout _   (TyVar a)       = "" -- a - we probably don't want to see this here. 
 tyLayout con (Arr t a t' a') = tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  " ++ tyAnnCont con t' ((fromSAnn a') `from` con)
 tyLayout _   Nat             = "Nat"
 tyLayout _   Bool            = "Bool"
