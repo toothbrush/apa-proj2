@@ -172,9 +172,9 @@ instance Show SimpleSubstitution where
   show (Dot s s')       = show s ++ "\n" ++ show s'
 
 ppMap :: (Show b) => Map String b -> String
-ppMap x = let f (a, b) = a ++ " :: " ++ show b
+ppMap x = let f (a, b) = a ++ " == " ++ show b
               l = map f $ M.toList x
-          in "Map{" ++ intercalate "," l ++ "}"
+          in "{\n" ++ intercalate "\n" l ++ "\n}"
 
 {-
 instance Show Ty where
