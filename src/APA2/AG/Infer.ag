@@ -503,11 +503,9 @@ SEM MH
     loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alphar')
     loc.theta2 = unifyAnn (applySubst @loc.theta1 @e1.annotation) (applySubst @loc.theta1 @loc.betar')
       
-    loc.theta  = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+    loc.substitution  = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
     loc.ty = @e2.ty
-
-    loc.substitution = @loc.theta
 
     loc.constraints =
       let cs = @e1.constraints `DS.union` @e2.constraints `DS.union`

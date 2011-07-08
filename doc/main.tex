@@ -16,7 +16,7 @@
 
 % things for the semantic package
 \reservestyle{\command}{\textbf}
-\command{let,in,:,case,of,if,then,else}
+\command{let,in,:,case,of,if,then,else,letrec,nil,cons,false,true,[]}
 \mathlig{-->}{\longrightarrow}
 \newcommand{\tyrel}{\sqsubseteq}
 % end semantic
@@ -165,20 +165,20 @@ These rules are formulated in a syntax-directed fashion.
 ~&~\\
         $ [$\emph{t-true}$] $& \inference{}
         {
-        {\Gamma},C |- True : Bool^{\varphi}
+        {\Gamma},C |- \<true>\ : Bool^{\varphi}
         } \\
 ~&~\\
         $ [$\emph{t-false}$] $& \inference{}
         {
-        {\Gamma},C |- False : Bool^{\varphi}
+        {\Gamma},C |- \<false>\ : Bool^{\varphi}
         } \\
 ~&~\\
         $ [$\emph{t-nil}$] $& \inference{
-        {\Gamma},C |- Nil : \tau^{\varphi_1}
+        {\Gamma},C |- \<nil>\ : \tau^{\varphi_1}
         & C |- \varphi \sqsupseteq \pi
         }
         {
-        {\Gamma},C |- Nil_\pi : [\tau^{\varphi_1}]^{\varphi}
+        {\Gamma},C |- \<nil>_\pi : [\tau^{\varphi_1}]^{\varphi}
         } \\
 ~&~\\
         $ [$\emph{t-cons}$] $& \inference{
@@ -188,7 +188,7 @@ These rules are formulated in a syntax-directed fashion.
         & C |- \varphi \sqsupseteq \pi
         }
         {
-        {\Gamma},C |- Cons_\pi\ e_1\ e_2  : [\tau^{\varphi_1}]^{\varphi}
+        {\Gamma},C |- \<cons>_\pi\ e_1\ e_2  : [\tau^{\varphi_1}]^{\varphi}
         } \\
 ~&~\\
         $ [$\emph{t-var}$] $& \inference{
@@ -242,13 +242,23 @@ These rules are formulated in a syntax-directed fashion.
         } \\
 ~&~\\
         $ [$\emph{t-letrec}$] $& \inference{
-        \Gamma, C |- e_1 : \tau_1^{\varphi_1}
-        & \sigma = gen(\tau_1)
-        & \Gamma[x \mapsto (\sigma, \varphi_1)],C |- e_2 : \tau_2^{\varphi_2}
+        & \Gamma[f \mapsto (\tau_x^{\varphi_x} -> \tau_r^{\varphi_r}, \varphi), x \mapsto (\tau_x, \varphi_x)],C |- e_1 : \tau_r^{\varphi_r}
+        & \sigma = gen(\tau_r)
+        & \Gamma[f \mapsto (\sigma, \varphi_r)],C |- e_2 : \tau_2^{\varphi_2}
         & C |- \varphi_3 \sqsupseteq \varphi_2
         }
         {
-        \Gamma,C |- \<let>\: x = e_1\: \<in>\: e_2 : \tau_2^{\varphi_3}
+        \Gamma,C |- \<letrec>\: f\ x = e_1\: \<in>\: e_2 : \tau_2^{ \varphi_3}
+        } \\
+~&~\\
+        $ [$\emph{t-case}$] $& \inference{
+        & \Gamma, C |- e_0 : [\tau]^\varphi
+        & \sigma = gen(\tau_r)
+        & \Gamma[f \mapsto (\sigma, \varphi_r)],C |- e_2 : \tau_2^{\varphi_2}
+        & C |- \varphi_3 \sqsupseteq \varphi_2
+        }
+        {
+        \Gamma,C |- \<case>\:\ e_0\ \<of>\ e_2 : \tau_2^{ \varphi_3}
         } \\
 ~&~\\
 %         $ [$\emph{t-app}$] $& \inference{
