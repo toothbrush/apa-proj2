@@ -82,8 +82,15 @@ debugInference tm =
 analysisResult :: MH -> IO ()
 analysisResult tm = 
   do 
-    let (_, _, _, constraints, exprs, _, _) = w tm
-    putStrLn "Analysis result: \n" 
+    let (ty, annotation, _, constraints, exprs, _, _) = w tm
+    putStrLn "Pretty printed program:\n"
+    print tm
+    putStrLn "Type of full program:\n"
+    let solved = worklist constraints
+    putStrLn $ ("("++ tyLayout solved ty ++ ") :::: " ++  ((fromSAnn annotation) `from` solved))
+    putStrLn "\nAnalysis result for all sub-expressions: \n" 
+    putStrLn "Expression\t\tType"
+    putStrLn horiz
     printExpressions (applySubst (solutionSubst constraints) exprs)
 
 -- | Turns a map of constraints into a substitution
@@ -91,13 +98,16 @@ solutionSubst :: Constraints -> SimpleSubstitution
 solutionSubst cs = 
   DM.foldrWithKey (\var result next -> Dot (AnnSub var result) next) Identity (worklist cs)
 
--- | Converts a list of expressions to a String
-printExpressions' :: (Show a1, Show a) => [(a1, a)] -> String
-printExpressions' exprs = foldr (\(ty,e) acc -> show e ++ " : " ++ show ty ++ acc) "" exprs
-
 -- | Prints a list of expressions
-printExpressions :: (Show a1, Show a) => [(a1, a)] -> IO ()
-printExpressions exprs = mapM_ (\(a,e) -> putStrLn (show e ++ " : " ++ show a)) exprs
+--   Don't print the whole program again, this happens earlier.
+printExpressions :: Show a => [(a, MH)] -> IO ()
+printExpressions []           = putStr "\n"
+printExpressions (full:exprs) = mapM_ (\(a,e) -> case e of 
+                                                    CaseAlt _ _ -> putStr ""
+                                                    _ -> putStrLn (show e ++ "\n\t\t : " ++ show a ++ "\n" ++ horiz)) exprs
+
+horiz :: String
+horiz = "------------------------------------"
 
 -- | Takes a string containing Haskell code and parses it.
 parseProgram :: String -> MH
