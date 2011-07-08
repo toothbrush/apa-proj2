@@ -191,14 +191,14 @@ partition env cs = (cs, cs)
 unify :: Ty -> Ty -> SimpleSubstitution
 unify (List t an) (List t' an') =
   let theta1 = unify t t'
-      theta2 = unifyAnn (applySubst theta1 an) (applySubst theta1 an')
+      theta2 = Identity -- TODO: unifyAnn (applySubst theta1 an) (applySubst theta1 an')
   in  theta2 `dot` theta1
 
 unify (TyVar a) t = unifyTyVar a t
 unify t (TyVar a) = unifyTyVar a t
 
 unify (Arr t11 t12 an) (Arr t21 t22 an') =
-  let theta0 = unifyAnn an an'
+  let theta0 = Identity -- TODO: unifyAnn an an'
       theta1 = unify (applySubst theta0 t11)
                      (applySubst theta0 t21)
       theta2 = let th10 = theta1 `dot` theta0
@@ -281,7 +281,7 @@ instance Substitutable Constraints where
   applySubst s = DS.map (applySubst s)
 
 instance Substitutable RhsConstr where
-  applySubst s (AnnPts pts) = AnnPts $ applySubst s pts
+  applySubst s (AnnPt  pt)  = AnnPt $ applySubst s pt
   applySubst s (AnnVar var) = AnnVar $ applySubst s var
 
 instance Substitutable SAnn where

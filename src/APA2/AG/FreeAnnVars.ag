@@ -8,8 +8,8 @@ ATTR TyScheme Ty Constraint RhsConstr TyEnv AnnEnv
   ]
 
 SEM Ty
-  | Arr  lhs.fav = @ann `DS.union` @ty1.fav `DS.union` @ty2.fav
-  | List lhs.fav = @ann `DS.union` @ty.fav
+  | Arr  lhs.fav = DS.insert @ann @ty1.fav `DS.union` @ty2.fav
+  | List lhs.fav = DS.insert @ann @ty.fav
 
 SEM TyScheme
   | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a

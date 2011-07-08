@@ -43,7 +43,7 @@ SEM MH
       loc.alpha' = freshVar @loc.alpha
       loc.beta'  = mkAnnVar @loc.beta
 
-      lhs.ty = List @loc.alpha' (DS.singleton @loc.beta')
+      lhs.ty = List @loc.alpha' @loc.beta'
 
       lhs.substitution = Identity
 
@@ -56,7 +56,7 @@ SEM MH
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.listTy = List @e1.ty (DS.singleton @loc.beta')
+      loc.listTy = List @e1.ty @loc.beta'
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
       loc.theta3 = unify @e2.ty (applySubst @loc.theta2 @loc.listTy)
@@ -146,9 +146,9 @@ SEM MH
       loc.beta'  = mkAnnVar @loc.beta
       loc.pi     = mkProgramPoint @x @loc.ppoint
 
-      loc.constraints  = @e.constraints `DS.union` (@loc.beta' <:? (AnnPts $ DS.singleton @loc.pi))
+      loc.constraints  = @e.constraints `DS.union` (@loc.beta' <:? AnnPt @loc.pi)
       loc.substitution = @e.substitution
-      loc.ty           = Arr (applySubst @loc.substitution @loc.alpha') @e.ty (DS.singleton @loc.beta')
+      loc.ty           = Arr (applySubst @loc.substitution @loc.alpha') @e.ty @loc.beta'
 
       lhs.annotation   = Just @loc.pi
       lhs.constraints  = @loc.constraints
@@ -179,7 +179,7 @@ SEM MH
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
       loc.theta3 = unify (applySubst @loc.theta2 @e1.ty)
-                         (Arr @e2.ty @loc.alpha' (DS.singleton @loc.beta'))
+                         (Arr @e2.ty @loc.alpha' @loc.beta')
 
       loc.substitution = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
@@ -272,7 +272,7 @@ SEM MH
 
       e1.typeEnvironment =
         case @x of
-          Just x  -> DM.insert @f (Ty $ Arr @loc.alpha1' @loc.alpha2' (DS.singleton @loc.beta')) (
+          Just x  -> DM.insert @f (Ty $ Arr @loc.alpha1' @loc.alpha2' @loc.beta') (
                       DM.insert x (Ty @loc.alpha1') @lhs.typeEnvironment
                      )
           -- A recursive let binding without arguments, e.g. let loop = loop in loop
@@ -283,7 +283,7 @@ SEM MH
         in case @x of
             Just _  -> let ty      = Arr (applySubst @loc.theta @alpha1')
                                          (applySubst @loc.theta1 @e1.ty)
-                                         (DS.singleton $ applySubst @loc.theta @loc.beta')
+                                         (applySubst @loc.theta @loc.beta')
                            gen ann = snd $ generalise newEnv ann ty @e1.constraints
                            ty'     = maybe (Ty ty) gen @loc.annotation
                        in  DM.insert @f ty' newEnv
@@ -327,13 +327,15 @@ fresh annotation variable is then unioned with the annotation variables on the
 existing Arr.
 -}
 
-      loc.ty = case (@e1.ty, @e2.ty) of
-                 (Arr _ _ c1, t2@(Arr a b c2)) -> Arr a b (c1 `DS.union` c2)
-                 (Arr _ _ cs, t2) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t2
-                                     in  Arr a1 a2 (DS.insert @loc.beta3' cs)
-                 (t1, Arr _ _ cs) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t1
-                                     in  Arr a1 a2 (DS.insert @loc.beta2' cs)
-                 (_, t2) -> t2
+      loc.ty = @e2.ty
+-- TODO: Generate constraints...
+       {- case (@e1.ty, @e2.ty) of-}
+       {-           (Arr _ _ c1, t2@(Arr a b c2)) -> Arr a b (c1 `DS.union` c2)-}
+       {-           (Arr _ _ cs, t2) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t2-}
+       {-                               in  Arr a1 a2 (DS.insert @loc.beta3' cs)-}
+       {-           (t1, Arr _ _ cs) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t1-}
+       {-                               in  Arr a1 a2 (DS.insert @loc.beta2' cs)-}
+       {-           (_, t2) -> t2-}
 
       loc.constraints =
         let c1 = applySubst @loc.th5432 @c.constraints
@@ -432,7 +434,7 @@ operatorType op
   | otherwise                              = error $ "Invalid op: " ++ op
 
 (<:?) :: AnnVar -> RhsConstr -> Constraints
-v <:? phi = DS.singleton (Constraint v phi)
+v <:? phi = DS.singleton $ Constraint v phi
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
 dot = Dot

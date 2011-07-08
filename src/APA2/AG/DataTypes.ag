@@ -49,8 +49,8 @@ DERIVING TyScheme: Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty ty2 : Ty  ann : {SAnn}
-  | List  ty  : Ty ann : {SAnn} -- builtin List is an addition
+  | Arr   ty1 : Ty ty2 : Ty  ann : {AnnVar}
+  | List  ty  : Ty ann : {AnnVar} -- builtin List is an addition
   | Nat
   | Bool
 
@@ -62,7 +62,7 @@ DATA Constraint
 DERIVING Constraint: Eq, Ord
 
 DATA RhsConstr
-  | AnnPts pts : {Set Point}
+  | AnnPt  pt  : {Point}
   | AnnVar var : {AnnVar}
 
 DERIVING RhsConstr: Eq, Ord
@@ -105,7 +105,7 @@ instance Show MH where
 
 instance Show Ty where
   show (TyVar a)    = a
-  show (Arr t t' a) = "(" ++ show t ++ " -{"++ intercalate "," (toList a) ++ "}-> " ++ show t' ++ ")"
+  show (Arr t t' a) = "(" ++ show t ++ " -{" ++ a ++ "}-> " ++ show t' ++ ")"
   show Nat          = "Nat"
   show Bool         = "Bool"
   show (List t an)  = "List^{" ++ show an ++ "} " ++ show t
@@ -123,7 +123,7 @@ instance Show TyScheme where
   show (AnnSig a ts) = "∀" ++ a ++ ". " ++ show ts
 
 instance Show RhsConstr where
-  show (AnnPts pts) = "{" ++ intercalate "," (toList pts) ++ "}"
+  show (AnnPt  pt)  = pt
   show (AnnVar var) = var
 
 
