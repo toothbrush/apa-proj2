@@ -129,7 +129,7 @@ tyAnn :: (Show a1, Show a) => a -> a1 -> [Char]
 tyAnn t a = "(" ++ show t ++ (colonOpt $ show a) ++ ")"
 
 tyAnnCont :: Show a => Map AnnVar SAnn -> a -> AnnVar -> [Char]
-tyAnnCont con t a = "(" ++ show t ++ (colonOpt $ a `from` con) ++ ")"
+tyAnnCont con t a = "" ++ show t ++ (colonOpt $ a `from` con) ++ ""
 
 colonOpt :: String -> String
 colonOpt []   = ""
@@ -142,17 +142,17 @@ instance Show SAnn where
 
 instance Show Ty where
   show (TyVar a)    = a
-  show (Arr t a t' a') = tyAnn t a ++ " ➔  " ++ tyAnn t' a'
+  show (Arr t a t' a') = "(" ++ tyAnn t a ++ " ➔  " ++ tyAnn t' a' ++ ")"
   show Nat          = "Nat"
   show Bool         = "Bool"
-  show (List t an)  = "(List " ++ show t ++ ") " ++ (colonOpt $ show an)
+  show (List t an)  = "List " ++ show t ++ "" ++ (colonOpt $ show an)
 
 tyLayout :: Map AnnVar SAnn -> Ty -> String
 tyLayout _   (TyVar a)       = a -- we probably don't want to see this here. 
-tyLayout con (Arr t a t' a') = tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  " ++ tyAnnCont con t' ((fromSAnn a') `from` con)
+tyLayout con (Arr t a t' a') = "(" ++ tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  " ++ tyAnnCont con t' ((fromSAnn a') `from` con) ++ ")"
 tyLayout _   Nat             = "Nat"
 tyLayout _   Bool            = "Bool"
-tyLayout con (List t an)     = "((List " ++ tyLayout con t ++ ") " ++ (colonOpt $ (fromSAnn an) `from` con) ++ ")"
+tyLayout con (List t an)     = "(List " ++ tyLayout con t ++ "" ++ (colonOpt $ (fromSAnn an) `from` con) ++ ")"
 
 from :: AnnVar -> Map AnnVar SAnn -> String
 from ann con = show $ DM.findWithDefault (AnnVar ann) ann con
