@@ -410,9 +410,6 @@ unification and substitution algorithms.
 \item [Infer.ag] Contains algorithm W and the generalise and instantiate functions.
 \end{description}
 
-\section{Approach}
-
-
 \section{Features and Limitations}
 
 The assignment suggested implementing CFA with support for tracking data structure
@@ -427,7 +424,10 @@ In addition, the role of the qualified type (or rather, qualified constraints)
 was not completely clear either. While we did have support for quantifying over
 annotation variables and generating several constraints on the quantified types,
 we were unfortunately forced to remove this support in order to make the monovariant
-analysis work correctly.
+analysis work correctly. So, even though we did not manage to implement a polyvariant
+analysis, we did at the very least learn how to do a polyvariant anaylsis on paper,
+how to support it in the generalisation and instantiation functions and which 
+constraints we should generate for it.
 
 We are currently also missing support for pairs. Instead, we offer support for
 lists. While pairs pose the problem of potentially having two different types in

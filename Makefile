@@ -26,4 +26,9 @@ clean :
 	-rm doc/main.toc
 	cabal clean
 
-.PHONY : haskell clean doc
+dist: haskell doc
+	cabal configure
+	cabal sdist
+	tar tf dist/apa-proj2-0.1.tar.gz
+
+.PHONY : haskell clean doc dist
