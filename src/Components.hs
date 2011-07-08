@@ -1,20 +1,11 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Components where
-<<<<<<< HEAD
 
 import            Language.Haskell.Exts.Parser
 import qualified  Language.Haskell.Exts.Syntax as H
 import            Data.Map (Map)
 import qualified  Data.Map as DM
 import qualified  Data.Set as DS
-=======
-import Language.Haskell.Exts.Parser
-import qualified Language.Haskell.Exts.Syntax as H
-import Data.Map (Map)
-import Data.Set (Set)
-import qualified Data.Map as DM
-import qualified Data.Set as DS
->>>>>>> feb4338a27ce92a55ea205a3e169a2bcbdf2c705
 
 import APA2.AG
 import Data.Generics.Schemes
@@ -41,12 +32,8 @@ w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
            , annotDict_Syn_MH    wrappedDS
            )
 
-<<<<<<< HEAD
 -- | Grabs the constraints from the resultt
 getConstraints :: (t, t1, t2, t3, t4, t5, t6) -> t3
-=======
-getConstraints :: (a,b,c,d,e,f,g) -> d
->>>>>>> feb4338a27ce92a55ea205a3e169a2bcbdf2c705
 getConstraints (_,_,_,c,_,_,_) = c
 
 -- | Accepts a filename and generates debug output for it containing analysis results.
@@ -67,11 +54,12 @@ debugInference tm =
     print subst
     putStrLn ""
     putStrLn "Ty:"
-    print ty
+    let solved = worklist constraints
+    putStrLn $ ("("++ tyLayout solved ty ++ ") :::: " ++  ((fromSAnn annotation) `from` solved))
     putStrLn ""
     putStrLn "Top level annotation: "
     print annotation
-    let ppoint = DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) (worklist constraints)
+    let ppoint = DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) solved
     putStr $ "... which maps to: " ++ show ppoint ++ "\n"
     putStr $ DS.fold (\x->(++) (
         x ++ " is in fact \"" ++ show (annots DM.! x) ++ "\"\n"
@@ -83,22 +71,12 @@ debugInference tm =
     putStrLn "Constraints: "
     print (DS.toList constraints)
     putStrLn "\nNew_Constraints: "
-    printAnalysis (worklist constraints)
+    printAnalysis solved
     putStrLn ""
     putStrLn "Expressions: "
     printExpressions (applySubst subst exprs)
     putStrLn ""
     putStrLn debug
-
--- | Unpacks SAnn datatype and returns an AnnVar string
-fromSAnn :: SAnn -> AnnVar
-fromSAnn (AnnVar v) = v
-fromSAnn _          = error "danger will robinson"
-
--- | Unpacks an AnnSet to get the inner set
-toSet :: SAnn -> DS.Set Point
-toSet (AnnSet x) = x
-toSet _          = DS.empty
 
 -- | Prints an analysis result
 analysisResult :: MH -> IO ()
