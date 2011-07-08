@@ -208,11 +208,11 @@ SEM MH
   | Op
     loc.alpha1 : UNIQUEREF counter
     loc.alpha2 : UNIQUEREF counter
-    loc.beta   : UNIQUEREF counter
+    loc.betaf   : UNIQUEREF counter
 
     loc.alpha1' = freshVar @loc.alpha1
     loc.alpha2' = freshVar @loc.alpha2
-    loc.beta'   = freshAnnVar @loc.beta
+    loc.betaf'  = freshAnnVar @loc.betaf
 
     loc.(ty1,ty2,r) = operatorType @op
 
@@ -228,10 +228,10 @@ SEM MH
 
     loc.constraints = 
       @e1.constraints `DS.union` @e2.constraints `DS.union`
-      (@loc.beta' <:? @e1.annotation) `DS.union`
-      (@loc.beta' <:? @e2.annotation)
+      (@loc.betaf' <:? @e1.annotation) `DS.union`
+      (@loc.betaf' <:? @e2.annotation)
 
-    loc.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
 
     lhs.substitution = @loc.substitution
     lhs.ty = @loc.ty
@@ -253,24 +253,24 @@ SEM MH
                 @e1.debug ++ @e2.debug
 
   | Var
-    loc.beta : UNIQUEREF counter
+    loc.betaf : UNIQUEREF counter
 
-    loc.beta' = freshAnnVar @loc.beta
+    loc.betaf' = freshAnnVar @loc.betaf
     
     loc.phi = fromJust $ DM.lookup @x @lhs.annEnvironment
 
     loc.(c, ty) = 
       maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))
-            (instantiate @loc.beta)
+            (instantiate @loc.betaf)
             (DM.lookup @x @lhs.typeEnvironment)
 
     -- | If type environment proofs @x to be a function type
     --   we synthesize a new fresh annotation variable. This allows us
     --   to use subeffecting to weaken the annotation whenever deemed necessary without
     --   poisoning the original annotation. (sketchy explanation...)
-    loc.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
 
-    loc.constraints = @loc.beta' <:? @loc.phi
+    loc.constraints = @loc.betaf' <:? @loc.phi
 
     loc.substitution = Identity
 
@@ -387,9 +387,9 @@ SEM MH
                 @e1.debug ++ @e2.debug
 
   | Let
-    loc.beta : UNIQUEREF counter
+    loc.betaf : UNIQUEREF counter
 
-    loc.beta'  = freshAnnVar @loc.beta
+    loc.betaf' = freshAnnVar @loc.betaf
     loc.theta1 = @e1.substitution
     loc.theta2 = @e2.substitution
 
@@ -400,11 +400,11 @@ SEM MH
     loc.constraints =
       let c1 = @e1.constraints
           c2 = @e2.constraints
-          c3 = @loc.beta' <:? @e2.annotation
+          c3 = @loc.betaf' <:? @e2.annotation
           cs = c1 `DS.union` c2 `DS.union` c3
       in applySubst @loc.theta2 cs
 
-    loc.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
 
     lhs.ty = @loc.ty
     lhs.annotation = @loc.annotation
@@ -506,9 +506,9 @@ SEM MH
                 @e1.debug ++ @e2.debug
 
   | If
-    loc.beta   : UNIQUEREF counter
+    loc.betaf   : UNIQUEREF counter
 
-    loc.beta'  = freshAnnVar @loc.beta
+    loc.betaf'  = freshAnnVar @loc.betaf
 
     loc.theta0 = @c.substitution
     loc.theta1 = @e1.substitution
@@ -522,12 +522,12 @@ SEM MH
     loc.ty = applySubst @loc.substitution @e2.ty
 
     loc.constraints =
-      let c  = (@loc.beta' <:? @e1.annotation) `DS.union`
-               (@loc.beta' <:? @e2.annotation)
+      let c  = (@loc.betaf' <:? @e1.annotation) `DS.union`
+               (@loc.betaf' <:? @e2.annotation)
           cs = @e1.constraints `DS.union` @e2.constraints `DS.union` c
       in applySubst @loc.substitution cs
 
-    loc.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
 
     lhs.ty = @loc.ty
     lhs.constraints = @loc.constraints
