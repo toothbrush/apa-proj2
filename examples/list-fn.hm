@@ -1,4 +1,0 @@
-let f n = n * n
-in  let g m = m
-    in  let test = (f 4) : (\x -> x + x) : (f 2) : (\y -> g y) : []
-        in  test

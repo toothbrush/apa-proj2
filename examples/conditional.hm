@@ -1,4 +1,0 @@
-let  foo = True
-in   if foo
-       then 1
-       else 0
