@@ -649,17 +649,10 @@ instantiate seed ts = (undefined, applySubst subst ty)
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = (applySubst subst cs, applySubst subst ty)
   where (Binders tyvars annvars cs ty) = collectBinders ts
-<<<<<<< HEAD
         fresh   prefix = map (\x -> prefix : show seed ++ show x) ([0..] :: [Int])
         tySubs         = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
         annSubs        = zipWith (\x y -> AnnSub x (AnnVar y)) annvars (fresh 'β')
         subst          = foldr Dot Identity (tySubs ++ annSubs)
 -}
-=======
-        fresh   pfx = map (\x -> pfx : show seed ++ show x) ([0..] :: [Int])
-        tySubs      = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
-        annSubs     = zipWith AnnSub annvars (fresh 'β')
-        subst       = foldr Dot Identity (tySubs ++ annSubs)
->>>>>>> e583283ad8da30c5fb3ccbcb3c49c21db9f3bdd1
 
 }
