@@ -131,6 +131,7 @@ tyAnn t a = "(" ++ show t ++ ":" ++ show a ++ ")"
 tyAnnCont :: Show a => Map AnnVar SAnn -> a -> AnnVar -> [Char]
 tyAnnCont con t a = "(" ++ show t ++ (colonOpt $ a `from` con) ++ ")"
 
+colonOpt :: String -> String
 colonOpt []   = ""
 colonOpt xs   = " : " ++ xs
 

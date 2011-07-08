@@ -47,37 +47,30 @@ debugInference :: MH -> IO ()
 debugInference tm =
   do
     let (ty, annotation, subst, constraints, exprs, debug, annots) = w tm
-    putStrLn ("Program: \n    " ++ show tm)
-    print tm 
-    putStrLn ""
     putStrLn "Substitution:"
     print subst
     putStrLn ""
-    putStrLn "Ty:"
-    let solved = worklist constraints
-    let ty' = applySubst (solutionSubst constraints) (applySubst subst ty)
-    putStrLn $ ("("++ tyLayout solved ty' ++ ") :::: " ++  ((fromSAnn annotation) `from` solved))
-    putStrLn ""
     putStrLn "Top level annotation: "
     print annotation
+    putStrLn ""
+    let solved = worklist constraints
     let ppoint = DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) solved
     putStr $ "... which maps to: " ++ show ppoint ++ "\n"
     putStr $ DS.fold (\x->(++) (
         x ++ " is in fact \"" ++ show (annots DM.! x) ++ "\"\n"
         ) ) ""
         (toSet ppoint)
-    putStrLn "Annotation dictionary:"
-    putStrLn (ppMap annots)
     putStrLn ""
     putStrLn "Constraints: "
     print (DS.toList constraints)
-    putStrLn "\nNew_Constraints: "
+    putStrLn ""
+    putStrLn "\nNew_Constraints (after solving): "
     printAnalysis solved
-    putStrLn ""
-    putStrLn "Expressions: "
-    printExpressions solved (applySubst (solutionSubst constraints) (applySubst subst exprs))
-    putStrLn ""
+    putStrLn "DEBUG OUTPUT ACCUMULATED IN AG:"
     putStrLn debug
+    putStr   horiz
+    putStrLn "DEBUG OUTPUT FINISHED. NORMAL OUTPUT TO FOLLOW: \n"
+    analysisResult tm
 
 -- | Prints an analysis result
 analysisResult :: MH -> IO ()
@@ -105,7 +98,7 @@ solutionSubst cs =
 
 -- | Prints a list of expressions
 --   Don't print the whole program again, this happens earlier.
---printExpressions :: Show a => [(a, MH)] -> IO ()
+printExpressions :: Map AnnVar SAnn -> [(Ty, MH)] -> IO ()
 printExpressions _   []        = putStr "\n"
 printExpressions con (_:exprs) = mapM_ (\(a,e) -> case e of 
                                                     CaseAlt _ _ -> putStr ""
