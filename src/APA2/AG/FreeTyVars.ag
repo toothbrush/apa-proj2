@@ -1,3 +1,4 @@
+-- | Collect all free type variables
 ATTR TyScheme Ty TyEnv Qual TyEnv
   [|| ftv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
   ]

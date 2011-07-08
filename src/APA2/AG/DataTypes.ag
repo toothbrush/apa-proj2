@@ -153,10 +153,12 @@ tyLayout con (List t an)     = "((List " ++ tyLayout con t ++ ") : " ++ ((fromSA
 from :: AnnVar -> Map AnnVar SAnn -> String
 from ann con = show $ DM.findWithDefault (AnnVar "") ann con
 
+-- | Unpacks SAnn datatype and returns an AnnVar string
 fromSAnn :: SAnn -> String
 fromSAnn (AnnVar v) = v
 fromSAnn _          = error "danger will robinson"
 
+-- | Unpacks an AnnSet to get the inner set
 toSet :: SAnn -> Set Point
 toSet    (AnnSet x) = x
 toSet    _          = DS.empty

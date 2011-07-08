@@ -2,6 +2,8 @@
 data Binders = Binders [TyVar] [AnnVar] Constraints Ty
 }
 
+-- | This attribute collects all binding type variables, annotation variables,
+-- constraints and the actual type for a type scheme.
 ATTR TyScheme Qual
   [|| binders : {Binders}   -- alias String
   ]

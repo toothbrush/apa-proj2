@@ -1,6 +1,9 @@
+-- | A function to grab all free variable form an HM tree
 ATTR MH
   [|| fv  USE {`DS.union`} {DS.empty} : {Set Var}   -- alias String
   ]
 
 SEM MH
-  | Var lhs.fv = DS.singleton @x
+  | Var    lhs.fv = DS.singleton @x
+  | Let    lhs.fv = @e2.fv DS.\\ DS.singleton @x
+  | Lambda lhs.fv = @e.fv DS.\\ DS.singleton @x
