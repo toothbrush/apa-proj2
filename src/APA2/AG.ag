@@ -9,6 +9,7 @@ import Debug.Trace
 import            Data.Map (Map)
 import qualified  Data.Map as DM
 import qualified  Data.Map as Map
+import qualified  Data.Map
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
 import qualified  Data.Set as DS

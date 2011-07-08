@@ -89,7 +89,7 @@ analysisResult tm =
 
 solutionSubst :: Constraints -> SimpleSubstitution
 solutionSubst cs = 
-  DM.foldWithKey (\var result next -> Dot (AnnSub var result) next) Identity (worklist cs)
+  DM.foldrWithKey (\var result next -> Dot (AnnSub var result) next) Identity (worklist cs)
 
 printExpressions' :: (Show a1, Show a) => [(a1, a)] -> String
 printExpressions' = 
