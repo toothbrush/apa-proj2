@@ -110,10 +110,10 @@ translate = hExpr
 
   hExpr (H.Paren e) = hExpr e
 
+  hExpr (H.List ls) = foldr (Cons . hExpr) Nil ls
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) (H.List [])) = Cons (hExpr e) Nil
   hExpr (H.InfixApp e (H.QConOp (H.Special H.Cons)) e') = Cons (hExpr e) (hExpr e')
   hExpr (H.InfixApp e (H.QVarOp (H.UnQual (H.Symbol op))) e') = Op op (hExpr e) (hExpr e') 
-
   hExpr (H.Case e (c1:c2:[])) = CaseBlck (hExpr e) (mkCaseBlck c1) (mkCaseBlck c2)
 
   hExpr e = notSupported e
@@ -121,11 +121,15 @@ translate = hExpr
   mkCaseBlck (H.Alt _ pat (H.UnGuardedAlt ex) _) = CaseAlt (mkPat pat) (hExpr ex)
   mkCaseBlck _ = undefined -- TODO: Nice error
   mkPat (H.PLit (H.Int n)) = VInt n
+  mkPat (H.PVar (H.Ident n)) = Var n
+  mkPat (H.PParen p) = mkPat p
+  mkPat (H.PList ps) = foldr (Cons . mkPat) Nil ps
+  mkPat (H.PInfixApp p (H.Special H.Cons) (H.PList [])) = Cons (mkPat p) Nil
+  mkPat (H.PInfixApp p (H.Special H.Cons) ps) = Cons (mkPat p) (mkPat ps)
   mkPat (H.PApp (H.UnQual (H.Ident n)) _) = case n of
                                                 "True"  -> VBool True
                                                 "False" -> VBool False
                                                 val     -> Var val
-  mkPat (H.PList []) = Nil
   mkPat e = notSupported e
 
   hQName (H.UnQual (H.Ident x)) = x

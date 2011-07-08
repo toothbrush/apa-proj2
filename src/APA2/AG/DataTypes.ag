@@ -1,6 +1,13 @@
+optpragmas {
+{-# LANGUAGE FlexibleContexts,
+             FlexibleInstances,
+             UndecidableInstances,
+             MultiParamTypeClasses #-}
+}
 imports
 {
 import Data.Set (Set, toList)
+import qualified Data.Map as M (toList)
 import Data.List (intercalate)
 }
 
@@ -29,7 +36,7 @@ DATA MH
   | If     c  : MH     e1 : MH          e2 : MH
   | Cons   e1 : MH     e2 : MH
   | Nil
-  | CaseBlck ex  : MH c1  : MH c2 : MH
+  | CaseBlck e  : MH c1  : MH c2 : MH
   | CaseAlt  pat : MH bnd : MH
 
 DERIVING MH: Eq
@@ -56,7 +63,7 @@ DATA Ty
   | Nat
   | Bool
 
-DERIVING Ty: Eq
+DERIVING Ty: Eq, Ord
 
 -- | We need to make the set operations explicit, since it is also possible to
 -- have something like β∪{h}
@@ -67,7 +74,6 @@ DATA SAnn
 
 DERIVING SAnn: Eq, Ord
 
--- TODO: a1 needs to become SAnn again
 DATA Constraint
   | Constraint a1 : SAnn a2 : SAnn
 
@@ -79,6 +85,8 @@ DATA SimpleSubstitution
   | AnnSub a1 : {AnnVar}    a2 : {SAnn} -- annotation substitution
   | Dot    s1 : SimpleSubstitution s2 : SimpleSubstitution
 
+DERIVING SimpleSubstitution: Eq, Ord
+
 TYPE TyEnv = MAP {Var} TyScheme
 
 TYPE AnnEnv = MAP {Var} {SAnn}
@@ -86,11 +94,6 @@ TYPE AnnEnv = MAP {Var} {SAnn}
 {
 instance Show Constraint where
   show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2
-
-instance Show SAnn where
-  show (AnnVar var) = var
-  show (AnnSet ps)  = "{" ++  intercalate ", " (toList ps) ++  "}"
-  show (AnnEmpty)   = "{}"
 
 instance Show MH where
   show (VBool  v           ) = show v
@@ -111,18 +114,28 @@ instance Show MH where
   show (CaseBlck ex  c1 c2 ) = "case "    ++ show ex  ++ " of\n"  ++ show c1   ++ show c2
   show (CaseAlt  pat bnds  ) = "        " ++ show pat ++ "\t → "  ++ show bnds ++ "\n"
 
+instance Show TyScheme where
+  show (QualSig q)   = show q
+  show (Forall a ts) = "∀" ++ a ++ ". " ++ show ts
+  show (AnnSig a ts) = "∀" ++ a ++ ". " ++ show ts
+
 instance Show Qual where
   show (Ty t)     = show t
   show (Qual c q) = show c ++ " => " ++ show q
+
+tyAnn t a = "(" ++ show t ++ ":" ++ show a ++ ")"
+
+instance Show SAnn where
+  show (AnnVar var) = var
+  show (AnnSet ps)  = "{" ++  intercalate ", " (toList ps) ++  "}"
+  show (AnnEmpty)   = "{}"
 
 instance Show Ty where
   show (TyVar a)    = a
   show (Arr t a t' a') = tyAnn t a ++ "-->" ++ tyAnn t' a'
   show Nat          = "Nat"
   show Bool         = "Bool"
-  show (List t an)  = "List^{" ++ show an ++ "} " ++ show t
-
-tyAnn t a = "(" ++ show t ++ ":" ++ show a ++ ")"
+  show (List t an)  = "(List " ++ show t ++ ") : " ++ show an
 
 instance Show SimpleSubstitution where
   show Identity      = ""
@@ -131,8 +144,24 @@ instance Show SimpleSubstitution where
   show (Dot s Identity) = show s
   show (Dot s s')       = show s ++ "\n" ++ show s'
 
-instance Show TyScheme where
-  show (QualSig q)   = show q
-  show (Forall a ts) = "∀" ++ a ++ ". " ++ show ts
-  show (AnnSig a ts) = "∀" ++ a ++ ". " ++ show ts
+{-
+instance Show Ty where
+  show (TyVar a)    = "TyVar \"" ++ a ++ "\""
+  show (Arr t a t' a') = "Arr ("++show t++") ("++show a++") ("++show t'++") ("++show a'++")"
+  show Nat          = "Nat"
+  show Bool         = "Bool"
+  show (List t an)  = "List (" ++ show t ++ ") (" ++ show an ++ ")"
+
+instance Show SAnn where
+  show (AnnVar var) = "AnnVar (\""++var++"\")"
+  show (AnnSet ps)  = "{" ++  intercalate ", " (toList ps) ++  "}"
+  show (AnnEmpty)   = "{}"
+
+instance Show SimpleSubstitution where
+  show Identity      = "Identity"
+  show (TySub v t)   = "TySub (\"" ++ v ++ "\") (" ++ show t ++ ")"
+  show (AnnSub a a') = "AnnSub (" ++ show a ++ ") (" ++ show a' ++ ")"
+  show (Dot s s') = "Dot (" ++ show s ++ ") (" ++ show s' ++ ")"
+-}
+
 }

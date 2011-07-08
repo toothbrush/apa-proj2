@@ -9,6 +9,7 @@ ATTR MH
     -- etc. are encountered.
     typeEnvironment : {TyEnv}
     annEnvironment  : {AnnEnv}
+    matchTy         : {Ty}
   | -- The counter is used to generate fresh variable names, which are unique.
     counter : {Int}
   |
@@ -18,72 +19,11 @@ ATTR MH
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution                              : {SimpleSubstitution}
-    lhsTy         USE {`mplus`}    {Nothing}  : {Maybe Ty}
     annotation                                : {SAnn}
     debug         USE {++}         {""}       : {String}
     expressions   USE {++}         {[]}       : {Expressions}
     copy                                      : SELF
   ]
-
-SEM MH
-  | CaseBlck
-      loc.beta : UNIQUEREF counter
-
-      loc.beta' = mkAnnVar @loc.beta
-
-      -- TODO: Unify types of case (expression) of and the left-hand sides of
-      -- the individual case blocks
-      -- Then unify the types of the right-hand side of the individual case
-      -- blocks
-
-      -- TODO: See if we need some substitutions here...
-      loc.theta0 = @ex.substitution
-      loc.theta1 = unify @ex.ty (applySubst @loc.theta0 $ fromJust @c1.lhsTy)
-      loc.theta2 = trace "theta2" $ unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)
-      loc.lhsTheta = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
-
-      loc.theta3 = @c1.substitution
-      loc.theta4 = @c2.substitution
-      -- FIXME: This is where shit is currently hitting the fan
-      loc.theta5 = unify (applySubst @loc.lhsTheta @c1.ty)
-                         (applySubst (@loc.theta3 `dot` @loc.lhsTheta) @c2.ty)
-      loc.theta = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot` @loc.lhsTheta
-
-      loc.ty = applySubst @loc.theta @c1.ty
-      lhs.ty = @loc.ty
-
-      lhs.constraints =
-        let c1 = @ex.constraints
-            c2 = @c1.constraints
-            c3 = @c2.constraints
-            c4 = (@loc.beta' <:? @c1.annotation) `DS.union`
-                 (@loc.beta' <:? @c2.annotation)
-            cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
-        in applySubst @loc.theta cs
-
-
-      lhs.substitution = @loc.theta
-      lhs.annotation   = @loc.beta'
-
-      c1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
-      c1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.typeEnvironment
-      c2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.annEnvironment
-  | CaseAlt
-      loc.beta : UNIQUEREF counter
-
-      loc.beta' = mkAnnVar @loc.beta
-
-      lhs.constraints = @bnd.constraints
-
-      loc.theta  = @pat.substitution
-      loc.ty = applySubst @loc.theta @bnd.ty
-      lhs.ty = @loc.ty
-      lhs.substitution = @loc.theta
-
-      lhs.annotation = @loc.beta'
-
-      lhs.lhsTy = Just @pat.ty
 
 SEM MH
   | VBool
@@ -92,7 +32,7 @@ SEM MH
     lhs.ty = Bool
     lhs.substitution = Identity
     lhs.constraints  = DS.empty
-    lhs.annotation   = mkAnnVar @loc.beta
+    lhs.annotation   = freshAnnVar @loc.beta
 
   | VInt
     loc.beta  : UNIQUEREF counter
@@ -100,24 +40,24 @@ SEM MH
     lhs.ty = Nat
     lhs.substitution = Identity
     lhs.constraints  = DS.empty
-    lhs.annotation   = mkAnnVar @loc.beta
+    lhs.annotation   = freshAnnVar @loc.beta
 
   | Nil
-    loc.alpha : UNIQUEREF counter
-    loc.beta  : UNIQUEREF counter
-    loc.betaf : UNIQUEREF counter
+    loc.alpha  : UNIQUEREF counter
+    loc.betaf1 : UNIQUEREF counter
+    loc.betaf2 : UNIQUEREF counter
 
-    loc.alpha' = freshVar @loc.alpha
-    loc.beta'  = mkAnnVar @loc.beta
-    loc.betaf' = mkAnnVar @loc.betaf
+    loc.alpha'  = freshVar @loc.alpha
+    loc.betaf1' = freshAnnVar @loc.betaf1
+    loc.betaf2' = freshAnnVar @loc.betaf2
 
-    loc.ty = List @loc.alpha' @loc.beta'
+    loc.ty = List @loc.alpha' @loc.betaf1'
 
     loc.substitution = Identity
 
     loc.constraints = DS.empty :: Constraints
 
-    loc.annotation = @loc.betaf'
+    loc.annotation = @loc.betaf2'
 
     lhs.substitution = @loc.substitution
     lhs.ty = @loc.ty
@@ -135,11 +75,11 @@ SEM MH
     lhs.expressions = [(@loc.ty,@copy)]
 
   | Cons
-    loc.beta  : UNIQUEREF counter
-    loc.betaf : UNIQUEREF counter
+    loc.betaf1 : UNIQUEREF counter
+    loc.ppoint : UNIQUEREF counter
 
-    loc.beta'  = mkAnnVar @loc.beta
-    loc.betaf' = mkAnnVar @loc.betaf
+    loc.betaf1' = freshAnnVar @loc.betaf1
+    loc.pi      = mkProgramPoint "L" @loc.ppoint
 
     loc.listTy = List @e1.ty @e1.annotation
     loc.theta1 = @e1.substitution
@@ -150,15 +90,20 @@ SEM MH
 
     loc.ty = applySubst @loc.substitution @loc.listTy
 
+    loc.listContentAnn = 
+      case @e2.ty of
+        List _ a -> a
+        _        -> error "can only cons lists"
+
     loc.constraints =
       let c1 = @e1.constraints
           c2 = @e2.constraints
-          c3 = (@loc.beta' <:? @e1.annotation) `DS.union`
-               (@loc.betaf' <:? @e2.annotation)
+          c3 = (@e1.annotation <:? @loc.listContentAnn) `DS.union`
+               (@loc.betaf1' <:? @loc.pi) 
           cs = c1 `DS.union` c2 `DS.union` c3
       in applySubst @loc.substitution cs 
 
-    loc.annotation = @loc.betaf'
+    loc.annotation = @loc.betaf1'
 
     lhs.substitution = @loc.substitution
     lhs.ty = @loc.ty
@@ -174,364 +119,473 @@ SEM MH
                 "ty:" ++ show @loc.ty ++ "\n" ++
                 "annotation: " ++ show @loc.annotation ++ "\n" ++
                 "substitution: " ++ show @loc.substitution ++ "\n" ++
-                "constraints: " ++ show @loc.constraints ++ "\n\n"
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @e1.debug ++ @e2.debug
     
-    lhs.expressions = [(@loc.ty,@copy)] -- ++ @e1.expressions ++ @e2.expressions
+    lhs.expressions = [(@loc.ty,@copy)] ++ @e1.expressions ++ @e2.expressions
+
+  | CaseBlck
+    loc.betaf : UNIQUEREF counter
+    
+    loc.betaf' = freshAnnVar @loc.betaf
+
+    loc.annotation = @loc.betaf'
+
+    -- apply substitutions in both directions, each alternative can supply information
+    -- to the other alternatives.
+    loc.theta = unify (applySubst (@c2.substitution `dot` @e.substitution) @c1.ty) 
+                      (applySubst (@c1.substitution `dot` @e.substitution) @c2.ty)
+
+    loc.substitution = @loc.theta `dot` @c2.substitution `dot` @c1.substitution `dot` @e.substitution
+
+    loc.constraints =
+      let cs = @e.constraints `DS.union` @c1.constraints `DS.union` @c2.constraints
+      in applySubst @loc.substitution cs
+
+    loc.ty = applySubst @loc.substitution @c2.ty    
+
+    c1.matchTy = @e.ty
+
+    c2.matchTy = applySubst @c1.substitution @e.ty
+
+    c1.typeEnvironment = applySubst @e.substitution @lhs.typeEnvironment
+    c1.annEnvironment  = applySubst @e.substitution @lhs.annEnvironment
+    c2.typeEnvironment = applySubst (@c1.substitution `dot` @e.substitution) @lhs.typeEnvironment
+    c2.annEnvironment  = applySubst (@c1.substitution `dot` @e.substitution) @lhs.annEnvironment
+  
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
+
+    lhs.debug = "Case: \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @e.debug ++ @c1.debug ++ @c2.debug
+
+    lhs.expressions = [(@loc.ty,@copy)] ++ @e.expressions ++ @c1.expressions ++ @c2.expressions
+
+  | CaseAlt
+    loc.betaf : UNIQUEREF counter
+
+    loc.betaf' = freshAnnVar @loc.betaf
+
+    loc.theta = unify @pat.ty @lhs.matchTy 
+
+    loc.patTypeEnvironment = assignVarsFreshTyVars @loc.betaf @pat.fv @lhs.typeEnvironment 
+    loc.patAnnEnvironment  = assignVarsFreshAnnVars @loc.betaf @pat.fv @lhs.annEnvironment
+
+    pat.typeEnvironment = @loc.patTypeEnvironment
+    pat.annEnvironment  = @loc.patAnnEnvironment
+
+    bnd.typeEnvironment = applySubst @loc.theta @loc.patTypeEnvironment
+    bnd.annEnvironment  = applySubst @loc.theta @loc.patAnnEnvironment
+    
+    -- missing applysubst..
+    loc.constraints =
+      let cs = @pat.constraints `DS.union`
+               @bnd.constraints
+      in applySubst @loc.substitution cs
+
+    loc.annotation = @bnd.annotation
+
+    loc.substitution = @loc.theta `dot` @bnd.substitution
+
+    loc.ty = applySubst @loc.substitution @bnd.ty
+    
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
+
+    lhs.debug = "Case Alternative: \n" ++
+                "match type: " ++ show @lhs.matchTy ++ "\n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @pat.debug ++ @bnd.debug
+
+    lhs.expressions = [(@loc.ty,@copy)] ++ @pat.expressions ++ @bnd.expressions
 
   | Op
-      loc.alpha1 : UNIQUEREF counter
-      loc.alpha2 : UNIQUEREF counter
-      loc.beta   : UNIQUEREF counter
+    loc.alpha1 : UNIQUEREF counter
+    loc.alpha2 : UNIQUEREF counter
+    loc.betaf   : UNIQUEREF counter
 
-      loc.alpha1' = freshVar @loc.alpha1
-      loc.alpha2' = freshVar @loc.alpha2
-      loc.beta'   = mkAnnVar @loc.beta
+    loc.alpha1' = freshVar @loc.alpha1
+    loc.alpha2' = freshVar @loc.alpha2
+    loc.betaf'  = freshAnnVar @loc.betaf
 
-      loc.(ty1,ty2,r) = operatorType @op
+    loc.(ty1,ty2,r) = operatorType @op
 
-      loc.theta1 = @e1.substitution
-      loc.theta2 = @e2.substitution
-      loc.theta3 = unify (applySubst @loc.theta2 @e1.ty) @loc.ty1
-      loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) @loc.ty2
-      loc.theta  = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
+    loc.theta1 = @e1.substitution
+    loc.theta2 = @e2.substitution
+    loc.theta3 = unify (applySubst @loc.theta2 @e1.ty) @loc.ty1
+    loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) @loc.ty2
+    loc.theta  = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
-      loc.ty = @loc.r
+    loc.ty = @loc.r
 
-      loc.substitution = @loc.theta
+    loc.substitution = @loc.theta
 
-      loc.constraints = 
-        @e1.constraints `DS.union` @e2.constraints `DS.union`
-        (@loc.beta' <:? @e1.annotation) `DS.union`
-        (@loc.beta' <:? @e2.annotation)
+    loc.constraints = 
+      @e1.constraints `DS.union` @e2.constraints `DS.union`
+      (@loc.betaf' <:? @e1.annotation) `DS.union`
+      (@loc.betaf' <:? @e2.annotation)
 
-      loc.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
 
-      lhs.substitution = @loc.substitution
-      lhs.ty = @loc.ty
-      lhs.constraints = @loc.constraints
-      lhs.annotation = @loc.annotation
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
 
-      e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
-      e2.annEnvironment  = applySubst @loc.theta1 @lhs.annEnvironment
+    e2.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
+    e2.annEnvironment  = applySubst @loc.theta1 @lhs.annEnvironment
 
-      lhs.expressions = [(@loc.ty,@copy)] ++ @e1.expressions ++ @e2.expressions
+    lhs.expressions = [(@loc.ty,@copy)] ++ @e1.expressions ++ @e2.expressions
 
-      lhs.debug = "Op("++ @op ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
-                  "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
-                  "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
-                  @e1.debug ++ @e2.debug
+    lhs.debug = "Op("++ @op ++ "): \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @e1.debug ++ @e2.debug
 
   | Var
-      loc.beta : UNIQUEREF counter
+    loc.betaf : UNIQUEREF counter
 
-      loc.beta' = mkAnnVar @loc.beta
-      
-      loc.phi = fromJust $ DM.lookup @x @lhs.annEnvironment
+    loc.betaf' = freshAnnVar @loc.betaf
+    
+    loc.phi = fromJust $ DM.lookup @x @lhs.annEnvironment
 
-      loc.(c, ty) = 
-        maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))
-              (instantiate @loc.beta)
-              (DM.lookup @x @lhs.typeEnvironment)
+    loc.(c, ty) = 
+      maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))
+            (instantiate @loc.betaf)
+            (DM.lookup @x @lhs.typeEnvironment)
 
-      -- | If type environment proofs @x to be a function type
-      --   we synthesize a new fresh annotation variable. This allows us
-      --   to use subeffecting to weaken the annotation whenever deemed necessary without
-      --   poisoning the original annotation. (sketchy explanation...)
-      loc.annotation = @loc.beta'
+    -- | If type environment proofs @x to be a function type
+    --   we synthesize a new fresh annotation variable. This allows us
+    --   to use subeffecting to weaken the annotation whenever deemed necessary without
+    --   poisoning the original annotation. (sketchy explanation...)
+    loc.annotation = @loc.betaf'
 
-      loc.constraints = @loc.beta' <:? @loc.phi
+    loc.constraints = @loc.betaf' <:? @loc.phi
 
-      loc.substitution = Identity
+    loc.substitution = Identity
 
-      lhs.ty = @loc.ty
-      lhs.annotation = @loc.annotation
-      lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.annotation = @loc.annotation
+    lhs.substitution = @loc.substitution
 
-      lhs.expressions = [(@loc.ty,@copy)]
+    lhs.expressions = [(@loc.ty,@copy)]
 
-      lhs.debug = "Var("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
-                  "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
-                  "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n"
+    lhs.debug = "Var("++ @x ++ "): \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n"
 
   | Lambda
-      loc.alpha   : UNIQUEREF counter
-      loc.ppoint  : UNIQUEREF counter
-      loc.betax   : UNIQUEREF counter
-      loc.beta    : UNIQUEREF counter
+    loc.alpha   : UNIQUEREF counter
+    loc.ppoint  : UNIQUEREF counter
+    loc.betax   : UNIQUEREF counter
+    loc.betaf   : UNIQUEREF counter
 
-      loc.betax' = mkAnnVar @loc.betax
-      loc.beta'  = mkAnnVar @loc.beta
+    loc.betax' = freshAnnVar @loc.betax
+    loc.betaf' = freshAnnVar @loc.betaf
 
-      loc.pi     = mkProgramPoint @x @loc.ppoint
-      loc.alpha' = freshVar @loc.alpha
+    loc.pi     = mkProgramPoint @x @loc.ppoint
+    loc.alpha' = freshVar @loc.alpha
 
-      loc.substitution = @e.substitution
+    loc.substitution = @e.substitution
 
-      loc.constraints = @e.constraints `DS.union`
-                        (@loc.beta' <:? @loc.pi)
+    loc.constraints = @e.constraints `DS.union`
+                      (@loc.betaf' <:? @loc.pi)
 
-      loc.ty = applySubst @e.substitution (Arr @loc.alpha' @loc.betax' @e.ty @e.annotation)
+    loc.ty = applySubst @loc.substitution (Arr @loc.alpha' @loc.betax' @e.ty @e.annotation)
 
-      loc.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
 
-      lhs.substitution = @loc.substitution
-      lhs.ty = @loc.ty
-      lhs.constraints = @loc.constraints
-      lhs.annotation = @loc.annotation
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
 
-      e.typeEnvironment = DM.insert @x (QualSig $ Ty @loc.alpha') @lhs.typeEnvironment
-      e.annEnvironment  = DM.insert @x @loc.betax' @lhs.annEnvironment
+    e.typeEnvironment = DM.insert @x (QualSig $ Ty @loc.alpha') @lhs.typeEnvironment
+    e.annEnvironment  = DM.insert @x @loc.betax' @lhs.annEnvironment
 
-      lhs.debug = "Lambda("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
-                  "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
-                  "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
-                  @e.debug
+    lhs.debug = "Lambda("++ @x ++ "): \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @e.debug
 
-      lhs.expressions = [(@loc.ty,@copy)] ++ @e.expressions
-
+    lhs.expressions = [(@loc.ty,@copy)] ++ @e.expressions
 
   | App
-      loc.alpha  : UNIQUEREF counter
-      loc.betar  : UNIQUEREF counter
-      loc.betax  : UNIQUEREF counter
-      loc.betaf  : UNIQUEREF counter
+    loc.alpha  : UNIQUEREF counter
+    loc.betar  : UNIQUEREF counter
+    loc.betax  : UNIQUEREF counter
+    loc.betaf  : UNIQUEREF counter
 
-      loc.betar' = mkAnnVar @loc.betar
-      loc.betax' = mkAnnVar @loc.betax
-      loc.betaf' = mkAnnVar @loc.betaf
-      loc.alpha' = freshVar @loc.alpha
+    loc.betar' = freshAnnVar @loc.betar
+    loc.betax' = freshAnnVar @loc.betax
+    loc.betaf' = freshAnnVar @loc.betaf
+    loc.alpha' = freshVar @loc.alpha
 
-      loc.theta1 = @e1.substitution
-      loc.theta2 = @e2.substitution
+    loc.theta1 = @e1.substitution
+    loc.theta2 = @e2.substitution
 
-      loc.unify1 = applySubst @loc.theta2 @e1.ty
-      loc.unify2 = Arr @e2.ty @loc.betax' @loc.alpha' @loc.betar'
-      loc.theta3 = unify @loc.unify1 @unify2
+    loc.unify1 = applySubst @loc.theta2 @e1.ty
+    loc.unify2 = Arr @e2.ty @loc.betax' @loc.alpha' @loc.betar'
+    loc.theta3 = unify @loc.unify1 @unify2
 
-      loc.substitution = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
+    loc.substitution = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
-      loc.ty = applySubst @loc.theta3 @loc.alpha'
+    loc.ty = applySubst @loc.theta3 @loc.alpha'
 
-      loc.annotation = @loc.betaf'
+    loc.annotation = @loc.betaf'
 
-      -- | We do not generate constraints for an application of a 
-      --   function to a primitive type.
-      loc.constraints =
-        let c1 = @e1.constraints
-            c2 = @e2.constraints
-            cs = c1 `DS.union` c2 `DS.union` 
-                 (@loc.betax' <:? @e2.annotation) `DS.union`
-                 --(@loc.betaf' <:? @e1.annotation) `DS.union` 
-                 -- I think this one doesn't make sense, ... 
-                 -- Makes more sense for a security analysis, since union means something else.
-                 (@loc.betaf' <:? @loc.betar')
-        in applySubst @loc.substitution cs
+    -- | We do not generate constraints for an application of a 
+    --   function to a primitive type.
+    loc.constraints =
+      let c1 = @e1.constraints
+          c2 = @e2.constraints
+          cs = c1 `DS.union` c2 `DS.union` 
+               (@loc.betax' <:? @e2.annotation) `DS.union`
+               --(@loc.betaf' <:? @e1.annotation) `DS.union` 
+               -- I think this one doesn't make sense, ... 
+               -- all functions that can be the result of @e1 must be included in the result of
+               -- this function application
+               (@loc.betaf' <:? @loc.betar')
+      in applySubst @loc.substitution cs
 
-      lhs.substitution = @loc.substitution
-      lhs.ty = @loc.ty
-      lhs.annotation = @loc.annotation
-      lhs.constraints = @loc.constraints
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.annotation = @loc.annotation
+    lhs.constraints = @loc.constraints
 
-      e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
-      e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
+    e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
+    e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
-      lhs.expressions = [(@loc.ty,@copy)] ++ @e1.expressions ++ @e2.expressions
+    lhs.expressions = [(@loc.ty,@copy)] ++ @e1.expressions ++ @e2.expressions
 
-      lhs.debug = "App: \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
-                  "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
-                  "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n" ++
-                  "unify: " ++ show @loc.unify1 ++ ", " ++ show @loc.unify2 ++ "\n\n" ++
-                  @e1.debug ++ @e2.debug
+    lhs.debug = "App: \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n" ++
+                "unify: " ++ show @loc.unify1 ++ ", " ++ show @loc.unify2 ++ "\n\n" ++
+                @e1.debug ++ @e2.debug
 
   | Let
-      loc.beta : UNIQUEREF counter
+    loc.betaf : UNIQUEREF counter
 
-      loc.beta'  = mkAnnVar @loc.beta
-      loc.theta1 = @e1.substitution
-      loc.theta2 = @e2.substitution
+    loc.betaf' = freshAnnVar @loc.betaf
+    loc.theta1 = @e1.substitution
+    loc.theta2 = @e2.substitution
 
-      loc.ty = @e2.ty
+    loc.ty = @e2.ty
 
-      loc.substitution = @loc.theta2 `dot` @loc.theta1
+    loc.substitution = @loc.theta2 `dot` @loc.theta1
 
-      loc.constraints =
-        let c1 = @e1.constraints
-            c2 = @e2.constraints
-            c3 = @loc.beta' <:? @e2.annotation
-            cs = c1 `DS.union` c2 `DS.union` c3
-        in applySubst @loc.theta2 cs
+    loc.constraints =
+      let c1 = @e1.constraints
+          c2 = @e2.constraints
+          c3 = @loc.betaf' <:? @e2.annotation
+          cs = c1 `DS.union` c2 `DS.union` c3
+      in applySubst @loc.theta2 cs
 
-      loc.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
 
-      lhs.ty = @loc.ty
-      lhs.annotation = @loc.annotation
-      lhs.constraints = @loc.constraints
-      lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.annotation = @loc.annotation
+    lhs.constraints = @loc.constraints
+    lhs.substitution = @loc.substitution
 
-      e2.typeEnvironment =
-        let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
-            ty'    = snd $ generalise newEnv @e1.annotation @e1.ty @e1.constraints
-        in  DM.insert @x ty' newEnv
+    e2.typeEnvironment =
+      let newEnv = applySubst @e1.substitution @lhs.typeEnvironment
+          ty'    = snd $ generalise newEnv @e1.annotation @e1.ty @e1.constraints
+      in  DM.insert @x ty' newEnv
 
-      e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
+    e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
 
-      lhs.expressions = [(@loc.ty,@copy)] ++ @e1.expressions ++ @e2.expressions
+    lhs.expressions = [(@loc.ty,@copy)] ++ @e1.expressions ++ @e2.expressions
 
-      lhs.debug = "Let("++ @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
-                  "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
-                  "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
-                  @e1.debug ++ @e2.debug
+    lhs.debug = "Let("++ @x ++ "): \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @e1.debug ++ @e2.debug
 
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
 -- but is can be passed into a function..
   | LetRec
-      loc.alphax : UNIQUEREF counter
-      loc.alphar : UNIQUEREF counter
-      loc.betax  : UNIQUEREF counter
-      loc.betar  : UNIQUEREF counter
-      loc.betaf  : UNIQUEREF counter
+    loc.alphax : UNIQUEREF counter
+    loc.alphar : UNIQUEREF counter
+    loc.betax  : UNIQUEREF counter
+    loc.betar  : UNIQUEREF counter
+    loc.betaf  : UNIQUEREF counter
 
-      loc.alphax' = freshVar @loc.alphax
-      loc.alphar' = freshVar @loc.alphar
-      loc.betax'  = mkAnnVar @loc.betax
-      loc.betar'  = mkAnnVar @loc.betar
-      loc.betaf'  = mkAnnVar @loc.betaf
+    loc.alphax' = freshVar @loc.alphax
+    loc.alphar' = freshVar @loc.alphar
+    loc.betax'  = freshAnnVar @loc.betax
+    loc.betar'  = freshAnnVar @loc.betar
+    loc.betaf'  = freshAnnVar @loc.betaf
 
-      loc.theta0 = @e1.substitution
-      loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alphar')
-      loc.theta2 = unifyAnn (applySubst @loc.theta1 @e1.annotation) (applySubst @loc.theta1 @loc.betar')
+    loc.theta0 = @e1.substitution
+    loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alphar')
+    loc.theta2 = unifyAnn (applySubst @loc.theta1 @e1.annotation) (applySubst @loc.theta1 @loc.betar')
+      
+    loc.theta  = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+
+    loc.ty = @e2.ty
+
+    loc.substitution = @loc.theta
+
+    -- | not sure about correctness
+    loc.constraints =
+      let c1 = @e1.constraints
+          c2 = @e2.constraints
+          c3 = applySubst @loc.theta (@loc.betaf' <:? @e2.annotation)
+      in c1 `DS.union` c2 `DS.union` c3
+
+    loc.annotation = applySubst @loc.substitution @loc.betaf'
+
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.substitution = @loc.substitution
+    lhs.annotation = @loc.annotation
+
+    e1.typeEnvironment =
+      case @x of
+        Just x  -> DM.insert @f (QualSig . Ty $ Arr @loc.alphax' @loc.betax' @loc.alphar' @loc.betar')
+                   (DM.insert x (QualSig $ Ty @loc.alphax') @lhs.typeEnvironment)
+                   
+        -- A recursive let binding without arguments, e.g. let loop = loop in loop
+        Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') @lhs.typeEnvironment
+
+    e1.annEnvironment =
+      case @x of
+        Just x  -> DM.insert @f @loc.betaf' (DM.insert x @loc.betax' @lhs.annEnvironment)
+        Nothing -> DM.insert @f @loc.betaf' @lhs.annEnvironment
         
-      loc.theta  = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+    e2.typeEnvironment =
+      let newEnv = applySubst @loc.theta @lhs.typeEnvironment
+      in case @x of
+          Just _  -> let ty    = Arr @loc.alphax' @loc.betax' @e1.ty @e1.annotation
+                         ty'   = applySubst @loc.theta ty
+                         genTy = snd $ generalise newEnv @e1.annotation ty' @e1.constraints
+                     in  DM.insert @f genTy newEnv
+          Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') newEnv -- not sure about this
 
-      loc.ty = @e2.ty
+    e2.annEnvironment =
+      let apps t = applySubst @loc.theta (DM.insert @f @e1.annotation t)
+      in case @x of
+           Just x' -> apps (DM.insert x' @loc.betax' @lhs.annEnvironment)
+           Nothing -> apps @lhs.annEnvironment
 
-      loc.substitution = @loc.theta
-
-      -- | not sure about correctness
-      loc.constraints =
-        let c1 = @e1.constraints
-            c2 = @e2.constraints
-            c3 = applySubst @loc.theta (@loc.betaf' <:? @e2.annotation)
-        in c1 `DS.union` c2 `DS.union` c3
-
-      loc.annotation = applySubst @loc.substitution @loc.betaf'
-
-      lhs.ty = @loc.ty
-      lhs.constraints = @loc.constraints
-      lhs.substitution = @loc.substitution
-      lhs.annotation = @loc.annotation
-
-      e1.typeEnvironment =
-        case @x of
-          Just x  -> DM.insert @f (QualSig . Ty $ Arr @loc.alphax' @loc.betax' @loc.alphar' @loc.betar')
-                     (DM.insert x (QualSig $ Ty @loc.alphax') @lhs.typeEnvironment)
-                     
-          -- A recursive let binding without arguments, e.g. let loop = loop in loop
-          Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') @lhs.typeEnvironment
-  
-      e1.annEnvironment =
-        case @x of
-          Just x  -> DM.insert @f @loc.betaf' (DM.insert x @loc.betax' @lhs.annEnvironment)
-          Nothing -> DM.insert @f @loc.betaf' @lhs.annEnvironment
-          
-      e2.typeEnvironment =
-        let newEnv = applySubst @loc.theta @lhs.typeEnvironment
-        in case @x of
-            Just _  -> let ty    = Arr @loc.alphax' @loc.betax' @e1.ty @e1.annotation
-                           ty'   = applySubst @loc.theta ty
-                           genTy = snd $ generalise newEnv @e1.annotation ty' @e1.constraints
-                       in  DM.insert @f genTy newEnv
-            Nothing -> DM.insert @f (QualSig $ Ty @loc.alphar') newEnv -- not sure about this
-
-      e2.annEnvironment =
-        let apps t = applySubst @loc.theta (DM.insert @f @e1.annotation t)
-        in case @x of
-             Just x' -> apps (DM.insert x' @loc.betax' @lhs.annEnvironment)
-             Nothing -> apps @lhs.annEnvironment
-
-      lhs.debug = "LetRec("++ @f ++ show @x ++ "): \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
-                  "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
-                  "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
-                  @e1.debug ++ @e2.debug
+    lhs.debug = "LetRec("++ @f ++ show @x ++ "): \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @e1.debug ++ @e2.debug
 
   | If
-      loc.beta   : UNIQUEREF counter
+    loc.betaf   : UNIQUEREF counter
 
-      loc.beta'  = mkAnnVar @loc.beta
+    loc.betaf'  = freshAnnVar @loc.betaf
 
-      loc.theta0 = @c.substitution
-      loc.theta1 = @e1.substitution
-      loc.theta2 = @e2.substitution
-      loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @c.ty) Bool
+    loc.theta0 = @c.substitution
+    loc.theta1 = @e1.substitution
+    loc.theta2 = @e2.substitution
+    loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @c.ty) Bool
 
-      loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.ty)
+    loc.theta4 = unify (applySubst @loc.theta3 @e2.ty) (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.ty)
 
-      loc.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+    loc.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
 
-      loc.ty = applySubst @loc.substitution @e2.ty
+    loc.ty = applySubst @loc.substitution @e2.ty
 
-      loc.constraints =
-        let c  = (@loc.beta' <:? @e1.annotation) `DS.union`
-                 (@loc.beta' <:? @e2.annotation)
-            cs = @e1.constraints `DS.union` @e2.constraints `DS.union` c
-        in applySubst @loc.substitution cs
+    loc.constraints =
+      let c  = (@loc.betaf' <:? @e1.annotation) `DS.union`
+               (@loc.betaf' <:? @e2.annotation)
+          cs = @e1.constraints `DS.union` @e2.constraints `DS.union` c
+      in applySubst @loc.substitution cs
 
-      loc.annotation = @loc.beta'
+    loc.annotation = @loc.betaf'
 
-      lhs.ty = @loc.ty
-      lhs.constraints = @loc.constraints
-      lhs.substitution = @loc.substitution
-      lhs.annotation = @loc.annotation
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.substitution = @loc.substitution
+    lhs.annotation = @loc.annotation
 
-      e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
-      e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
-      e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
+    e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
+    e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
+    e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
+    e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
 
-      lhs.expressions = [(@loc.ty,@copy)] ++ @c.expressions ++ @e1.expressions ++ @e2.expressions
+    lhs.expressions = [(@loc.ty,@copy)] ++ @c.expressions ++ @e1.expressions ++ @e2.expressions
 
-      lhs.debug = "If: \n" ++
-                  "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
-                  "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
-                  "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
-                  "substitution: " ++ show @loc.substitution ++ "\n" ++
-                  "constraints: " ++ show @loc.constraints ++ "\n\n" ++
-                  @c.debug ++ @e1.debug ++ @e2.debug
+    lhs.debug = "If: \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @c.debug ++ @e1.debug ++ @e2.debug
 
 {
 freshVar :: Int -> Ty
-freshVar i = TyVar $ 'τ' : show i
+freshVar = mkTyVar . show
 
-mkAnnVar :: Int -> SAnn
-mkAnnVar i = AnnVar $ 'β' : show i
+freshAnnVar :: Int -> SAnn
+freshAnnVar = mkAnnVar . show
+
+mkTyVar :: String -> Ty
+mkTyVar s = TyVar $ 'τ' : s
+
+mkAnnVar :: String -> SAnn
+mkAnnVar s = AnnVar $ 'β' : s
 
 mkProgramPoint :: Var -> Int -> SAnn
 mkProgramPoint v p = AnnSet (DS.singleton (v ++ show p))
+
+assignVarsFreshTyVars :: Int -> Set Var -> TyEnv -> TyEnv
+assignVarsFreshTyVars seed vars env =
+  let fresh     = map (\x -> QualSig $ Ty $ mkTyVar (show seed ++ show x)) ([0..] :: [Int])
+      freshVars = zip (DS.toList vars) fresh
+  in foldr (\(var,tyvar) -> DM.insert var tyvar) env freshVars
+
+assignVarsFreshAnnVars :: Int -> Set Var -> AnnEnv -> AnnEnv
+assignVarsFreshAnnVars seed vars env =
+  let fresh     = map (\x -> mkAnnVar (show seed ++ show x)) ([0..] :: [Int])
+      freshVars = zip (DS.toList vars) fresh
+  in foldr (\(var,tyvar) -> DM.insert var tyvar) env freshVars
 
 refreshAnnVars :: Int -> Ty -> Ty
 refreshAnnVars seed ty = applySubst (listToSimpleSubst annSubs) ty

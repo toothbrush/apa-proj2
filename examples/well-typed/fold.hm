@@ -1,0 +1,6 @@
+let foldr f z xs = case xs of
+                    []     -> z
+                    (x:xs) -> f x (foldr f z xs)
+in let plus x y = x + y
+in foldr plus 0 (0:1:2:[]) 
+

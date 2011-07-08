@@ -1,16 +1,3 @@
--------------------------------------------------------------------------------
--- |
--- Module      :  CCO.HM.AG
--- Copyright   :  (c) 2008 Utrecht University
--- License     :  All rights reserved
---
--- Maintainer  :  stefan@cs.uu.nl
--- Stability   :  provisional
--- Portability :  portable
---
--- Attribute grammar for a simple, implicitly typed functional language.
---
--------------------------------------------------------------------------------
 optpragmas {
 {-# LANGUAGE TypeSynonymInstances #-}
 }
@@ -34,10 +21,12 @@ import System.IO.Unsafe
 INCLUDE "AG/DataTypes.ag"
 INCLUDE "AG/Infer.ag"
 INCLUDE "AG/CollectBinders.ag"
+INCLUDE "AG/FreeVars.ag"
 INCLUDE "AG/FreeTyVars.ag"
 INCLUDE "AG/FreeAnnVars.ag"
 
 {
+
 class Ord a => Lattice a where
   top     :: a
   bottom  :: a
@@ -164,12 +153,6 @@ simplify env tau c =
       c'     = applySubst theta c
   in  partition env c'
 
-{-
-testPA = pseudoActive (DS.fromList [AnnVar "b1", AnnVar "b2", AnnVar "b3"])
-                      (DS.fromList [ Constraint "b2" (AnnVar "b6")
-                                   , Constraint "b6" (AnnVar "b4")])
--}
-
 pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
   let extrAnn (Constraint l@(AnnVar _) u) xs | l `DS.member` active = DS.insert u xs
@@ -187,24 +170,6 @@ satisfiable active analysis =
   DM.foldWithKey o Identity analysis
   where o beta value next | beta `DS.notMember` active = Dot (AnnSub beta value) next
                           | otherwise                  = next
-
--- TODO: Implementation is ugly, refactor. It helps if we get a set of SAnn here
-{- satisfiable active analysis =-}
-{-   let act'          = DS.map AnnVar active-}
-{-       ana'          = DM.mapKeys AnnVar analysis-}
-{-       func beta l-}
-{-         | l <= beta = if beta `DS.notMember` act'-}
-{-                         then if l == beta-}
-{-                                then Identity-}
-{-                                else case beta of-}
-{-                                       (AnnVar v) -> case l of-}
-{-                                                       (AnnVar v') -> AnnSub v v'-}
-{-                                                       _          -> error "satisfiable: should not happen"-}
-{-                                       _          -> error "sat should not happen"-}
-{-                         else Identity-}
-{-         | otherwise = error "lower bound is larger than upper bound, ?? we don't track lower and upper bounds..."-}
-{-       substLst      = DM.mapWithKey func ana'-}
-{-   in DM.fold Dot Identity substLst-}
 
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
 partition env cs =
@@ -271,10 +236,10 @@ instance Substitutable TyScheme where
   applySubst Identity     t = t
   applySubst d@(Dot _ _) t  = dotApply d t
 
-  applySubst s (QualSig t) = QualSig (applySubst s t)
+  applySubst s (QualSig t)  = QualSig (applySubst s t)
 
-  applySubst s@(TySub a _) t@(Forall tv ts) | a == tv   = t
-                                            | otherwise = Forall tv (applySubst s ts)
+  applySubst s@(TySub a _)  t@(Forall tv ts) | a == tv   = t
+                                             | otherwise = Forall tv (applySubst s ts)
 
   applySubst s@(AnnSub a _) t@(AnnSig tv ts) | a == tv   = t
                                              | otherwise = AnnSig tv (applySubst s ts)
@@ -297,9 +262,9 @@ instance Substitutable Ty where
   applySubst s (Arr t1 a1 t2 a2) = Arr (applySubst s t1) (applySubst s a1) 
                                        (applySubst s t2) (applySubst s a2)
 
-  applySubst s (List t ann) = List (applySubst s t) (applySubst s ann)
+  applySubst s (List t ann)    = List (applySubst s t) (applySubst s ann)
 
-  applySubst _ Nat  = Nat
+  applySubst _ Nat  = Nat   -- TODO: zijn deze niet redundant?
   applySubst _ Bool = Bool
   applySubst _ t    = t
 

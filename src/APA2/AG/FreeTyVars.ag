@@ -13,15 +13,15 @@ SEM TyEnv
   | Nil   lhs.ftv = DS.empty
 
 {
-class FreeVariables a where
+class FreeTypeVariables a where
   ftv :: a -> Set TyVar -- alias String
 
-instance FreeVariables TyScheme where
+instance FreeTypeVariables TyScheme where
   ftv x = ftv_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
 
-instance FreeVariables Ty where
+instance FreeTypeVariables Ty where
   ftv x = ftv_Syn_Ty (wrap_Ty (sem_Ty x) Inh_Ty)
 
-instance FreeVariables TyEnv where
+instance FreeTypeVariables TyEnv where
   ftv x = ftv_Syn_TyEnv (wrap_TyEnv (sem_TyEnv x) Inh_TyEnv)
 }

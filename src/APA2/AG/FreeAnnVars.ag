@@ -17,7 +17,6 @@ SEM Ty
 SEM SAnn
   | AnnVar lhs.fav = DS.singleton @var
 
--- TODO: Verify that this implementation is correct
 SEM Constraint
   | Constraint lhs.fav = DS.union @a1.fav @a2.fav
 
