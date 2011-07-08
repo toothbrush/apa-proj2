@@ -335,8 +335,7 @@ SEM MH
                  (@loc.betax' <:? @e2.annotation) `DS.union`
                  --(@loc.betaf' <:? @e1.annotation) `DS.union` 
                  -- I think this one doesn't make sense, ... 
-                 -- all functions that can be the result of @e1 must be included in the result of
-                 -- this function application
+                 -- Makes more sense for a security analysis, since union means something else.
                  (@loc.betaf' <:? @loc.betar')
         in applySubst @loc.substitution cs
 
