@@ -141,11 +141,7 @@ instance Show SAnn where
   show (AnnEmpty)   = "" -- really "{}"
 
 instance Show Ty where
-  show (TyVar a)    = a
-  show (Arr t a t' a') = "(" ++ tyAnn t a ++ " ➔  " ++ tyAnn t' a' ++ ")"
-  show Nat          = "Nat"
-  show Bool         = "Bool"
-  show (List t an)  = "List " ++ show t ++ "" ++ (colonOpt $ show an)
+  show = tyLayout DM.empty
 
 tyLayout :: Map AnnVar SAnn -> Ty -> String
 tyLayout _   (TyVar a)       = a -- we probably don't want to see this here. 
