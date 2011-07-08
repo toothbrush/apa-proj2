@@ -5,7 +5,7 @@ all: haskell
 
 ag: src/APA2/AG.hs
 
-src/APA2/AG.hs: src/APA2/AG.ag src/APA2/AG/DataTypes.ag src/APA2/AG/Infer.ag src/APA2/AG/FreeTyVars.ag src/APA2/AG/FreeAnnVars.ag src/APA2/AG/CollectBinders.ag
+src/APA2/AG.hs: src/APA2/AG.ag src/APA2/AG/DataTypes.ag src/APA2/AG/Infer.ag src/APA2/AG/FreeVars.ag src/APA2/AG/FreeTyVars.ag src/APA2/AG/FreeAnnVars.ag src/APA2/AG/CollectBinders.ag
 	uuagc -dcfws --self --genlinepragmas -P src/APA2 src/APA2/AG.ag
 
 haskell: src/APA2/AG.hs

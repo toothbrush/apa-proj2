@@ -9,6 +9,7 @@ ATTR MH
     -- etc. are encountered.
     typeEnvironment : {TyEnv}
     annEnvironment  : {AnnEnv}
+    matchTy         : {Ty}
   | -- The counter is used to generate fresh variable names, which are unique.
     counter : {Int}
   |
@@ -25,6 +26,7 @@ ATTR MH
     copy                                      : SELF
   ]
 
+{-
 SEM MH
   | CaseBlck
       loc.beta : UNIQUEREF counter
@@ -69,6 +71,7 @@ SEM MH
       c1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
       c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.typeEnvironment
       c2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.annEnvironment
+
   | CaseAlt
       loc.beta : UNIQUEREF counter
 
@@ -84,6 +87,7 @@ SEM MH
       lhs.annotation = @loc.beta'
 
       lhs.lhsTy = Just @pat.ty
+-}
 
 SEM MH
   | VBool
@@ -92,7 +96,7 @@ SEM MH
     lhs.ty = Bool
     lhs.substitution = Identity
     lhs.constraints  = DS.empty
-    lhs.annotation   = mkAnnVar @loc.beta
+    lhs.annotation   = freshAnnVar @loc.beta
 
   | VInt
     loc.beta  : UNIQUEREF counter
@@ -100,7 +104,7 @@ SEM MH
     lhs.ty = Nat
     lhs.substitution = Identity
     lhs.constraints  = DS.empty
-    lhs.annotation   = mkAnnVar @loc.beta
+    lhs.annotation   = freshAnnVar @loc.beta
 
   | Nil
     loc.alpha : UNIQUEREF counter
@@ -108,8 +112,8 @@ SEM MH
     loc.betaf : UNIQUEREF counter
 
     loc.alpha' = freshVar @loc.alpha
-    loc.beta'  = mkAnnVar @loc.beta
-    loc.betaf' = mkAnnVar @loc.betaf
+    loc.beta'  = freshAnnVar @loc.beta
+    loc.betaf' = freshAnnVar @loc.betaf
 
     loc.ty = List @loc.alpha' @loc.beta'
 
@@ -138,8 +142,8 @@ SEM MH
     loc.beta  : UNIQUEREF counter
     loc.betaf : UNIQUEREF counter
 
-    loc.beta'  = mkAnnVar @loc.beta
-    loc.betaf' = mkAnnVar @loc.betaf
+    loc.beta'  = freshAnnVar @loc.beta
+    loc.betaf' = freshAnnVar @loc.betaf
 
     loc.listTy = List @e1.ty @e1.annotation
     loc.theta1 = @e1.substitution
@@ -174,9 +178,94 @@ SEM MH
                 "ty:" ++ show @loc.ty ++ "\n" ++
                 "annotation: " ++ show @loc.annotation ++ "\n" ++
                 "substitution: " ++ show @loc.substitution ++ "\n" ++
-                "constraints: " ++ show @loc.constraints ++ "\n\n"
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @e1.debug ++ @e2.debug
     
-    lhs.expressions = [(@loc.ty,@copy)] -- ++ @e1.expressions ++ @e2.expressions
+    lhs.expressions = [(@loc.ty,@copy)] ++ @e1.expressions ++ @e2.expressions
+
+  | CaseBlck
+    loc.betaf : UNIQUEREF counter
+    
+    loc.betaf' = freshAnnVar @loc.betaf
+
+    loc.annotation = @loc.betaf'
+
+    -- apply substitutions in both directions, each alternative can supply information
+    -- to the other alternatives.
+    loc.theta = unify (applySubst (@e.substitution `dot` @c2.substitution) @c1.ty) 
+                      (applySubst (@c1.substitution `dot` @e.substitution) @c2.ty)
+
+    loc.substitution = @e.substitution `dot` @c1.substitution `dot` @c2.substitution `dot` @loc.theta
+
+    loc.constraints =
+      let cs = @e.constraints `DS.union` @c1.constraints `DS.union` @c2.constraints
+      in applySubst @loc.substitution cs
+
+    loc.ty = applySubst @loc.substitution @c2.ty    
+
+    c1.matchTy = @e.ty
+
+    c2.matchTy = applySubst @c1.substitution @e.ty
+
+    c1.typeEnvironment = applySubst @e.substitution @lhs.typeEnvironment
+    c1.annEnvironment  = applySubst @e.substitution @lhs.annEnvironment
+    c2.typeEnvironment = applySubst (@e.substitution `dot` @c1.substitution) @lhs.typeEnvironment
+    c2.annEnvironment  = applySubst (@e.substitution `dot` @c1.substitution) @lhs.annEnvironment
+  
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
+
+    lhs.debug = "Case: \n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @e.debug ++ @c1.debug ++ @c2.debug
+
+  | CaseAlt
+    loc.betaf : UNIQUEREF counter
+
+    loc.betaf' = freshAnnVar @loc.betaf
+
+    loc.theta = unify @pat.ty @lhs.matchTy 
+
+    loc.patTypeEnvironment = assignVarsFreshTyVars @loc.betaf @pat.fv @lhs.typeEnvironment 
+    loc.patAnnEnvironment  = assignVarsFreshAnnVars @loc.betaf @pat.fv @lhs.annEnvironment
+
+    pat.typeEnvironment = @loc.patTypeEnvironment
+    pat.annEnvironment  = @loc.patAnnEnvironment
+
+    bnd.typeEnvironment = applySubst @loc.theta @loc.patTypeEnvironment
+    bnd.annEnvironment  = applySubst @loc.theta @loc.patAnnEnvironment
+    
+    -- missing applysubst..
+    loc.constraints = @pat.constraints `DS.union`
+                      @bnd.constraints
+
+    loc.annotation = @bnd.annotation
+
+    loc.substitution = @loc.theta `dot` @bnd.substitution
+
+    loc.ty = applySubst @loc.substitution @bnd.ty
+    
+    lhs.substitution = @loc.substitution
+    lhs.ty = @loc.ty
+    lhs.constraints = @loc.constraints
+    lhs.annotation = @loc.annotation
+
+    lhs.debug = "Case Alternative: \n" ++
+                "match type: " ++ show @lhs.matchTy ++ "\n" ++
+                "tyEnv: " ++ show @lhs.typeEnvironment ++ "\n" ++
+                "annEnv: " ++ show @lhs.annEnvironment ++ "\n" ++
+                "ty:" ++ show @loc.ty ++ "\n" ++
+                "annotation: " ++ show @loc.annotation ++ "\n" ++
+                "substitution: " ++ show @loc.substitution ++ "\n" ++
+                "constraints: " ++ show @loc.constraints ++ "\n\n" ++
+                @pat.debug ++ @bnd.debug
 
   | Op
       loc.alpha1 : UNIQUEREF counter
@@ -185,7 +274,7 @@ SEM MH
 
       loc.alpha1' = freshVar @loc.alpha1
       loc.alpha2' = freshVar @loc.alpha2
-      loc.beta'   = mkAnnVar @loc.beta
+      loc.beta'   = freshAnnVar @loc.beta
 
       loc.(ty1,ty2,r) = operatorType @op
 
@@ -228,7 +317,7 @@ SEM MH
   | Var
       loc.beta : UNIQUEREF counter
 
-      loc.beta' = mkAnnVar @loc.beta
+      loc.beta' = freshAnnVar @loc.beta
       
       loc.phi = fromJust $ DM.lookup @x @lhs.annEnvironment
 
@@ -265,10 +354,10 @@ SEM MH
       loc.alpha   : UNIQUEREF counter
       loc.ppoint  : UNIQUEREF counter
       loc.betax   : UNIQUEREF counter
-      loc.beta    : UNIQUEREF counter
+      loc.betaf   : UNIQUEREF counter
 
-      loc.betax' = mkAnnVar @loc.betax
-      loc.beta'  = mkAnnVar @loc.beta
+      loc.betax' = freshAnnVar @loc.betax
+      loc.betaf' = freshAnnVar @loc.betaf
 
       loc.pi     = mkProgramPoint @x @loc.ppoint
       loc.alpha' = freshVar @loc.alpha
@@ -276,11 +365,12 @@ SEM MH
       loc.substitution = @e.substitution
 
       loc.constraints = @e.constraints `DS.union`
-                        (@loc.beta' <:? @loc.pi)
+                        (@loc.betaf' <:? @loc.pi)
 
-      loc.ty = applySubst @e.substitution (Arr @loc.alpha' @loc.betax' @e.ty @e.annotation)
+      -- WARNING FIX THIS!!!!, substitutions should be idempotent
+      loc.ty = applySubst @loc.substitution (applySubst @loc.substitution (Arr @loc.alpha' @loc.betax' @e.ty @e.annotation))
 
-      loc.annotation = @loc.beta'
+      loc.annotation = @loc.betaf'
 
       lhs.substitution = @loc.substitution
       lhs.ty = @loc.ty
@@ -308,9 +398,9 @@ SEM MH
       loc.betax  : UNIQUEREF counter
       loc.betaf  : UNIQUEREF counter
 
-      loc.betar' = mkAnnVar @loc.betar
-      loc.betax' = mkAnnVar @loc.betax
-      loc.betaf' = mkAnnVar @loc.betaf
+      loc.betar' = freshAnnVar @loc.betar
+      loc.betax' = freshAnnVar @loc.betax
+      loc.betaf' = freshAnnVar @loc.betaf
       loc.alpha' = freshVar @loc.alpha
 
       loc.theta1 = @e1.substitution
@@ -363,7 +453,7 @@ SEM MH
   | Let
       loc.beta : UNIQUEREF counter
 
-      loc.beta'  = mkAnnVar @loc.beta
+      loc.beta'  = freshAnnVar @loc.beta
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
 
@@ -414,9 +504,9 @@ SEM MH
 
       loc.alphax' = freshVar @loc.alphax
       loc.alphar' = freshVar @loc.alphar
-      loc.betax'  = mkAnnVar @loc.betax
-      loc.betar'  = mkAnnVar @loc.betar
-      loc.betaf'  = mkAnnVar @loc.betaf
+      loc.betax'  = freshAnnVar @loc.betax
+      loc.betar'  = freshAnnVar @loc.betar
+      loc.betaf'  = freshAnnVar @loc.betaf
 
       loc.theta0 = @e1.substitution
       loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alphar')
@@ -482,7 +572,7 @@ SEM MH
   | If
       loc.beta   : UNIQUEREF counter
 
-      loc.beta'  = mkAnnVar @loc.beta
+      loc.beta'  = freshAnnVar @loc.beta
 
       loc.theta0 = @c.substitution
       loc.theta1 = @e1.substitution
@@ -526,13 +616,31 @@ SEM MH
 
 {
 freshVar :: Int -> Ty
-freshVar i = TyVar $ 'τ' : show i
+freshVar = mkTyVar . show
 
-mkAnnVar :: Int -> SAnn
-mkAnnVar i = AnnVar $ 'β' : show i
+freshAnnVar :: Int -> SAnn
+freshAnnVar = mkAnnVar . show
+
+mkTyVar :: String -> Ty
+mkTyVar s = TyVar $ 'τ' : s
+
+mkAnnVar :: String -> SAnn
+mkAnnVar s = AnnVar $ 'β' : s
 
 mkProgramPoint :: Var -> Int -> SAnn
 mkProgramPoint v p = AnnSet (DS.singleton (v ++ show p))
+
+assignVarsFreshTyVars :: Int -> Set Var -> TyEnv -> TyEnv
+assignVarsFreshTyVars seed vars env =
+  let fresh     = map (\x -> QualSig $ Ty $ mkTyVar (show seed ++ show x)) ([0..] :: [Int])
+      freshVars = zip (DS.toList vars) fresh
+  in foldr (\(var,tyvar) -> DM.insert var tyvar) env freshVars
+
+assignVarsFreshAnnVars :: Int -> Set Var -> AnnEnv -> AnnEnv
+assignVarsFreshAnnVars seed vars env =
+  let fresh     = map (\x -> mkAnnVar (show seed ++ show x)) ([0..] :: [Int])
+      freshVars = zip (DS.toList vars) fresh
+  in foldr (\(var,tyvar) -> DM.insert var tyvar) env freshVars
 
 refreshAnnVars :: Int -> Ty -> Ty
 refreshAnnVars seed ty = applySubst (listToSimpleSubst annSubs) ty
