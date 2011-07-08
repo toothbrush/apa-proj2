@@ -1,9 +1,8 @@
 
 %outline:
 
-% a type system
-% specification and an explanation of both the type system, a run through of one
-% or two examples and an architectural description of the implementation.
+% an explanation of both the type system, a run through of one or two examples 
+% an architectural description of the implementation.
 % Features and limitations should be prominently displayed in your documentation. 
 
 \documentclass[a4paper]{article}
@@ -22,7 +21,7 @@
 % end semantic
 
 \author{Jurri\"en Stutterheim\and Ruben de Gooijer \and Paul van der Walt} 
-\date{\today} 
+\date{\today}
 \title{Implementation notes for Type and Effect Systems}
 
 \begin{document}
@@ -384,10 +383,17 @@ rule, for lists, was added to the default implementation.
     annotation unification.}
     \label{tab:algoU}
 \end{table}
-\section{Approach}
+\section{Architecture}
 
 
-\section{Implemented}
+\section{Features and Limitations}
+
+The assignment suggested implementing CFA with support for tracking data structure 
+creation, with lists, pairs and a case-statement. Our implementation supports lists and 
+a case statement, with pattern matching and a fall-through case. 
+
+% ???
+The implementation so far only has support for 
 
 \section{Example programs}
 
