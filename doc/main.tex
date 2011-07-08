@@ -156,33 +156,54 @@ These rules are formulated in a syntax-directed fashion.
 \begin{table}
     \begin{centering}
     \begin{tabular}{ll}
-%TODO FIXME
-        \hline
-        $ [$\emph{t-cons}$] $& \inference{
-        {\Gamma},C |- e_1 : \tau^{\varphi_1}
-        & \Gamma,C |- e_2 : ([\tau^{\varphi_2}]^{\varphi_3}
-        & C |- \varphi_2 \tyrel \varphi_1
-        & C |- \varphi_3 \tyrel \varphi
+        \hline \\
+        $ [$\emph{t-nat}$] $& \inference{}
+        {
+        {\Gamma},C |- \mathds{N} : Nat^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-true}$] $& \inference{}
+        {
+        {\Gamma},C |- True : Bool^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-false}$] $& \inference{}
+        {
+        {\Gamma},C |- False : Bool^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-nil}$] $& \inference{
+        {\Gamma},C |- Nil : \tau^{\varphi_1}
+        & C |- \varphi \sqsupseteq \pi
         }
         {
-        {\Gamma},C |- e_1 \<:> e_2  : ([\tau^{\varphi_1}])^{\varphi}
+        {\Gamma},C |- Nil_\pi : [\tau^{\varphi_1}]^{\varphi}
+        } \\
+~&~\\
+        $ [$\emph{t-cons}$] $& \inference{
+        {\Gamma},C |- e_1 : \tau^{\varphi_1}
+        & \Gamma,C |- e_2 : [\tau^{\varphi_2}]^{\varphi_3}
+        & C |- \varphi_1 \sqsupseteq \varphi_2
+        & C |- \varphi \sqsupseteq \pi
+        }
+        {
+        {\Gamma},C |- Cons_\pi\ e_1\ e_2  : [\tau^{\varphi_1}]^{\varphi}
         } \\
 ~&~\\
         $ [$\emph{t-var}$] $& \inference{
         {\Gamma}(x) = ({\sigma},\varphi)
-        & C |- \varphi \tyrel \varphi_1 
-        & inst(\sigma) = C' => \tau
+        & C |- \varphi_1 \sqsupseteq \varphi
+        & inst(\sigma) = \tau
         }
         {
-        {\Gamma},C\cup C' |- x  : {\tau^{\varphi_1}}
+        {\Gamma},C |- x  : {\tau^{\varphi_1}}
         } \\
 ~&~\\
         $ [$\emph{t-app}$] $& \inference{
         \Gamma,C |- e_1 : \tau_2^{\varphi_2} ->^{\varphi} \tau_0^{\varphi_0}
         & \Gamma,C|- e_2 : \tau_2^{\varphi_3}
-        & C|- \varphi_3 \tyrel \varphi_2
-        & C|- \varphi   \tyrel \varphi_4
-        & C|- \varphi_0 \tyrel \varphi_4
+        & C|- \varphi_2 \sqsupseteq \varphi_3
+        & C|- \varphi_4 \sqsupseteq \varphi_0
         }
         {
         \Gamma, C |- e_1 e_2 : \tau_0^{\varphi_4}

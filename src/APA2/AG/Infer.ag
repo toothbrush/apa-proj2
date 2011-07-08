@@ -408,17 +408,15 @@ SEM MH
 
     loc.annotation = @loc.betaf'
 
-    -- | We do not generate constraints for an application of a 
-    --   function to a primitive type.
+    -- | At application we subeffect the argument to the function with the top level
+    --   annotation of @e2. The result of the application is a new expression. 
+    --   Its top level annotation is subeffected with the annotation
+    --   that results from the application.
     loc.constraints =
       let c1 = @e1.constraints
           c2 = @e2.constraints
           cs = c1 `DS.union` c2 `DS.union` 
                (@loc.betax' <:? @e2.annotation) `DS.union`
-               --(@loc.betaf' <:? @e1.annotation) `DS.union` 
-               -- I think this one doesn't make sense, ... 
-               -- all functions that can be the result of @e1 must be included in the result of
-               -- this function application
                (@loc.betaf' <:? @loc.betar')
       in applySubst @loc.substitution cs
 

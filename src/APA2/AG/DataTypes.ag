@@ -151,12 +151,12 @@ tyLayout _   Bool            = "Bool"
 tyLayout con (List t an)     = "((List " ++ tyLayout con t ++ ") : " ++ ((fromSAnn an) `from` con) ++ ")"
 
 from :: AnnVar -> Map AnnVar SAnn -> String
-from ann con = show $ DM.findWithDefault (AnnVar "") ann con
+from ann con = show $ DM.findWithDefault (AnnVar ann) ann con
 
 -- | Unpacks SAnn datatype and returns an AnnVar string
 fromSAnn :: SAnn -> String
 fromSAnn (AnnVar v) = v
-fromSAnn _          = error "danger will robinson"
+fromSAnn x          = show x
 
 -- | Unpacks an AnnSet to get the inner set
 toSet :: SAnn -> Set Point
