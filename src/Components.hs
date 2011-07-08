@@ -3,9 +3,9 @@ module Components where
 import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
 import Data.Map (Map)
+import Data.Set (Set)
 import qualified Data.Map as DM
 import qualified Data.Set as DS
-import qualified  Data.MultiSet as DMS
 
 import APA2.AG
 import Data.Generics.Schemes
@@ -16,6 +16,7 @@ initialInheritedAttributes =
   Inh_MH { typeEnvironment_Inh_MH = DM.empty
          , annEnvironment_Inh_MH = DM.empty
          , counter_Inh_MH = 0
+         , matchTy_Inh_MH = undefined -- suppress warning. only used in caseBlock
          }
 
 w :: MH -> (Ty, SAnn, SimpleSubstitution, Constraints, Expressions, String, Map String MH)
@@ -29,6 +30,7 @@ w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
            , annotDict_Syn_MH    wrappedDS
            )
 
+getConstraints :: (a,b,c,d,e,f,g) -> d
 getConstraints (_,_,_,c,_,_,_) = c
 
 debugFile :: FilePath -> IO ()
@@ -70,25 +72,30 @@ debugInference tm =
     putStrLn ""
     putStrLn debug
 
+fromSAnn :: SAnn -> String
 fromSAnn (AnnVar v) = v
 fromSAnn _          = error "danger will robinson"
 
+toSet :: SAnn -> Set Point
 toSet    (AnnSet x) = x
 toSet    _          = DS.empty
 
 analysisResult :: MH -> IO ()
 analysisResult tm = 
   do 
-    let (ty, annotation, subst, constraints, exprs, debug, annots) = w tm
+    let (_, _, _, constraints, exprs, _, _) = w tm
     putStrLn "Analysis result: " 
     printExpressions (applySubst (solutionSubst constraints) exprs)
 
+solutionSubst :: Constraints -> SimpleSubstitution
 solutionSubst cs = 
   DM.foldWithKey (\var result next -> Dot (AnnSub var result) next) Identity (worklist cs)
 
+printExpressions' :: (Show a1, Show a) => [(a1, a)] -> [Char]
 printExpressions' exprs = 
   foldr (\(ty,e) acc -> show e ++ " : " ++ show ty ++ acc) "" exprs
 
+printExpressions :: (Show a1, Show a) => [(a1, a)] -> IO ()
 printExpressions exprs = 
   mapM_ (\(a,e) -> putStrLn (show e ++ " : " ++ show a)) exprs
 

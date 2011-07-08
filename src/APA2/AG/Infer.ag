@@ -1,7 +1,5 @@
 imports
 {
-import            Control.Monad ()
-import            Control.Monad (mplus)
 }
 
 ATTR MH
@@ -642,9 +640,9 @@ nextUnique :: Int -> (Int, Int)
 nextUnique u = (u+1, u)
 
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
-generalise env ann tau c = let free      = ftv tau DS.\\ ftv env
-                               genTyVars = DS.fold Forall (QualSig $ Ty tau) free
-                           in (undefined, genTyVars)
+generalise env _ tau _ = let free      = ftv tau DS.\\ ftv env
+                             genTyVars = DS.fold Forall (QualSig $ Ty tau) free
+                         in (undefined, genTyVars)
 
 {-
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
@@ -667,7 +665,7 @@ generalise env ann tau c =
 
 instantiate :: Int -> TyScheme -> (Constraints, Ty)
 instantiate seed ts = (undefined, applySubst subst ty)
-  where (Binders tyvars annvars cs ty) = collectBinders ts
+  where (Binders tyvars _ _ ty) = collectBinders ts
         fresh   prefix = map (\x -> prefix : show seed ++ show x) ([0..] :: [Int])
         tySubs         = zipWith (\a b -> TySub a (TyVar b)) tyvars (fresh 'τ')
         annSubs        = []

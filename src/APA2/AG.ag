@@ -6,10 +6,8 @@ MODULE {APA2.AG} {} {}
 imports
 {
 import Debug.Trace
-import            Control.Monad (mplus)
 import            Data.Map (Map)
 import qualified  Data.Map as DM
-import qualified  Data.Map
 import qualified  Data.Map as Map
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
@@ -97,11 +95,13 @@ a          ⊔ AnnEmpty   = a
 (AnnSet a) ⊔ (AnnSet b) = AnnSet (DS.union a b)
 _          ⊔ _          = error "no variables allowed"
 
-debugStep w ana = ""
+debugStep :: t -> t1 -> [Char]
+debugStep _ _ = ""
 {-
   case unsafePerformIO (debugStep' w ana) of
     () -> ""
 -}
+debugStep' :: Worklist -> Map AnnVar SAnn -> IO ()
 debugStep' w ana =
   do 
     putStrLn "step: "
@@ -127,8 +127,10 @@ printActiveAnnVars s =
   do putStrLn "active annvars: "
      DS.fold (\v b -> putStr (' ' : v) >>= \_ -> b) (return ()) s
 
+printAnalysisResult :: SAnn -> IO ()
 printAnalysisResult (AnnSet s) = DS.fold (\x b -> putStr (x ++ ", \n") >>= \_ -> b) (return ()) s
 printAnalysisResult AnnEmpty = putStr "{}, "
+printAnalysisResult (AnnVar v) = putStr $ "PROBLEM: "++v
 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
@@ -143,6 +145,8 @@ pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
   let extrAnn (Constraint l@(AnnVar _) u) xs | l `DS.member` active = DS.insert u xs
                                              | otherwise            = xs
+      extrAnn (Constraint AnnEmpty _)     _  = undefined
+      extrAnn (Constraint (AnnSet  _) _)  _  = undefined
       vars = DS.fold extrAnn DS.empty c `DS.union` active
   in  if DS.null (vars `DS.intersection` active)
         then pseudoActive vars c
@@ -255,7 +259,7 @@ instance Substitutable Ty where
   applySubst _ t    = t
 
 instance Substitutable Expressions where
-  applySubst s []         = []
+  applySubst _ []         = []
   applySubst s ((a,e):xs) = (applySubst s a,e) : applySubst s xs
 
 instance Substitutable TyEnv where

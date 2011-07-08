@@ -16,6 +16,8 @@ main = do
             _          -> do putStrLn ("Argument not recognized")
                              putStrLn usage
 
+doDefault :: String -> IO ()
 doDefault input = (analysisResult . parseProgram)  input
 
-usage = "no usage description yet"  
+usage :: String
+usage = "no usage description yet"
