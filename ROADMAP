@@ -2,12 +2,7 @@
 
   Hoog:
 
-  * Introductie schrijven
-    wat voor analyse doen we eigenlijk, en waarvoor is het nuttig?
-      data creation tracking
-      closure tracking
   * Design sectie afmaken
-    * Natural semantics heeft niet echt toegevoegde waarde volgens mij, weg?
     * Belangrijk!! Type system consistent met code. Constraints omdraaien consistent met code. 
       Er missen ook nog een paar rules.
 

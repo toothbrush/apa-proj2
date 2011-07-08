@@ -31,10 +31,24 @@
 
 \section{Introduction}
 
-This project aims to implement a tool which can do a control-flow analysis on a lambda-calculus language with support for
-data structures. The focus is on lists%and pairs
+This project aims to implement a tool which can do a control-flow analysis on a
+lambda-calculus language with support for data structures. The focus is on
+lists%and pairs
 , for now.
-%todo: more. 
+
+Control-flow analysis aims to determine for each function application, which
+functions may be applied. We also track the creation of data structures and that
+of lambda functions. The implementation of our analysis is built on the
+algorithm W type inferencing algorithm, using an annotated type system.
+
+Our implementation currently offers support for monovariance and subeffecting.
+While support for polyvariance has been attempted, we failed to deliver it fully
+operational on time.
+
+This document is organised as follows. First we introduce the design of the
+analysis by showing our target language, its type system, its semantics and
+our analysis rules. We then proceed to the implementation details of the
+analysis.
 
 \section{Design}
 
