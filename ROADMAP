@@ -14,19 +14,20 @@
     * Natural semantics heeft niet echt toegevoegde waarde volgens mij, weg?
     * Belangrijk!! Type system consistent met code. Constraints omdraaien consistent met code. 
       Er missen ook nog een paar rules.
-    * W kan weg
 
   * Readme met instructie voor het gebruik van het programma
 
   * Code organisatie, waar is wat geimplementeerd.
+
+  * Waar faalt onze analyse? Welke programmas werken niet? 
+
+  * Wat is niet gelukt maar hebben we wel inzicht in verworven?
 
   Minder hoog:
 
   * Voorbeeld programmatjes toevoegen met verwachte analyse output
     Als er nog tijd is een type derivation tree bouwen.
 
-  * Waar faalt onze analyse? Welke programmas werken niet? 
-  * Wat is niet gelukt maar hebben we wel inzicht in verworven?
 
   Minst:
   
