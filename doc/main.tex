@@ -83,11 +83,10 @@ is only supported inside \textbf{let}s.
                & $|$ & $\mu f.\textbf{ let } x = t_1 \textbf{ in } t_2$\\
                & $|$ & $t_1 \oplus t_2 \:|\: [\,]_\pi \:|\:t_1\<:>_\pi t_2   $\\%     \: | \: (t_1,t_2)_\pi $ \\ 
                & $|$ & $ \textbf{case } e_0 \textbf{ of } alts $ \\
-        $alts$ & ::= & $alt_1; \ldots ; alt_n$ \\
-        $alt$  & ::= & $patt\rightarrow t$ \\
-        $patt$ & ::= & $x             $\\%                \:|\: (patt, patt)$ \\
+        $alts$ & ::= & $alt_0; alt_1$ \\
+        $alt$  & ::= & $patt \rightarrow t$ \\
+        $patt$ & ::= & $x \:|\: \textbf{True} \:|\: \textbf{False}            $\\%                \:|\: (patt, patt)$ \\
                & $|$ & $(x: patt)  \:|\: [\,]$\\
-               & $|$ & $\_$\\
         \hline
     \end{tabular}
     \caption{Abstract syntax. $t$ is a term.}

@@ -8,9 +8,6 @@
       closure tracking
   * Design sectie afmaken
     * table2, functie staat dubbel
-    * alts, we hebben alleen twee alternative
-    * patt, wildcard is niet supported kan weg
-    * patt, pattern match op bools mist
     * Natural semantics heeft niet echt toegevoegde waarde volgens mij, weg?
     * Belangrijk!! Type system consistent met code. Constraints omdraaien consistent met code. 
       Er missen ook nog een paar rules.
