@@ -39,6 +39,8 @@
   * Solver werkend, plus resultaat koppelen aan annotatie variabelen zodat het
     eindresultaat makkelijk te interpreteren is.
 
+  * Subeffecting voor cases checken en implementeren
+
   Minder hoog:
 
   * Documentatie voor het gebruik van het programma in een readme
