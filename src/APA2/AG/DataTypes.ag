@@ -123,6 +123,7 @@ instance Show Qual where
   show (Ty t)     = show t
   show (Qual c q) = show c ++ " => " ++ show q
 
+tyAnn :: (Show a1, Show a) => a -> a1 -> [Char]
 tyAnn t a = "(" ++ show t ++ ":" ++ show a ++ ")"
 
 instance Show SAnn where

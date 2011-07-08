@@ -14,7 +14,7 @@ main = do
             "debug"    -> (debugInference . parseProgram) input
             "parse-mh" -> print $ parseProgram input
             "parse-hs" -> print $ parseExp input
-            _          -> do putStrLn ("Argument not recognized")
+            _          -> do putStrLn "Argument not recognized"
                              putStrLn usage
 
 -- | Default action if no argument is provided to the executable. It parses the program, executes the analysis and prints the results.

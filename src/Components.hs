@@ -1,11 +1,20 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Components where
+<<<<<<< HEAD
 
 import            Language.Haskell.Exts.Parser
 import qualified  Language.Haskell.Exts.Syntax as H
 import            Data.Map (Map)
 import qualified  Data.Map as DM
 import qualified  Data.Set as DS
+=======
+import Language.Haskell.Exts.Parser
+import qualified Language.Haskell.Exts.Syntax as H
+import Data.Map (Map)
+import Data.Set (Set)
+import qualified Data.Map as DM
+import qualified Data.Set as DS
+>>>>>>> feb4338a27ce92a55ea205a3e169a2bcbdf2c705
 
 import APA2.AG
 import Data.Generics.Schemes
@@ -17,6 +26,7 @@ initialInheritedAttributes =
   Inh_MH { typeEnvironment_Inh_MH = DM.empty
          , annEnvironment_Inh_MH = DM.empty
          , counter_Inh_MH = 0
+         , matchTy_Inh_MH = undefined -- suppress warning. only used in caseBlock
          }
 
 -- | Execute the annotated Algorithm W on the provided MH AST
@@ -31,8 +41,12 @@ w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
            , annotDict_Syn_MH    wrappedDS
            )
 
+<<<<<<< HEAD
 -- | Grabs the constraints from the resultt
 getConstraints :: (t, t1, t2, t3, t4, t5, t6) -> t3
+=======
+getConstraints :: (a,b,c,d,e,f,g) -> d
+>>>>>>> feb4338a27ce92a55ea205a3e169a2bcbdf2c705
 getConstraints (_,_,_,c,_,_,_) = c
 
 -- | Accepts a filename and generates debug output for it containing analysis results.
@@ -57,10 +71,10 @@ debugInference tm =
     putStrLn ""
     putStrLn "Top level annotation: "
     print annotation
-    let ppoint = (DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) (worklist constraints))
+    let ppoint = DM.findWithDefault (AnnVar "the empty set") (fromSAnn annotation) (worklist constraints)
     putStr $ "... which maps to: " ++ show ppoint ++ "\n"
     putStr $ DS.fold (\x->(++) (
-        x ++ " is in fact \"" ++ show (annots DM.! (x)) ++ "\"\n"
+        x ++ " is in fact \"" ++ show (annots DM.! x) ++ "\"\n"
         ) ) ""
         (toSet ppoint)
     putStrLn "Annotation dictionary:"
@@ -90,7 +104,7 @@ toSet _          = DS.empty
 analysisResult :: MH -> IO ()
 analysisResult tm = 
   do 
-    let (ty, annotation, subst, constraints, exprs, debug, annots) = w tm
+    let (_, _, _, constraints, exprs, _, _) = w tm
     putStrLn "Analysis result: " 
     printExpressions (applySubst (solutionSubst constraints) exprs)
 

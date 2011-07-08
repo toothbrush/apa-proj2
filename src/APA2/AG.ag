@@ -6,11 +6,10 @@ MODULE {APA2.AG} {} {}
 imports
 {
 import Debug.Trace
-import            Control.Monad (mplus)
 import            Data.Map (Map)
 import qualified  Data.Map as DM
-import qualified  Data.Map
 import qualified  Data.Map as Map
+import qualified  Data.Map
 import            Data.MultiSet (MultiSet)
 import qualified  Data.MultiSet as DMS
 import qualified  Data.Set as DS
@@ -104,11 +103,13 @@ a          ⊔ AnnEmpty   = a
 (AnnSet a) ⊔ (AnnSet b) = AnnSet (DS.union a b)
 _          ⊔ _          = error "no variables allowed"
 
--- | Does nothing (useful)
-debugStep ::  t -> t1 -> String
-debugStep w ana = ""
-
--- | Prints intermediate steps of the worklist to IO
+-- | Prints intermediate steps of the worklist to IO if enabled.
+debugStep :: t -> t1 -> [Char]
+debugStep _ _ = ""
+{-
+  case unsafePerformIO (debugStep' w ana) of
+    () -> ""
+-}
 debugStep' :: Worklist -> Map AnnVar SAnn -> IO ()
 debugStep' w ana =
   do 
@@ -142,6 +143,7 @@ printActiveAnnVars s =
 printAnalysisResult :: SAnn -> IO ()
 printAnalysisResult (AnnSet s) = DS.fold (\x b -> putStr (x ++ ", \n") >>= \_ -> b) (return ()) s
 printAnalysisResult AnnEmpty = putStr "{}, "
+printAnalysisResult (AnnVar v) = putStr $ "PROBLEM: "++v
 
 -- | Simplify the constraints by removing redundant constraints. 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
@@ -158,6 +160,8 @@ pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
 pseudoActive active c =
   let extrAnn (Constraint l@(AnnVar _) u) xs | l `DS.member` active = DS.insert u xs
                                              | otherwise            = xs
+      extrAnn (Constraint AnnEmpty _)     _  = undefined
+      extrAnn (Constraint (AnnSet  _) _)  _  = undefined
       vars = DS.fold extrAnn DS.empty c `DS.union` active
   in  if DS.null (vars `DS.intersection` active)
         then pseudoActive vars c
@@ -209,7 +213,7 @@ unify (Arr t11 a11 t12 a12) (Arr t21 a21 t22 a22) =
 
       theta3 = unify (applySubst (theta2 `dot` theta1) t12)
                      (applySubst (theta2 `dot` theta1) t22)
- 
+
       theta4 = let th21 = theta3 `dot` theta2 `dot` theta1
                in unifyAnn (applySubst th21 a12) (applySubst th21 a22)
   in theta4 `dot` theta3 `dot` theta2 `dot` theta1
@@ -278,7 +282,7 @@ instance Substitutable Ty where
   applySubst _ t    = t
 
 instance Substitutable Expressions where
-  applySubst s []         = []
+  applySubst _ []         = []
   applySubst s ((a,e):xs) = (applySubst s a,e) : applySubst s xs
 
 instance Substitutable TyEnv where
