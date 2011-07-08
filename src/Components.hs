@@ -74,7 +74,7 @@ debugInference tm =
     printAnalysis solved
     putStrLn ""
     putStrLn "Expressions: "
-    printExpressions (applySubst subst exprs)
+    printExpressions solved (applySubst subst exprs)
     putStrLn ""
     putStrLn debug
 
@@ -91,7 +91,8 @@ analysisResult tm =
     putStrLn "\nAnalysis result for all sub-expressions: \n" 
     putStrLn "Expression\t\tType"
     putStrLn horiz
-    printExpressions (applySubst (solutionSubst constraints) exprs)
+    printExpressions solved (applySubst (solutionSubst constraints) exprs)
+    putStrLn "Note: if you would like to see more info, invoke the program with the keyword 'debug'."
 
 -- | Turns a map of constraints into a substitution
 solutionSubst :: Constraints -> SimpleSubstitution
@@ -100,11 +101,11 @@ solutionSubst cs =
 
 -- | Prints a list of expressions
 --   Don't print the whole program again, this happens earlier.
-printExpressions :: Show a => [(a, MH)] -> IO ()
-printExpressions []           = putStr "\n"
-printExpressions (full:exprs) = mapM_ (\(a,e) -> case e of 
+--printExpressions :: Show a => [(a, MH)] -> IO ()
+printExpressions _   []        = putStr "\n"
+printExpressions con (_:exprs) = mapM_ (\(a,e) -> case e of 
                                                     CaseAlt _ _ -> putStr ""
-                                                    _ -> putStrLn (show e ++ "\n\t\t : " ++ show a ++ "\n" ++ horiz)) exprs
+                                                    _ -> putStrLn (show e ++ "\t\t : " ++ tyLayout con a ++ "\n" ++ horiz)) exprs
 
 horiz :: String
 horiz = "------------------------------------"
