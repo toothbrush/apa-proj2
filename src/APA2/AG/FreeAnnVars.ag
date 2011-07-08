@@ -7,8 +7,18 @@ ATTR TyScheme Ty Constraint RhsConstr TyEnv AnnEnv
       copy : SELF
   ]
 
+SEM Ty
+  | Arr  lhs.fav = @ann `DS.union` @ty1.fav `DS.union` @ty2.fav
+  | List lhs.fav = @ann `DS.union` @ty.fav
+
 SEM TyScheme
   | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a
+
+SEM Constraint
+  | Constraint lhs.fav = DS.insert @a1 @a2.fav
+
+SEM RhsConstr
+  | AnnVar lhs.fav = DS.singleton @var
 
 {
 class FreeAnnVars a where
