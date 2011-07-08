@@ -35,36 +35,36 @@ class Ord a => Lattice a where
 
 instance Lattice SAnn where
   top    = error "SAnn does not have a concrete Top value"
-  bottom = AnnEmpty
-  (⊔)    = join
-  (⊒)    = pord
+  bottom = DS.empty
+  (⊔)    = DS.union
+  (⊒)    = flip DS.isSubsetOf
 
-absWl :: Lattice a => Constraints -> (SAnn -> Map SAnn a -> a) -> Map SAnn a
-absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)
-  where mkMap  s = let mf (Constraint x _) xs = DM.insert x s xs
-                   in  DS.fold mf DM.empty cstr
-        inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))
-        infl     = DS.fold (DM.union . inflx_) DM.empty cstr
-        inflx_ cxt@(Constraint _ t) =
-          let cf x' m = DM.singleton x' (DS.insert cxt $ inflx' x') `DM.union` m
-          in  DS.fold cf DM.empty (DS.map AnnVar $ fav t)
+{- absWl :: Lattice a => Constraints -> (SAnn -> Map SAnn a -> a) -> Map SAnn a-}
+{- absWl cstr eval = iterAbsWl infl eval (DMS.fromSet cstr) (mkMap bottom)-}
+{-   where mkMap  s = let mf (Constraint x _) xs = DM.insert x s xs-}
+{-                    in  DS.fold mf DM.empty cstr-}
+{-         inflx' k = DM.fromMaybe DS.empty (DM.lookup k (mkMap DS.empty))-}
+{-         infl     = DS.fold (DM.union . inflx_) DM.empty cstr-}
+{-         inflx_ cxt@(Constraint _ t) =-}
+{-           let cf x' m = DM.singleton x' (DS.insert cxt $ inflx' x') `DM.union` m-}
+{-           in  DS.fold cf DM.empty (AnnSet $ fav t)-}
 
-iterAbsWl :: Lattice a => Map SAnn (Set Constraint)
-          -> (SAnn -> Map SAnn a -> a) -> Worklist -> Map SAnn a
-          -> Map SAnn a
-iterAbsWl infl eval wlst ana
-  | DMS.null wlst     = ana
-  | not $ anaLU ⊒ new = iter (wltl `DMS.union` inflx x) newAna
-  | otherwise         = iter wltl ana
-  where
-    new     = eval t ana
-    inflx   = trace "inflx" $ DMS.fromSet . DM.fromJust . flip DM.lookup infl
-    anaLU   = trace "anaLU" $ DM.fromJust $ DM.lookup x ana
-    newAna  = DM.insert x newAnax ana
-    newAnax = anaLU ⊔ new
-    iter    = iterAbsWl infl eval
-    wltl    = DMS.delete cp wlst
-    cp@(Constraint x t) = DMS.findMin wlst
+{- iterAbsWl :: Lattice a => Map SAnn (Set Constraint)-}
+{-           -> (SAnn -> Map SAnn a -> a) -> Worklist -> Map SAnn a-}
+{-           -> Map SAnn a-}
+{- iterAbsWl infl eval wlst ana-}
+{-   | DMS.null wlst     = ana-}
+{-   | not $ anaLU ⊒ new = iter (wltl `DMS.union` inflx x) newAna-}
+{-   | otherwise         = iter wltl ana-}
+{-   where-}
+{-     new     = eval t ana-}
+{-     inflx   = trace "inflx" $ DMS.fromSet . DM.fromJust . flip DM.lookup infl-}
+{-     anaLU   = trace "anaLU" $ DM.fromJust $ DM.lookup x ana-}
+{-     newAna  = DM.insert x newAnax ana-}
+{-     newAnax = anaLU ⊔ new-}
+{-     iter    = iterAbsWl infl eval-}
+{-     wltl    = DMS.delete cp wlst-}
+{-     cp@(Constraint x t) = DMS.findMin wlst-}
 
 {- partitionConstraints :: Constraints -> (Constraints, Constraints)-}
 {- partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs-}
@@ -73,7 +73,7 @@ iterAbsWl infl eval wlst ana
 {-         o (Constraint _ AnnEmpty)     _           = error "should not happen"-}
 
 worklist :: Lattice a => Constraints -> Map SAnn a
-worklist cs = absWl cs (DM.findWithDefault bottom)
+worklist cs = undefined -- absWl cs (DM.findWithDefault bottom)
 {- worklist :: Constraints -> Map AnnVar SAnn-}
 {- worklist cs =-}
 {-   let-}
@@ -127,27 +127,6 @@ worklist cs = absWl cs (DM.findWithDefault bottom)
 (?) :: Ord a => a -> Map a b -> b
 a ? m = trace "(?) op" (fromJust $ DM.lookup a m)
 
-pord :: SAnn -> SAnn -> Bool
-pord AnnEmpty AnnEmpty         = True
-pord AnnEmpty u@(AnnUnion _ _) = DS.null $ mkAnnPtSet u
-pord (AnnUnion _ _) AnnEmpty   = False
-pord (AnnPt a) (AnnPt b)       = b == a
-pord a@(AnnUnion _ _) b@(AnnUnion _ _) = DS.isSubsetOf (mkAnnPtSet b) (mkAnnPtSet a)
-pord _        _                = error "no variables allowed in partial ordering"
-
-mkAnnPtSet :: SAnn -> Set Point
-mkAnnPtSet AnnEmpty   = DS.empty
-mkAnnPtSet (AnnPt pt) = DS.singleton pt
-mkAnnPtSet (AnnUnion a1 a2) = mkAnnPtSet a1 `DS.union` mkAnnPtSet a2
-mkAnnPtSet _                = error "Cannot make annptset with variables"
-
-join :: SAnn -> SAnn -> SAnn
-join AnnEmpty   a            = a
-join a          AnnEmpty     = a
-join a@(AnnPt _) b@(AnnPt _) = AnnUnion a b
-join (AnnUnion a b) (AnnUnion c d) = AnnUnion (join a b) (join c d)
-join _          _            = error "no variables allowed in join"
-
 debugStep :: (Show a, Show b) => a -> b -> String
 debugStep w ana =
   "step: " ++ "\n" ++
@@ -157,12 +136,13 @@ debugStep w ana =
 
 simplify :: TyEnv -> Ty -> Constraints -> (Constraints, Constraints)
 simplify env tau c =
-  let active = pseudoActive (DS.map AnnVar (fav env `DS.union` fav tau)) c
-      ranges = trace ("active vars: "++show active++"\n") $
-               worklist c
-      theta  = satisfiable active ranges
-      c'     = applySubst theta c
-  in  partition env c'
+  {- let active = pseudoActive (AnnSet $ fav env `DS.union` fav tau) c-}
+      {- ranges = trace ("active vars: "++show active++"\n") $-}
+               {- worklist c-}
+      {- theta  = satisfiable active ranges-}
+      {- c'     = applySubst theta c-}
+  {- in  partition env c'-}
+  partition env c
 
 -- | todo: is this necessary?
 {- nubTriv :: Constraints -> Constraints-}
@@ -181,34 +161,32 @@ simplify env tau c =
 (∉) :: Ord a => a -> Set a -> Bool
 (∉) = DS.notMember
 
-satisfiable :: Set AnnVar -> Map SAnn SAnn -> SimpleSubstitution
-satisfiable act ana =
-  let f (AnnVar β) (AnnVar β') acc | β ∉ act = AnnSub β β' `dot` acc
-      f _          _           acc = acc
-  in  DM.foldrWithKey f Identity ana
+satisfiable :: Set AnnVar -> Map AnnVar SAnn -> SimpleSubstitution
+satisfiable act ana = Identity
+  {- let f β (AnnSet s) acc | β ∉ act = AnnSub β s `dot` acc-}
+      {- f _          _ acc = acc-}
+  {- in  DM.foldrWithKey f Identity ana-}
 
-pseudoActive :: Set SAnn -> Constraints -> Set AnnVar
-pseudoActive active c =
-  let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs
-                                  | otherwise            = xs
-      vars = DS.fold extrAnn DS.empty c `DS.union` active
-  in  if not ( DS.null (vars `DS.intersection` active) )
-        then pseudoActive vars c
-        else let extrVar (AnnVar x) xs = DS.insert x xs
-                 extrVar _          xs = xs
-             in DS.fold extrVar DS.empty vars
+pseudoActive :: SAnn -> Constraints -> SAnn
+pseudoActive active c = active
+  {- let extrAnn (Constraint l u) xs | l `DS.member` active = DS.insert u xs-}
+                                  {- | otherwise            = xs-}
+      {- vars = DS.fold extrAnn DS.empty c `DS.union` active-}
+  {- in  if (not . DS.null) (vars `DS.intersection` active)-}
+        {- then pseudoActive vars c-}
+        {- else vars-}
 
 partition :: TyEnv -> Constraints -> (Constraints, Constraints)
-partition env cs =
-  let prop   = let isActive a = a `DS.member` fav env
-                   f c@(Constraint (AnnVar a1) (AnnVar a2)) xs
-                     | isActive a1 || isActive a2 = DS.insert c xs
-                   f _ xs = xs
-               in  DS.fold f DS.empty cs
-      qual   = let g c xs | c ∉ prop = DS.insert c xs
-                          | otherwise             = xs
-               in  DS.fold g DS.empty cs
-  in (prop, qual)
+partition env cs = (cs, cs)
+  {- let prop   = let isActive a = a `DS.member` fav env-}
+                   {- f c@(Constraint a1 a2) xs-}
+                     {- | isActive a1 || isActive a2 = DS.insert c xs-}
+                   {- f _ xs = xs-}
+               {- in  DS.fold f DS.empty cs-}
+      {- qual   = let g c xs | c ∉ prop = DS.insert c xs-}
+                          {- | otherwise             = xs-}
+               {- in  DS.fold g DS.empty cs-}
+  {- in (prop, qual)-}
 
 unify :: Ty -> Ty -> SimpleSubstitution
 unify (List t an) (List t' an') =
@@ -232,9 +210,11 @@ unify t1 t2 | t1 == t2  = Identity
             | otherwise = error $ "Unification failure. \nτ_1 = " ++
                                   show t1 ++ "\nτ_2 = " ++ show t2
 
-unifyAnn :: AnnVar -> AnnVar -> SimpleSubstitution
-unifyAnn v v' | v == v'   = Identity
-              | otherwise = AnnSub v v'
+-- TODO: Reimplement
+unifyAnn :: SAnn -> SAnn -> SimpleSubstitution
+unifyAnn v v' = Identity
+ {- | v == v'   = Identity-}
+              {- | otherwise = AnnSub v v'-}
 
 unifyTyVar :: TyVar -> Ty -> SimpleSubstitution
 unifyTyVar x t | a == t    = Identity
@@ -253,7 +233,7 @@ instance Substitutable TyScheme where
   applySubst Identity     t = t
   applySubst (Dot s1 s2)  t = dotApply s1 s2 t
 
-  applySubst s (QualSig t)  = QualSig (applySubst s t)
+  applySubst s              (Ty t)  = Ty $ applySubst s t
 
   applySubst s@(TySub a _)  t@(Forall tv ts) | a == tv   = t
                                              | otherwise = Forall tv (applySubst s ts)
@@ -262,11 +242,6 @@ instance Substitutable TyScheme where
                                              | otherwise = AnnSig tv (applySubst s ts)
 
   applySubst _ t = t
-
-instance Substitutable Qual where
-  applySubst Identity t          = t
-  applySubst s        (Ty t)     = Ty $ applySubst s t
-  applySubst s        (Qual c q) = Qual c $ applySubst s q
 
 instance Substitutable Ty where
   applySubst Identity       t  = t
@@ -297,23 +272,25 @@ instance Substitutable AnnVar where
 instance Substitutable Constraint where
   applySubst Identity    cs     = cs
   applySubst (Dot s1 s2) cs     = dotApply s1 s2 cs
-  applySubst s@(AnnSub a b) (Constraint (AnnVar a') b')
-    | a == a'    = Constraint (AnnVar b) (applySubst s b')
-    | otherwise  = Constraint (AnnVar a') (applySubst s b')
+  applySubst s@(AnnSub a b) (Constraint a' b')
+    | a == a'    = Constraint b (applySubst s b')
+    | otherwise  = Constraint a' (applySubst s b')
   applySubst _ c = c
 
 instance Substitutable Constraints where
   applySubst s = DS.map (applySubst s)
 
+instance Substitutable RhsConstr where
+  applySubst s (AnnPts pts) = AnnPts $ applySubst s pts
+  applySubst s (AnnVar var) = AnnVar $ applySubst s var
+
 instance Substitutable SAnn where
-  applySubst Identity    a            = a
-  applySubst (Dot s1 s2) a@(AnnVar _) = dotApply s1 s2 a
+  applySubst (Dot s1 s2)   = dotApply s1 s2
+  applySubst (AnnSub b b') = DS.map f
+    where f x | x == b     = b'
+              | otherwise  = x
 
-  applySubst (AnnSub b b') a@(AnnVar b'')
-    | b == b''   = AnnVar b'
-    | otherwise  = a
-
-  applySubst _ a = a
+  applySubst _             = id
 
 dotApply :: Substitutable t => SimpleSubstitution -> SimpleSubstitution -> t -> t
 dotApply s1 s2 t = applySubst s1 (applySubst s2 t)

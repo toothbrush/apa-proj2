@@ -18,123 +18,124 @@ ATTR MH
     -- of the type environment.
     substitution                            : {SimpleSubstitution}
     lhsTy     USE {`mplus`} {Nothing}       : {Maybe Ty}
-    annotation                              : {Maybe SAnn}
+    annotation                              : {Maybe AnnVar}
     debug     USE {++} {""}                 : {String}
     annotDict USE {`DM.union`} {DM.empty}   : {Map String MH}
     cp : SELF
   ]
 
-SEM MH
-  | Lambda
-      lhs.annotDict = DM.singleton (@x ++ show @loc.ppoint) @loc.cp
-                        `DM.union` @e.annotDict
-  | LetRec
-      lhs.annotDict = DM.singleton (@f ++ show @loc.ppoint) @loc.cp
-                        `DM.union` @e2.annotDict
-                        `DM.union` @e1.annotDict
+{- SEM MH-}
+{-   | Lambda-}
+{-       lhs.annotDict = DM.singleton (@x ++ show @loc.ppoint) @loc.cp-}
+{-                         `DM.union` @e.annotDict-}
+{-   | LetRec-}
+{-       lhs.annotDict = DM.singleton (@f ++ show @loc.ppoint) @loc.cp-}
+{-                         `DM.union` @e2.annotDict-}
+{-                         `DM.union` @e1.annotDict-}
 
 SEM MH
-  | CaseBlck
-      loc.beta : UNIQUEREF counter
-      loc.beta' = mkAnnVar @loc.beta
+  {- | CaseBlck-}
+  {-     loc.beta : UNIQUEREF counter-}
+  {-     loc.beta' = mkAnnVar @loc.beta-}
 
-      -- TODO: Unify types of case (expression) of and the left-hand sides of
-      -- the individual case blocks
-      -- Then unify the types of the right-hand side of the individual case
-      -- blocks
+  {-     -- TODO: Unify types of case (expression) of and the left-hand sides of-}
+  {-     -- the individual case blocks-}
+  {-     -- Then unify the types of the right-hand side of the individual case-}
+  {-     -- blocks-}
 
-      -- TODO: See if we need some substitutions here...
-      loc.theta0 = @ex.substitution
-      loc.theta1 = unify @ex.ty (applySubst @loc.theta0 $ fromJust @c1.lhsTy)
-      loc.theta2 = trace "theta2" $ unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)
-      loc.lhsTheta = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+  {-     -- TODO: See if we need some substitutions here...-}
+  {-     loc.theta0 = @ex.substitution-}
+  {-     loc.theta1 = unify @ex.ty (applySubst @loc.theta0 $ fromJust @c1.lhsTy)-}
+  {-     loc.theta2 = trace "theta2" $ unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)-}
+  {-     loc.lhsTheta = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0-}
 
-      loc.theta3 = @c1.substitution
-      loc.theta4 = @c2.substitution
-      -- FIXME: This is where shit is currently hitting the fan
-      loc.theta5 = unify (applySubst @loc.lhsTheta @c1.ty)
-                         (applySubst (@loc.theta3 `dot` @loc.lhsTheta) @c2.ty)
-      loc.theta = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot` @loc.lhsTheta
+  {-     loc.theta3 = @c1.substitution-}
+  {-     loc.theta4 = @c2.substitution-}
+  {-     -- FIXME: This is where shit is currently hitting the fan-}
+  {-     loc.theta5 = unify (applySubst @loc.lhsTheta @c1.ty)-}
+  {-                        (applySubst (@loc.theta3 `dot` @loc.lhsTheta) @c2.ty)-}
+  {-     loc.theta = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot` @loc.lhsTheta-}
 
-      loc.ty = applySubst @loc.theta @c1.ty
-      lhs.ty = @loc.ty
+  {-     loc.ty = applySubst @loc.theta @c1.ty-}
+  {-     lhs.ty = @loc.ty-}
 
-      lhs.constraints =
-        let c1 = @ex.constraints
-            c2 = @c1.constraints
-            c3 = @c2.constraints
-            c4 = (@loc.beta' <:? @c1.annotation) `DS.union`
-                 (@loc.beta' <:? @c2.annotation)
-            cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
-        in applySubst @loc.theta cs
+  {-     lhs.constraints =-}
+  {-       let c1 = @ex.constraints-}
+  {-           c2 = @c1.constraints-}
+  {-           c3 = @c2.constraints-}
+  {-           c4 = DS.empty-}
+  {-           [> c4 = (@loc.beta' <:? @c1.annotation) `DS.union`<]-}
+  {-                [> (@loc.beta' <:? @c2.annotation)<]-}
+  {-           cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4-}
+  {-       in applySubst @loc.theta cs-}
 
 
-      lhs.substitution = @loc.theta
-      lhs.annotation = @loc.annotation
-      loc.annotation =
-        case @loc.ty of
-          Arr _ _ _ -> Just (AnnVar @loc.beta')
-          _         -> Nothing
+  {-     lhs.substitution = @loc.theta-}
+  {-     lhs.annotation = @loc.annotation-}
+  {-     loc.annotation =-}
+  {-       case @loc.ty of-}
+  {-         Arr _ _ _ -> Just @loc.beta'-}
+  {-         _         -> Nothing-}
 
-      c1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
-      c1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.typeEnvironment
-      c2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.annEnvironment
-  | CaseAlt
-      loc.beta : UNIQUEREF counter
+  {-     c1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment-}
+  {-     c1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment-}
+  {-     c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.typeEnvironment-}
+  {-     c2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.annEnvironment-}
+  {- | CaseAlt-}
+  {-     loc.beta : UNIQUEREF counter-}
 
-      loc.beta' = mkAnnVar @loc.beta
+  {-     loc.beta' = mkAnnVar @loc.beta-}
 
-      lhs.constraints = @bnd.constraints
+  {-     lhs.constraints = @bnd.constraints-}
 
-      loc.theta  = @pat.substitution
-      loc.ty = applySubst @loc.theta @bnd.ty
-      lhs.ty = @loc.ty
-      lhs.substitution = @loc.theta
+  {-     loc.theta  = @pat.substitution-}
+  {-     loc.ty = applySubst @loc.theta @bnd.ty-}
+  {-     lhs.ty = @loc.ty-}
+  {-     lhs.substitution = @loc.theta-}
 
-      lhs.annotation = @loc.annotation
-      loc.annotation = 
-        case @loc.ty of
-          Arr _ _ _ -> Just (AnnVar @loc.beta')
-          _         -> Nothing
+  {-     lhs.annotation = @loc.annotation-}
+  {-     loc.annotation = -}
+  {-       case @loc.ty of-}
+  {-         Arr _ _ _ -> Just @loc.beta'-}
+  {-         _         -> Nothing-}
 
-      lhs.lhsTy = Just @pat.ty
+  {-     lhs.lhsTy = Just @pat.ty-}
 
 SEM MH
   | VBool
-      lhs.ty           = Bool
-      lhs.substitution = Identity
-      lhs.constraints  = DS.empty
       lhs.annotation   = Nothing
+      lhs.constraints  = DS.empty
+      lhs.substitution = Identity
+      lhs.ty           = Bool
 
   | VInt
-      lhs.ty           = Nat
-      lhs.substitution = Identity
-      lhs.constraints  = DS.empty
       lhs.annotation   = Nothing
+      lhs.constraints  = DS.empty
+      lhs.substitution = Identity
+      lhs.ty           = Nat
 
   | Nil
       loc.alpha : UNIQUEREF counter
       loc.beta  : UNIQUEREF counter
 
       loc.alpha' = freshVar @loc.alpha
-      loc.beta' = mkAnnVar @loc.beta
+      loc.beta'  = mkAnnVar @loc.beta
 
-      lhs.ty = List @loc.alpha' @loc.beta'
+      lhs.ty = List @loc.alpha' (DS.singleton @loc.beta')
 
       lhs.substitution = Identity
 
       lhs.constraints = DS.empty
 
       lhs.annotation = @loc.annotation
-      loc.annotation = Just (AnnVar @loc.beta')
+      loc.annotation = Just @loc.beta'
 
   | Cons
       loc.beta : UNIQUEREF counter
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.listTy = List @e1.ty @loc.beta'
+      loc.listTy = List @e1.ty (DS.singleton @loc.beta')
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
       loc.theta3 = unify @e2.ty (applySubst @loc.theta2 @loc.listTy)
@@ -145,18 +146,19 @@ SEM MH
       lhs.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
-            c3 = (@loc.beta' <:? @e1.annotation) `DS.union`
-                 (@loc.beta' <:? @e2.annotation)
+            c3 = DS.empty
+            {- c3 = (@loc.beta' <:?  @e1.annotation) `DS.union`-}
+                 {- (@loc.beta' <:? @e2.annotation)-}
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta cs 
 
       lhs.annotation = @loc.annotation
-      loc.annotation = Just (AnnVar @loc.beta')
+      loc.annotation = Just @loc.beta'
 
       e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
       e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
 
-  | Op
+  | Op -- TODO: Verify
       loc.alpha1 : UNIQUEREF counter
       loc.alpha2 : UNIQUEREF counter
       loc.beta   : UNIQUEREF counter
@@ -180,8 +182,9 @@ SEM MH
       lhs.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
-            c3 = (@loc.beta' <:? @e1.annotation) `DS.union`
-                 (@loc.beta' <:? @e2.annotation)
+            c3 = DS.empty
+            {- c3 = (@loc.beta' <:? @e1.annotation) `DS.union`-}
+                 {- (@loc.beta' <:? @e2.annotation)-}
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta cs
 
@@ -189,15 +192,16 @@ SEM MH
       e2.annEnvironment  = applySubst @loc.theta1 @lhs.annEnvironment
 
       lhs.annotation = @loc.annotation
-      loc.annotation = Just (AnnVar @loc.beta')
+      loc.annotation = Just @loc.beta'
 
   | Var
       loc.beta : UNIQUEREF counter
 
       loc.beta' = mkAnnVar @loc.beta
 
-      loc.phi = trace ("does the (?) break here? "++ @x++"?"++ppMap @lhs.annEnvironment ) $ 
-                @x ? @lhs.annEnvironment
+-- TODO: Do we need this at all here?
+      {- loc.phi = trace ("does the (?) break here? "++ @x++"?"++ppMap @lhs.annEnvironment ) $ -}
+                {- @x ? @lhs.annEnvironment-}
 
       loc.(c, ty) =
         maybe (error ("Variable "++ @x ++" not found in environment (out of scope)."))
@@ -205,20 +209,19 @@ SEM MH
               (DM.lookup @x @lhs.typeEnvironment)
 
       -- this does not work for a case like: let f = \x -> true in let g = \k -> if f 0 then k else \y -> false in g f
-      loc.constraints  = @loc.c
       loc.annotation   = Nothing
+      loc.constraints  = @loc.c
       loc.substitution = Identity
 
-      lhs.ty           = @loc.ty
-      lhs.constraints  = @loc.constraints
       lhs.annotation   = @loc.annotation
+      lhs.constraints  = @loc.constraints
       lhs.substitution = @loc.substitution
+      lhs.ty           = @loc.ty
 
       lhs.debug = "Var("++ @x ++ "): \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: Nothing\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n"
 
@@ -232,9 +235,9 @@ SEM MH
       loc.pi     = mkProgramPoint @x @loc.ppoint
 
       loc.annotation   = Just @loc.pi
-      loc.constraints  = @e.constraints `DS.union` (@loc.beta' <:? Just @loc.pi)
+      loc.constraints  = @e.constraints `DS.union` (@loc.beta' <:? Just (AnnPts $ DS.singleton @loc.pi))
       loc.substitution = @e.substitution
-      loc.ty           = Arr (applySubst @loc.substitution @loc.alpha') @e.ty @loc.beta'
+      loc.ty           = Arr (applySubst @loc.substitution @loc.alpha') @e.ty (DS.singleton @loc.beta')
 
       lhs.annotation   = @loc.annotation
       lhs.constraints  = @loc.constraints
@@ -242,13 +245,13 @@ SEM MH
       lhs.ty           = @loc.ty
 
       e.annEnvironment  = DM.insert @x Nothing @lhs.annEnvironment
-      e.typeEnvironment = DM.insert @x (QualSig $ Ty @loc.alpha') @lhs.typeEnvironment
+      e.typeEnvironment = DM.insert @x (Ty @loc.alpha') @lhs.typeEnvironment
 
       lhs.debug = "Lambda("++ @x ++ "): \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
+                  "annotation: " ++ show @loc.pi ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e.debug
@@ -258,48 +261,45 @@ SEM MH
       loc.alpha : UNIQUEREF counter
       loc.beta  : UNIQUEREF counter
 
-      loc.beta' = mkAnnVar @loc.beta
-
       loc.alpha' = freshVar @loc.alpha
+      loc.beta'  = mkAnnVar @loc.beta
+
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
       loc.theta3 = unify (applySubst @loc.theta2 @e1.ty)
-                         (Arr @e2.ty @loc.alpha' @loc.beta')
+                         (Arr @e2.ty @loc.alpha' (DS.singleton @loc.beta'))
 
       loc.substitution = @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1
 
       loc.ty = applySubst @loc.theta3 @loc.alpha'
 
-      loc.annotation =
-        case @loc.ty of
-          Arr _ _ _ -> Just (AnnVar @loc.beta')
-          _         -> Nothing
-
-      -- | We do not generate constraints for an application of a 
+      loc.annotation = Nothing
+-- TODO: We might actually still require some constraint juggling here
+      -- | We do not generate constraints for an application of a
       --   function to a primitive type.
       loc.constraints =
-        let c1 = @e1.constraints
-            c2 = @e2.constraints
-            c3 = case @e2.ty of
-                  Arr _ _ _ -> @loc.beta' <:? @e1.annotation
-                  _         -> DS.empty
-            c4 = @loc.beta' <:? @e2.annotation
-            cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
-        in applySubst @loc.substitution cs
+        let c1  = @e1.constraints
+            c2  = @e2.constraints
+            sc1 = applySubst (@loc.theta3 `dot` @loc.theta2) c1
+            sc2 = applySubst @loc.theta3 c2
+            {- c3 = case @e2.ty of-}
+                  {- Arr _ _ _ -> @loc.beta' <:? @e1.annotation-}
+                  {- _         -> DS.empty-}
+            {- c4 = @loc.beta' <:? @e2.annotation-}
+        in  sc1 `DS.union` sc2
 
+      lhs.annotation   = @loc.annotation
+      lhs.constraints  = @loc.constraints
       lhs.substitution = @loc.substitution
-      lhs.ty = @loc.ty
-      lhs.annotation = @loc.annotation
-      lhs.constraints = @loc.constraints
+      lhs.ty           = @loc.ty
 
-      e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
       e2.annEnvironment  = applySubst @e1.substitution @lhs.annEnvironment
+      e2.typeEnvironment = applySubst @e1.substitution @lhs.typeEnvironment
 
       lhs.debug = "App: \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e1.debug ++ @e2.debug
@@ -319,14 +319,15 @@ SEM MH
       loc.constraints =
         let c1 = @e1.constraints
             c2 = @e2.constraints
-            c3 = @loc.beta' <:? @e2.annotation
+            c3 = DS.empty
+            {- c3 = @loc.beta' <:? @e2.annotation-}
             cs = c1 `DS.union` c2 `DS.union` c3
         in applySubst @loc.theta2 cs
 
-      loc.annotation =
-        case @loc.ty of
-          Arr _ _ _ -> Just (AnnVar @loc.beta')
-          _         -> Nothing
+      loc.annotation = Nothing
+        {- case @loc.ty of-}
+          {- Arr _ _ _ -> Just (AnnVar @loc.beta')-}
+          {- _         -> Nothing-}
 
       lhs.ty = @loc.ty
       lhs.annotation = @loc.annotation
@@ -336,98 +337,123 @@ SEM MH
       e2.typeEnvironment =
         let newEnv  = applySubst @e1.substitution @lhs.typeEnvironment
             gen ann = snd $ generalise newEnv ann @e1.ty @e1.constraints
-            ty'     = maybe (QualSig $ Ty @e1.ty) gen @e1.annotation
+            ty'     = maybe (Ty @e1.ty) (gen . DS.singleton) @e1.annotation
         in  DM.insert @x ty' newEnv
 
-      e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment
+      {- e2.annEnvironment = DM.insert @x @e1.annotation @lhs.annEnvironment-}
+      e2.annEnvironment = @lhs.annEnvironment
 
       lhs.debug = "Let("++ @x ++ "): \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @e1.debug ++ @e2.debug
 
 -- what about the cfa for let loop = loop in loop, loop :: a does not have the capability to carry annotations
 -- but is can be passed into a function..
-  | LetRec
-      loc.alpha1 : UNIQUEREF counter
-      loc.alpha2 : UNIQUEREF counter
-      loc.ppoint : UNIQUEREF counter
-      loc.beta   : UNIQUEREF counter
-      loc.beta1  : UNIQUEREF counter
+  {- | LetRec-}
+  {-     loc.alpha1 : UNIQUEREF counter-}
+  {-     loc.alpha2 : UNIQUEREF counter-}
+  {-     loc.ppoint : UNIQUEREF counter-}
+  {-     loc.beta   : UNIQUEREF counter-}
+  {-     loc.beta1  : UNIQUEREF counter-}
 
-      loc.alpha1' = freshVar @loc.alpha1
-      loc.alpha2' = freshVar @loc.alpha2
-      loc.beta'   = mkAnnVar @loc.beta
-      loc.beta''  = mkAnnVar @loc.beta1
-      loc.pi      = mkProgramPoint @f @loc.ppoint
+  {-     loc.alpha1' = freshVar @loc.alpha1-}
+  {-     loc.alpha2' = freshVar @loc.alpha2-}
+  {-     loc.beta'   = mkAnnVar @loc.beta-}
+  {-     loc.beta''  = mkAnnVar @loc.beta1-}
+  {-     loc.pi      = mkProgramPoint @f @loc.ppoint-}
 
-      loc.theta0 = @e1.substitution
-      loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alpha2')
-      loc.theta  = @loc.theta1 `dot` @loc.theta0
+  {-     loc.theta0 = @e1.substitution-}
+  {-     loc.theta1 = unify @e1.ty (applySubst @loc.theta0 @loc.alpha2')-}
+  {-     loc.theta  = @loc.theta1 `dot` @loc.theta0-}
 
-      lhs.ty = @e2.ty
+  {-     lhs.ty = @e2.ty-}
 
-      lhs.substitution = @loc.theta
+  {-     lhs.substitution = @loc.theta-}
 
-      -- | not sure about correctness
-      lhs.constraints =
-        let c1 = @e1.constraints
-            c2 = @e2.constraints
-            c3 = applySubst @loc.theta (@loc.beta' <:? @e2.annotation)
-        in c1 `DS.union` c2 `DS.union` c3
+  {-     -- | not sure about correctness-}
+  {-     lhs.constraints =-}
+  {-       let c1 = @e1.constraints-}
+  {-           c2 = @e2.constraints-}
+  {-           c3 = DS.empty-}
+  {-           [> c3 = applySubst @loc.theta (@loc.beta' <:? @e2.annotation)<]-}
+  {-       in c1 `DS.union` c2 `DS.union` c3-}
 
-      loc.annotation = Just (AnnVar @loc.beta'')
-      lhs.annotation = @loc.annotation
+  {-     loc.annotation = Nothing -- Just (AnnVar @loc.beta'')-}
+  {-     lhs.annotation = @loc.annotation-}
 
-      e1.typeEnvironment =
-        case @x of
-          Just x  -> DM.insert @f (QualSig . Ty $ Arr @loc.alpha1' @loc.alpha2' @loc.beta') (
-                      DM.insert x (QualSig $ Ty @loc.alpha1') @lhs.typeEnvironment
-                     )
-          -- A recursive let binding without arguments, e.g. let loop = loop in loop
-          Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') @lhs.typeEnvironment
+  {-     e1.typeEnvironment =-}
+  {-       case @x of-}
+  {-         Just x  -> DM.insert @f (QualSig . Ty $ Arr @loc.alpha1' @loc.alpha2' @loc.beta') (-}
+  {-                     DM.insert x (QualSig $ Ty @loc.alpha1') @lhs.typeEnvironment-}
+  {-                    )-}
+  {-         -- A recursive let binding without arguments, e.g. let loop = loop in loop-}
+  {-         Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') @lhs.typeEnvironment-}
 
-      e2.typeEnvironment =
-        let newEnv = applySubst @loc.theta0 @lhs.typeEnvironment
-        in case @x of
-            Just _  -> let ty      = Arr (applySubst @loc.theta @alpha1')
-                                         (applySubst @loc.theta1 @e1.ty)
-                                         (applySubst @loc.theta @loc.beta')
-                           gen ann = snd $ generalise newEnv ann ty @e1.constraints
-                           ty'     = maybe (QualSig $ Ty ty) gen @loc.annotation
-                       in  DM.insert @f ty' newEnv
-            Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv
+  {-     e2.typeEnvironment =-}
+  {-       let newEnv = applySubst @loc.theta0 @lhs.typeEnvironment-}
+  {-       in case @x of-}
+  {-           Just _  -> let ty      = Arr (applySubst @loc.theta @alpha1')-}
+  {-                                        (applySubst @loc.theta1 @e1.ty)-}
+  {-                                        (applySubst @loc.theta @loc.beta')-}
+  {-                          gen ann = snd $ generalise newEnv ann ty @e1.constraints-}
+  {-                          ty'     = maybe (QualSig $ Ty ty) gen @loc.annotation-}
+  {-                      in  DM.insert @f ty' newEnv-}
+  {-           Nothing -> DM.insert @f (QualSig $ Ty @loc.alpha2') newEnv-}
 
-      e2.annEnvironment =
-        let apps t = applySubst @e1.substitution (DM.insert @f (Just (AnnVar @loc.beta')) t)
-        in case @x of
-             Just x' -> apps (DM.insert x' @e1.annotation @lhs.annEnvironment)
-             Nothing -> apps @lhs.annEnvironment
+  {-     e2.annEnvironment =-}
+  {-       let apps t = applySubst @e1.substitution (DM.insert @f (Just $ AnnVar @loc.beta') t)-}
+  {-       in case @x of-}
+  {-            Just x' -> apps (DM.insert x' @e1.annotation @lhs.annEnvironment)-}
+  {-            Nothing -> apps @lhs.annEnvironment-}
 
   | If
-      loc.beta1   : UNIQUEREF counter
-      loc.beta2   : UNIQUEREF counter
-      loc.beta3   : UNIQUEREF counter
-      loc.beta'  = mkAnnVar @loc.beta1
-      loc.beta2' = mkAnnVar @loc.beta2
-      loc.beta3' = mkAnnVar @loc.beta3
+      loc.beta1  : UNIQUEREF counter
+      loc.beta2  : UNIQUEREF counter
+      loc.beta3  : UNIQUEREF counter
+      loc.beta'  = mkAnnVar @loc.beta1 -- Condition annotation
+      loc.beta2' = mkAnnVar @loc.beta2 -- Then annotation
+      loc.beta3' = mkAnnVar @loc.beta3 -- Else annotation
 
-      loc.theta0 = @c.substitution
-      loc.theta1 = @e1.substitution
-      loc.theta2 = @e2.substitution
-      loc.theta3 = unify (applySubst (@loc.theta2 `dot` @loc.theta1) @c.ty) Bool
-      loc.theta4 = unify (applySubst @loc.theta3 @e2.ty)
-                         (applySubst (@loc.theta3 `dot` @loc.theta2) @e1.ty)
+      loc.theta1 = @c.substitution
+      loc.theta2 = @e1.substitution
+      loc.theta3 = @e2.substitution
+      loc.theta4 = unify (applySubst (@loc.theta3 `dot` @loc.theta2) @c.ty) Bool
+      loc.theta5 = unify (applySubst @loc.theta4 @e2.ty)
+                         (applySubst (@loc.theta4 `dot` @loc.theta3) @e1.ty)
 
-      loc.substitution = @loc.theta4 `dot` @loc.theta3 `dot` @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+      loc.th5432 = @loc.th543  `dot` @loc.theta2
+      loc.th543  = @loc.th54   `dot` @loc.theta3
+      loc.th54   = @loc.theta5 `dot` @loc.theta4
+
+      loc.substitution = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot`
+                         @loc.theta2 `dot` @loc.theta1
 
 -- annotation: Maybe SAnn
       loc.e1ann = @e1.annotation
       loc.e2ann = @e2.annotation
+
+{-
+If neither branch has a function type, we're done for now.
+
+If both branches have a function type, they both have their own annotations
+and constraints. We union the constraints and then we're done.
+
+If one branch has a function type and the other doesn't, we first unify the
+types and then give the newly found Arr type a fresh annotation variable. This
+fresh annotation variable is then unioned with the annotation variables on the
+existing Arr.
+-}
+      {- loc.foo = case (@e1.ty, @e2.ty) of-}
+                  {- (t1@(Arr _ _ _), t2@(Arr _ _ _)) -> (t1, t2)-}
+                  {- (t1@(Arr _ _ _), t2) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t2-}
+                                          {- in  (t1, Arr a1 a2 @loc.beta3')-}
+                  {- (t1, t2@(Arr _ _ _)) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t2-}
+                                          {- in  (Arr a1 a2 @loc.beta2', t2)-}
+                  {- p -> p-}
 
       -- First determine the types of e1 and e2. If one of them is a function
       -- and the other a variable, we need to generate a fresh annotation for
@@ -444,44 +470,47 @@ SEM MH
       --
       --
       -- TODO: Only do foo and bar if the types are arrows
-      loc.foo = case @loc.e1ann of
-                  Nothing -> Just $ AnnVar @loc.beta2'
-                  x       -> x
-      loc.bar = case @loc.e2ann of
-                  Nothing -> Just $ AnnVar @loc.beta3'
-                  x       -> x
+      {- loc.foo = case @loc.e1ann of-}
+      {-             Nothing -> Just $ AnnVar @loc.beta2'-}
+      {-             x       -> x-}
+      {- loc.bar = case @loc.e2ann of-}
+      {-             Nothing -> Just $ AnnVar @loc.beta3'-}
+      {-             x       -> x-}
 
-      loc.ty =
-        case @e2.ty of
-          Arr a b _ -> applySubst @loc.substitution (Arr a b @loc.beta')
-          _         -> @e2.ty
+      loc.ty = @e2.ty
+        {- case @e2.ty of-}
+          {- Arr a b _ -> applySubst @loc.substitution (Arr a b @loc.beta')-}
+          {- _         -> @e2.ty-}
 
       loc.constraints =
-        let c  = (@loc.beta' <:? @e1.annotation) `DS.union`
-                 (@loc.beta' <:? @e2.annotation)
-            cs = @e1.constraints `DS.union` @e2.constraints `DS.union` c
-        in applySubst @loc.substitution cs
+        let c1 = applySubst @loc.th5432 @c.constraints
+            c2 = applySubst @loc.th543  @e1.constraints
+            c3 = applySubst @loc.th54   @e2.constraints
+            -- TODO: Reimplement
+            c4 = DS.empty
+            {- c4 = (@loc.beta' <:? @e1.annotation) `DS.union`-}
+                 {- (@loc.beta' <:? @e2.annotation)-}
+        in  c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
 
-      loc.annotation =
-        case @loc.ty of
-          Arr _ _ _ -> Just (AnnVar @loc.beta')
-          _         -> Nothing
+      loc.annotation = Nothing
+        {- case @loc.ty of-}
+        {-   Arr _ _ _ -> Just (AnnVar @loc.beta')-}
+        {-   _         -> Nothing-}
 
-      lhs.ty = @loc.ty
-      lhs.constraints = @loc.constraints
+      lhs.annotation   = @loc.annotation
+      lhs.constraints  = @loc.constraints
       lhs.substitution = @loc.substitution
-      lhs.annotation = @loc.annotation
+      lhs.ty           = @loc.ty
 
-      e1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
-      e1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      e2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.typeEnvironment
-      e2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta1) @lhs.annEnvironment
+      e1.typeEnvironment = applySubst @loc.theta1 @lhs.typeEnvironment
+      e1.annEnvironment  = applySubst @loc.theta1 @lhs.annEnvironment
+      e2.typeEnvironment = applySubst (@loc.theta2 `dot` @loc.theta1) @lhs.typeEnvironment
+      e2.annEnvironment  = applySubst (@loc.theta2 `dot` @loc.theta1) @lhs.annEnvironment
 
       lhs.debug = "If: \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
                   "annEnv: " ++ ppMapStr @lhs.annEnvironment ++ "\n" ++
                   "ty:" ++ show @loc.ty ++ "\n" ++
-                  "annotation: " ++ show @loc.annotation ++ "\n" ++
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @c.debug ++ @e1.debug ++ @e2.debug
@@ -493,8 +522,8 @@ freshVar i = TyVar $ 'τ' : show i
 mkAnnVar :: Int -> AnnVar
 mkAnnVar i = 'β' : show i
 
-mkProgramPoint :: Var -> Int -> SAnn
-mkProgramPoint v p = AnnPt (v ++ show p)
+mkProgramPoint :: Var -> Int -> Point
+mkProgramPoint v p = v ++ show p
 
 operatorType :: String -> (Ty, Ty, Ty)
 operatorType op
@@ -502,9 +531,9 @@ operatorType op
   | op `elem` ["==", "<", ">", "<=", ">="] = (Nat, Nat, Bool)
   | otherwise                              = error $ "Invalid op: " ++ op
 
-(<:?) :: AnnVar -> Maybe SAnn -> Constraints
-beta <:? Just phi = DS.singleton (Constraint (AnnVar beta) phi)
-_    <:? _        = DS.empty
+(<:?) :: AnnVar -> Maybe RhsConstr -> Constraints
+v <:? Just phi = DS.singleton (Constraint v phi)
+_ <:? _        = DS.empty
 
 dot :: SimpleSubstitution -> SimpleSubstitution -> SimpleSubstitution
 dot = Dot
@@ -518,14 +547,10 @@ nextUnique u = (u+1, u)
 generalise :: TyEnv -> SAnn -> Ty -> Constraints -> (Constraints, TyScheme)
 generalise env ann tau c =
   let ftvs   = ftv tau DS.\\ ftv env
-      favs   = fav tau DS.\\ fav env DS.\\ fav ann
-      fcvs   = fav c DS.\\ favs
+      favs   = fav tau DS.\\ fav env DS.\\ ann
       (c', c'') = simplify env tau c
-      qtdCs  = let fld x (QualSig x') = QualSig $ Qual x x'
-                   fld _ xs           = xs
-               in  DS.fold fld (QualSig $ Ty tau) c'
-      qtdTVs = DS.fold Forall qtdCs ftvs
-      qtdAVs = DS.fold AnnSig qtdTVs (favs `DS.union` fcvs)
+      qtdTVs = DS.fold Forall (Ty tau) ftvs
+      qtdAVs = DS.fold AnnSig qtdTVs favs
   in  (c'', qtdAVs)
 
 instantiate :: Int -> TyScheme -> (Constraints, Ty)

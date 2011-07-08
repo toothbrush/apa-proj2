@@ -2,7 +2,7 @@
 data Binders = Binders [TyVar] [AnnVar] Constraints Ty
 }
 
-ATTR TyScheme Qual
+ATTR TyScheme
   [|| binders : {Binders}   -- alias String
   ]
 
@@ -11,11 +11,7 @@ SEM TyScheme
                           in   Binders (@a:vars) avars cs ty
   | AnnSig  lhs.binders = let (Binders vars avars cs ty) = @ts.binders
                           in   Binders vars (@a:avars) cs ty
-
-SEM Qual
-  | Ty   lhs.binders = Binders [] [] DS.empty @ty.copy
-  | Qual lhs.binders = let (Binders tvs avs cs ty) = @q.binders
-                       in   Binders tvs avs (DS.insert @c.copy cs) ty
+  | Ty      lhs.binders = Binders [] [] DS.empty @ty.copy
 
 {
 collectBinders :: TyScheme -> Binders

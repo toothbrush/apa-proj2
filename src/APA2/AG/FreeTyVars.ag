@@ -1,4 +1,4 @@
-ATTR TyScheme Ty TyEnv Qual TyEnv
+ATTR TyScheme Ty TyEnv TyEnv
   [|| ftv  USE {`DS.union`} {DS.empty} : {Set TyVar}   -- alias String
   ]
 

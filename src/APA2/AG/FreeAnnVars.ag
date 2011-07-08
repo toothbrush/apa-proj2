@@ -1,4 +1,4 @@
-ATTR TyScheme Ty Constraint SAnn Qual TyEnv AnnEnv
+ATTR TyScheme Ty Constraint RhsConstr TyEnv AnnEnv
   [||
       -- | Unrolls a type, and returns all the variables
       -- which are in "forall". This is useful for instantiation,
@@ -9,9 +9,6 @@ ATTR TyScheme Ty Constraint SAnn Qual TyEnv AnnEnv
 
 SEM TyScheme
   | AnnSig lhs.fav = @ts.fav DS.\\ DS.singleton @a
-
-SEM SAnn
-  | AnnVar lhs.fav = DS.singleton @var
 
 {
 class FreeAnnVars a where
@@ -24,8 +21,7 @@ instance FreeAnnVars TyScheme where
   fav x = fav_Syn_TyScheme (wrap_TyScheme (sem_TyScheme x) Inh_TyScheme)
 
 instance FreeAnnVars SAnn where
-  fav (AnnVar v) = DS.singleton v
-  fav _          = DS.empty
+  fav s = s
 
 instance FreeAnnVars Constraints where
   fav = DS.fold DS.union DS.empty . DS.map fav

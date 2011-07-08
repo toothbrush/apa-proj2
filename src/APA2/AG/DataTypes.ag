@@ -16,6 +16,7 @@ type Var    = String
 type Point  = String
 type AnnVar = String
 type Constraints = Set Constraint
+type SAnn   = Set AnnVar
 }
 -------------------------------------------------------------------------------
 -- Syntax
@@ -39,50 +40,32 @@ DATA MH
 
 DERIVING MH: Eq
 
-{- TYPE Cases = [MH]-}
-
-DATA Qual
-  | Ty   ty : Ty
-  | Qual c  : Constraint q : Qual
-
-DERIVING Qual: Eq
-
 DATA TyScheme
-  | QualSig q : Qual
-  | Forall  a : {TyVar}  ts : TyScheme
-  | AnnSig  a : {AnnVar} ts : TyScheme
+  | Ty      ty : Ty
+  | Forall  a  : {TyVar}  ts : TyScheme
+  | AnnSig  a  : {AnnVar} ts : TyScheme
 
 DERIVING TyScheme: Eq
 
 DATA Ty
   | TyVar a   : {TyVar}
-  | Arr   ty1 : Ty ty2 : Ty  ann : {AnnVar}
-  | List  ty  : Ty ann : {AnnVar} -- builtin List is an addition
+  | Arr   ty1 : Ty ty2 : Ty  ann : {SAnn}
+  | List  ty  : Ty ann : {SAnn} -- builtin List is an addition
   | Nat
   | Bool
 
 DERIVING Ty: Eq
 
--- | We need to make the set operations explicit, since it is also possible to
--- have something like β∪{h}
-{- DATA SAnn-}
-{-   | AnnVar   var    : {AnnVar}-}
-{-   | AnnEmpty-}
-{-   | AnnSet   points : {Set Point}-}
-
-
-DATA SAnn
-  | AnnVar   var : {AnnVar}
-  | AnnEmpty
-  | AnnPt    pt  : {Point}
-  | AnnUnion a1  : SAnn    a2 : SAnn
-
-DERIVING SAnn: Eq, Ord
-
 DATA Constraint
-  | Constraint a1 : SAnn a2 : SAnn
+  | Constraint a1 : {AnnVar} a2 : RhsConstr
 
 DERIVING Constraint: Eq, Ord
+
+DATA RhsConstr
+  | AnnPts pts : {Set Point}
+  | AnnVar var : {AnnVar}
+
+DERIVING RhsConstr: Eq, Ord
 
 DATA SimpleSubstitution
   | Identity
@@ -95,14 +78,11 @@ TYPE TyEnv = MAP {Var} TyScheme
 TYPE AnnEnv = MAP {Var} {Maybe SAnn}
 
 {
-instance Show Constraint where
-  show (Constraint a1 a2) = show a1 ++ " ⊇ " ++ show a2
+instance Show Constraints where
+  show cs = "{" ++ intercalate "," (map show $ toList cs) ++ "}"
 
-instance Show SAnn where
-  show (AnnVar var)     = var
-  show (AnnPt  pt)      = pt
-  show (AnnUnion a1 a2) = show a1 ++ " ∪ " ++ show a2
-  show AnnEmpty         = "{}"
+instance Show Constraint where
+  show (Constraint a1 a2) = a1 ++ " ⊇ " ++ show a2
 
 instance Show MH where
   show (VBool  v           ) = show v
@@ -123,16 +103,12 @@ instance Show MH where
   show (CaseBlck ex  c1 c2 ) = "case "    ++ show ex  ++ " of\n"  ++ show c1   ++ show c2
   show (CaseAlt  pat bnds  ) = "        " ++ show pat ++ "\t → "  ++ show bnds ++ "\n"
 
-instance Show Qual where
-  show (Ty t)     = show t
-  show (Qual c q) = show c ++ " => " ++ show q
-
 instance Show Ty where
   show (TyVar a)    = a
-  show (Arr t t' a) = "(" ++ show t ++ "--"++ a ++ "-->" ++ show t' ++ ")"
+  show (Arr t t' a) = "(" ++ show t ++ " -{"++ intercalate "," (toList a) ++ "}-> " ++ show t' ++ ")"
   show Nat          = "Nat"
   show Bool         = "Bool"
-  show (List t an)  = "List^{" ++ an ++ "} " ++ show t
+  show (List t an)  = "List^{" ++ show an ++ "} " ++ show t
 
 instance Show SimpleSubstitution where
   show Identity      = ""
@@ -142,9 +118,14 @@ instance Show SimpleSubstitution where
   show (Dot s s')       = show s ++ "\n" ++ show s'
 
 instance Show TyScheme where
-  show (QualSig q)   = show q
+  show (Ty t)        = show t
   show (Forall a ts) = "∀" ++ a ++ ". " ++ show ts
   show (AnnSig a ts) = "∀" ++ a ++ ". " ++ show ts
+
+instance Show RhsConstr where
+  show (AnnPts pts) = "{" ++ intercalate "," (toList pts) ++ "}"
+  show (AnnVar var) = var
+
 
 class PrintSet a where
   ppSet :: Set a -> String
