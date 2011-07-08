@@ -20,13 +20,15 @@
 
   * Code organisatie, waar is wat geimplementeerd.
 
+  * Waar faalt onze analyse? Welke programmas werken niet? 
+
+  * Wat is niet gelukt maar hebben we wel inzicht in verworven?
+
   Minder hoog:
 
   * Voorbeeld programmatjes toevoegen met verwachte analyse output
     Als er nog tijd is een type derivation tree bouwen.
 
-  * Waar faalt onze analyse? Welke programmas werken niet? 
-  * Wat is niet gelukt maar hebben we wel inzicht in verworven?
 
   Minst:
   
