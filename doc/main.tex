@@ -23,7 +23,7 @@
 \newcommand{\tyrel}{\sqsubseteq}
 % end semantic
 
-\author{Jurri\"en Stutterheim\and Ruben de Gooijer (3508617) \and Paul van der Walt (3120805)} 
+\author{Jurri\"en Stutterheim\and Ruben de Gooijer (3508617) \and Paul van der Walt (3120805)}
 \date{\today} 
 \title{Implementation notes for Type and Effect Systems}
 
@@ -223,36 +223,36 @@ These rules are formulated in a syntax-directed fashion.
 
 \subsection{Example Derivation}
 
-%\begin{prooftree}
-%\small
-%\AxiomC{$$}
-%\RightLabel{\scriptsize{id}}
-%\UnaryInfC{$A\ a \Vdash A\ a$}
-%  \AxiomC{$instance\ A\ a \Rightarrow A\ (Maybe\ a)$}
-%  \RightLabel{\scriptsize{inst}}
-%\BinaryInfC{$A\ a \Vdash A\ Maybe(\ a)$}
-%\RightLabel{\scriptsize{closure}}
-%\UnaryInfC{$A\ (Maybe\ a) \Vdash A\ (Maybe\ (Maybe\ a))$}
-%  \AxiomC{$$}
-%  \RightLabel{\scriptsize{id}} 
-%  \UnaryInfC{$A\ a \Vdash A\ a$}
-%    \AxiomC{$instance A\ a \Rightarrow A\ (Maybe\ a)$} 
-%  \RightLabel{\scriptsize{inst}}
-%  \BinaryInfC{$A\ a \Vdash A\ (Maybe\ a)$}
-%\RightLabel{\scriptsize{trans}}
-%\BinaryInfC{$A\ a \Vdash A\ (Maybe\ (Maybe\ a))$}
-%\RightLabel{\scriptsize{closure}}
-%\UnaryInfC{$A\ Int \Vdash A\ (Maybe\ (Maybe\ Int))$}
-%  \AxiomC{$$}
-%  \RightLabel{\scriptsize{id}}
-%  \UnaryInfC{$B\ a \Vdash B\ a$}
-%    \AxiomC{$class\ (A\ a) \Rightarrow B\ a$}
-%  \BinaryInfC{$B\ a \Vdash A\ a$}
-%  \RightLabel{\scriptsize{closure}}
-%  \UnaryInfC{$B\ Int \Vdash A\ Int$}
-%\RightLabel{\scriptsize{trans}}
-%\BinaryInfC{$B\ Int \Vdash A\ (Maybe\ (Maybe\ Int))$}
-%\end{prooftree}
+\begin{prooftree}
+\small
+\AxiomC{$asdf$}
+\RightLabel{\scriptsize{id}}
+\UnaryInfC{$A a \vdash A a$}
+  \AxiomC{$instance A a \Rightarrow A (Maybe a)$}
+  \RightLabel{\scriptsize{inst}}
+\BinaryInfC{$A a oplus A Maybe( a)$}
+\RightLabel{\scriptsize{closure}}
+\UnaryInfC{$A (Maybe a) oplus A (Maybe (Maybe a))$}
+  \AxiomC{$$}
+  \RightLabel{\scriptsize{id}} 
+  \UnaryInfC{$A a oplus A a$}
+    \AxiomC{$instance A a \Rightarrow A (Maybe a)$} 
+  \RightLabel{\scriptsize{inst}}
+  \BinaryInfC{$A a oplus A (Maybe a)$}
+\RightLabel{\scriptsize{trans}}
+\BinaryInfC{$A  a oplus A (Maybe (Maybe a))$}
+\RightLabel{\scriptsize{closure}}
+\UnaryInfC{$A Int oplus A (Maybe (Maybe Int))$}
+  \AxiomC{$asdf$}
+  \RightLabel{\scriptsize{id}}
+  \UnaryInfC{$B a oplus B a$}
+    \AxiomC{$class (A a) \Rightarrow B a$}
+  \BinaryInfC{$B a oplus A a$}
+  \RightLabel{\scriptsize{closure}}
+  \UnaryInfC{$B Int oplus A Int$}
+\RightLabel{\scriptsize{trans}}
+\BinaryInfC{$B Int oplus A (Maybe (Maybe Int))$}
+\end{prooftree}
 
 
 \subsection{Natural semantics}
