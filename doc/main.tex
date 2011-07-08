@@ -411,6 +411,15 @@ annotation variables and generating several constraints on the quantified types,
 we were unfortunately forced to remove this support in order to make the monovariant
 analysis work correctly.
 
+We are currently also missing support for pairs. Instead, we offer support for
+lists. While pairs pose the problem of potentially having two different types in
+the pair, their fixed size would make them relatively straight-forward to implement.
+
+Another limitation is that our case blocks only support exactly two alternatives.
+Generalising to $n$ alternatives would be quite straight-forward, but was dropped
+due to time constraints.
+
+
 \section{Example programs}
 
 Example programs can be found in the \texttt{examples/} directory of the distribution, 
