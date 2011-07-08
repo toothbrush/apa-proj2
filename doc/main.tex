@@ -200,6 +200,14 @@ These rules are formulated in a syntax-directed fashion.
         {\Gamma},C |- x  : {\tau^{\varphi_1}}
         } \\
 ~&~\\
+        $ [$\emph{t-lam}$] $& \inference{
+        \Gamma[x \mapsto (\tau_x, \varphi_x)], C |- e_o : \tau_0^{\varphi_0}
+        & C |- \varphi \sqsupseteq \pi
+        }
+        {
+        \Gamma,C |- \lambda_\pi x -> e_0 : \tau_x^{\varphi_x} ->^\varphi \tau_0^{\varphi_0}
+        } \\
+~&~\\
         $ [$\emph{t-app}$] $& \inference{
         \Gamma,C |- e_1 : \tau_2^{\varphi_2} ->^{\varphi} \tau_0^{\varphi_0}
         & \Gamma,C|- e_2 : \tau_2^{\varphi_3}
