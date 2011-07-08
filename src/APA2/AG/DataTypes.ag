@@ -111,10 +111,32 @@ instance Show MH where
                                ++ " = "   ++ show e1  ++ " in "   ++ show e2
   show (If     c  e1 e2    ) = "if "      ++ show c   ++ " then " ++ show e1
                                ++ " else "++ show e2
-  show (Cons   e1 e2       ) = show e1    ++ ":"      ++ show e2
+  show (Cons   e1 e2       ) = maybeParen e1    ++ ":"      ++ maybeParen e2
   show (Nil                ) = "[]"
   show (CaseBlck ex  c1 c2 ) = "case "    ++ show ex  ++ " of\n"  ++ show c1   ++ show c2
   show (CaseAlt  pat bnds  ) = "        " ++ show pat ++ "\t → "  ++ show bnds ++ "\n"
+
+maybeParen :: MH -> String
+maybeParen (VBool  v           ) = show v
+maybeParen (VInt   v           ) = show v
+maybeParen (Var    x           ) = x
+maybeParen (Op     op e1 e2    ) = paren $ show e1    ++ op       ++ show e2
+maybeParen (Lambda x  e        ) = paren $ "λ "       ++ x        ++ " → "    ++ show e
+maybeParen (App    e1 e2       ) = paren $ show e1    ++ " "      ++ show e2
+maybeParen (Let    x  e1 e2    ) = paren $ "let "     ++ x        ++ " = "
+                                   ++ show e1 ++ " in "   ++ show e2
+maybeParen (LetRec f  x  e1 e2 ) = paren $ "μ "       ++ f        ++ ".let "
+                                   ++ fromMaybe "undefined" x
+                                   ++ " = "   ++ show e1  ++ " in "   ++ show e2
+maybeParen (If     c  e1 e2    ) = paren $ "if "      ++ show c   ++ " then " ++ show e1
+                                   ++ " else "++ show e2
+maybeParen (Cons   e1 e2       ) = paren $ maybeParen e1    ++ ":"      ++ maybeParen e2
+maybeParen (Nil                ) = "[]"
+maybeParen (CaseBlck ex  c1 c2 ) = paren $ "case "    ++ show ex  ++ " of\n"  ++ show c1   ++ show c2
+maybeParen (CaseAlt  pat bnds  ) = "        " ++ show pat ++ "\t → "  ++ show bnds ++ "\n"
+
+paren :: String -> String
+paren s = "("++s++")"
 
 instance Show TyScheme where
   show (QualSig q)   = show q
