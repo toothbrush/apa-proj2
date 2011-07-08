@@ -1,0 +1,6 @@
+ATTR MH
+  [|| fv  USE {`DS.union`} {DS.empty} : {Set Var}   -- alias String
+  ]
+
+SEM MH
+  | Var lhs.fv = DS.singleton @x

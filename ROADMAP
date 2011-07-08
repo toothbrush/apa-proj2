@@ -1,13 +1,71 @@
-Case statement implementeren
-Subeffecting werkende krijgen
-- W aanpassen om ann vars terug te geven
-- Constraints aanpassen zodat er in de if extra constraints gegenereerd worden
-Constraints moeten op een of andere manier opgelost worden. (mogelijk eerst met monovariance)
-Polyvariance implementen
-- Simplify moet getest worden (moet dus gebruikt gaan worden)
-Support voor lege lijst assignen ergens
+* Documentatie 
+
+  Hoog:
+
+  * Introductie schrijven
+    wat voor analyse doen we eigenlijk, en waarvoor is het nuttig?
+      data creation tracking
+      closure tracking
+  * Design sectie afmaken
+    * table2, functie staat dubbel
+    * alts, we hebben alleen twee alternative
+    * patt, wildcard is niet supported kan weg
+    * patt, pattern match op bools mist
+    * Natural semantics heeft niet echt toegevoegde waarde volgens mij, weg?
+    * Belangrijk!! Type system consistent met code. Constraints omdraaien consistent met code. 
+      Er missen ook nog een paar rules.
+
+  * Readme met instructie voor het gebruik van het programma
+
+  * Code organisatie, waar is wat geimplementeerd.
+
+  * Waar faalt onze analyse? Welke programmas werken niet? 
+
+  * Wat is niet gelukt maar hebben we wel inzicht in verworven?
+
+  Minder hoog:
+
+  * Voorbeeld programmatjes toevoegen met verwachte analyse output
+    Als er nog tijd is een type derivation tree bouwen.
 
 
-Polyvariance:
-Constraints by type
-Moet gequantificeerd worden over annot vars
+  Minst:
+  
+  * Student nummers op de titel
+
+  * Hoofstukje taakverdeling?
+
+* Programma
+
+  Hoog:
+
+  * Solver werkend, plus resultaat koppelen aan annotatie variabelen zodat het
+    eindresultaat makkelijk te interpreteren is.
+
+  * Subeffecting voor cases checken en implementeren
+
+  Minder hoog:
+
+  * let f = \\x -> x + 1 in let g = \\y -> y * 2 in let h = \\z -> z 3 in h f + h g
+
+      Expected: ((Nat -> t)^{x,y} -> t)^{z}
+      Actual: ((Nat -> t)^{x} -> t)^{z}
+
+    Constatatie: h f + h g synthesized verschillende substituties voor een en de zelfde annotatie variabele
+    
+    Oplossing: niet bekend. ergens wordt misschien een constraint te weinig gegenereerd.
+
+  * Documentatie voor het gebruik van het programma in een readme
+
+  * Documentatie voor usage in de Main
+
+  * Documentatie in code (hoeft niet perse met haddock, scheelt werk)
+ 
+  * Hulp programmatje dat alle examples in well-typed/ill-typed directory opent en test of
+  ze daadwerkelijk getyped kunnen worden binnen ons systeem.
+
+  * Opschonen, verwijderen code die niet wordt aangeroepen. Zaken consistenter maken.
+    Alleen waarneer je er zeker van bent dat het niet de code kapot maakt! Code
+    die eventueel nog nuttig is voor de docent uitcommenten en laten staan (simplify, generalise..)
+
+
