@@ -76,9 +76,11 @@ SEM MH
 
   | Cons
     loc.betaf1 : UNIQUEREF counter
+    loc.betaf2 : UNIQUEREF counter
     loc.ppoint : UNIQUEREF counter
 
     loc.betaf1' = freshAnnVar @loc.betaf1
+    loc.betaf2' = freshAnnVar @loc.betaf2
     loc.pi      = mkProgramPoint "L" @loc.ppoint
 
     loc.listTy = List @e1.ty @e1.annotation
@@ -90,11 +92,17 @@ SEM MH
 
     loc.ty = applySubst @loc.substitution @loc.listTy
 
+    -- | Subeffecting on the contents of the list. If we already now the final type
+    --   we use the annotation provided by the list type, otherwise
+    --   we generate a fresh annotation variable.
     loc.listContentAnn = 
       case @e2.ty of
         List _ a -> a
+        TyVar _  -> @loc.betaf2'
         _        -> error "can only cons lists"
 
+    -- | We subeffect on the contents of the list and introduce a new
+    --   program point used for tracking the newly created list.
     loc.constraints =
       let c1 = @e1.constraints
           c2 = @e2.constraints
@@ -139,7 +147,9 @@ SEM MH
     loc.substitution = @loc.theta `dot` @c2.substitution `dot` @c1.substitution `dot` @e.substitution
 
     loc.constraints =
-      let cs = @e.constraints `DS.union` @c1.constraints `DS.union` @c2.constraints
+      let cs = @e.constraints `DS.union` @c1.constraints `DS.union` @c2.constraints `DS.union`
+               (@loc.betaf' <:? @c1.annotation) `DS.union`
+               (@loc.betaf' <:? @c2.annotation)
       in applySubst @loc.substitution cs
 
     loc.ty = applySubst @loc.substitution @c2.ty    
@@ -531,9 +541,9 @@ SEM MH
     loc.ty = applySubst @loc.substitution @e2.ty
 
     loc.constraints =
-      let c  = (@loc.betaf' <:? @e1.annotation) `DS.union`
-               (@loc.betaf' <:? @e2.annotation)
-          cs = @e1.constraints `DS.union` @e2.constraints `DS.union` c
+      let cs  = @e1.constraints `DS.union` @e2.constraints `DS.union`
+                (@loc.betaf' <:? @e1.annotation) `DS.union`
+                (@loc.betaf' <:? @e2.annotation)
       in applySubst @loc.substitution cs
 
     loc.annotation = @loc.betaf'
