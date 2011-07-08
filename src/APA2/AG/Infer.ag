@@ -23,74 +23,6 @@ ATTR MH
     cp : SELF
   ]
 
-{- SEM MH-}
-{-   | Lambda-}
-{-       lhs.annotDict = DM.singleton (@x ++ show @loc.ppoint) @loc.cp-}
-{-                         `DM.union` @e.annotDict-}
-{-   | LetRec-}
-{-       lhs.annotDict = DM.singleton (@f ++ show @loc.ppoint) @loc.cp-}
-{-                         `DM.union` @e2.annotDict-}
-{-                         `DM.union` @e1.annotDict-}
-
-SEM MH
-  | CaseBlck
-      loc.beta : UNIQUEREF counter
-      loc.beta' = mkAnnVar @loc.beta
-
-      -- TODO: Unify types of case (expression) of and the left-hand sides of
-      -- the individual case blocks
-      -- Then unify the types of the right-hand side of the individual case
-      -- blocks
-
-      -- TODO: See if we need some substitutions here...
-      loc.theta0 = @ex.substitution
-      loc.theta1 = unify @ex.ty (applySubst @loc.theta0 $ fromJust @c1.lhsTy)
-      loc.theta2 = trace "theta2" $ unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)
-      loc.lhsTheta = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
-
-      loc.theta3 = @c1.substitution
-      loc.theta4 = @c2.substitution
-      -- FIXME: This is where shit is currently hitting the fan
-      loc.theta5 = unify (applySubst @loc.lhsTheta @c1.ty)
-                         (applySubst (@loc.theta3 `dot` @loc.lhsTheta) @c2.ty)
-      loc.theta = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot` @loc.lhsTheta
-
-      loc.ty = applySubst @loc.theta @c1.ty
-      lhs.ty = @loc.ty
-
-      lhs.constraints =
-        let c1 = @ex.constraints
-            c2 = @c1.constraints
-            c3 = @c2.constraints
-            cs = c1 `DS.union` c2 `DS.union` c3
-        in applySubst @loc.theta cs
-
-
-      lhs.substitution = @loc.theta
-      lhs.annotation = @loc.annotation
-      loc.annotation =
-        case @loc.ty of
-          Arr _ _ _ -> Just @loc.beta'
-          _         -> Nothing
-
-      c1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
-      c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.typeEnvironment
-  | CaseAlt
-      loc.beta : UNIQUEREF counter
-
-      loc.beta' = mkAnnVar @loc.beta
-
-      lhs.constraints = @bnd.constraints
-
-      loc.theta  = @pat.substitution
-      loc.ty = applySubst @loc.theta @bnd.ty
-      lhs.ty = @loc.ty
-      lhs.substitution = @loc.theta
-
-      lhs.annotation = Nothing
-
-      lhs.lhsTy = Just @pat.ty
-
 SEM MH
   | VBool
       lhs.annotation   = Nothing
@@ -225,6 +157,9 @@ SEM MH
 
       e.typeEnvironment = DM.insert @x (Ty @loc.alpha') @lhs.typeEnvironment
 
+      lhs.annotDict = DM.singleton @loc.pi @loc.cp
+                        `DM.union` @e.annotDict
+
       lhs.debug = "Lambda("++ @x ++ "): \n" ++
                   "tyEnv: " ++ ppMapStr @lhs.typeEnvironment ++ "\n" ++
                   "ty: " ++ show @loc.ty ++ "\n" ++
@@ -354,6 +289,10 @@ SEM MH
                        in  DM.insert @f ty' newEnv
             Nothing -> DM.insert @f (Ty @loc.alpha2') newEnv
 
+      lhs.annotDict = DM.singleton @loc.pi @loc.cp
+                          `DM.union` @e2.annotDict
+                          `DM.union` @e1.annotDict
+
   | If
       loc.beta1  : UNIQUEREF counter
       loc.beta2  : UNIQUEREF counter
@@ -416,6 +355,65 @@ existing Arr.
                   "substitution: " ++ show @loc.substitution ++ "\n" ++
                   "constraints: " ++ ppSet @loc.constraints ++ "\n\n" ++
                   @c.debug ++ @e1.debug ++ @e2.debug
+  | CaseBlck
+      loc.beta : UNIQUEREF counter
+      loc.beta' = mkAnnVar @loc.beta
+
+      -- TODO: Unify types of case (expression) of and the left-hand sides of
+      -- the individual case blocks
+      -- Then unify the types of the right-hand side of the individual case
+      -- blocks
+
+      -- TODO: See if we need some substitutions here...
+      loc.theta0 = @ex.substitution
+      loc.theta1 = unify @ex.ty (applySubst @loc.theta0 $ fromJust @c1.lhsTy)
+      loc.theta2 = trace "theta2" $ unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)
+      loc.lhsTheta = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
+
+      loc.theta3 = @c1.substitution
+      loc.theta4 = @c2.substitution
+      -- FIXME: This is where shit is currently hitting the fan
+      loc.theta5 = unify (applySubst @loc.lhsTheta @c1.ty)
+                         (applySubst (@loc.theta3 `dot` @loc.lhsTheta) @c2.ty)
+      loc.theta = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot` @loc.lhsTheta
+
+      loc.ty = applySubst @loc.theta @c1.ty
+      lhs.ty = @loc.ty
+
+      lhs.constraints =
+        let c1 = @ex.constraints
+            c2 = @c1.constraints
+            c3 = @c2.constraints
+            cs = c1 `DS.union` c2 `DS.union` c3
+        in applySubst @loc.theta cs
+
+
+      lhs.substitution = @loc.theta
+      lhs.annotation = @loc.annotation
+      loc.annotation =
+        case @loc.ty of
+          Arr _ _ _ -> Just @loc.beta'
+          _         -> Nothing
+
+      c1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
+      c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.typeEnvironment
+  | CaseAlt
+      loc.beta : UNIQUEREF counter
+
+      loc.beta' = mkAnnVar @loc.beta
+
+      lhs.constraints = @bnd.constraints
+
+      loc.theta  = @pat.substitution
+      loc.ty = applySubst @loc.theta @bnd.ty
+      lhs.ty = @loc.ty
+      lhs.substitution = @loc.theta
+
+      lhs.annotation = Nothing
+
+      lhs.lhsTy = Just @pat.ty
+
+
 
 {
 freshVar :: Int -> Ty

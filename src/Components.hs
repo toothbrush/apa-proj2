@@ -47,9 +47,11 @@ debugInference tm =
     print annotation
     putStrLn "Constraints:"
     putStrLn (ppSet constraints)
-    putStrLn debug
     putStrLn "Annotation dictionary:"
     putStrLn (ppMap dict)
+    putStrLn "Debug:"
+    putStrLn debug
+
 
 parseProgram :: String -> MH
 parseProgram = translate . fromParseResult . parseExp 
