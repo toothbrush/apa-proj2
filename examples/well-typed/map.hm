@@ -1,0 +1,6 @@
+let map f xs = case xs of
+                  []     -> []
+                  (x:xs) -> f x : map f xs
+in let plus x y = x + y
+   in map (plus 4) (0:1:2:[]) 
+

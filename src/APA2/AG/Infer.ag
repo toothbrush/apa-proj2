@@ -19,75 +19,11 @@ ATTR MH
     -- The substitution attribute will contain the needed substitutions 
     -- of the type environment.
     substitution                              : {SimpleSubstitution}
-    lhsTy         USE {`mplus`}    {Nothing}  : {Maybe Ty}
     annotation                                : {SAnn}
     debug         USE {++}         {""}       : {String}
     expressions   USE {++}         {[]}       : {Expressions}
     copy                                      : SELF
   ]
-
-{-
-SEM MH
-  | CaseBlck
-      loc.beta : UNIQUEREF counter
-
-      loc.beta' = mkAnnVar @loc.beta
-
-      -- TODO: Unify types of case (expression) of and the left-hand sides of
-      -- the individual case blocks
-      -- Then unify the types of the right-hand side of the individual case
-      -- blocks
-
-      -- TODO: See if we need some substitutions here...
-      loc.theta0 = @ex.substitution
-      loc.theta1 = unify @ex.ty (applySubst @loc.theta0 $ fromJust @c1.lhsTy)
-      loc.theta2 = trace "theta2" $ unify @ex.ty (applySubst (@loc.theta1 `dot` @loc.theta0) $ fromJust @c2.lhsTy)
-      loc.lhsTheta = @loc.theta2 `dot` @loc.theta1 `dot` @loc.theta0
-
-      loc.theta3 = @c1.substitution
-      loc.theta4 = @c2.substitution
-      -- FIXME: This is where shit is currently hitting the fan
-      loc.theta5 = unify (applySubst @loc.lhsTheta @c1.ty)
-                         (applySubst (@loc.theta3 `dot` @loc.lhsTheta) @c2.ty)
-      loc.theta = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot` @loc.lhsTheta
-
-      loc.ty = applySubst @loc.theta @c1.ty
-      lhs.ty = @loc.ty
-
-      lhs.constraints =
-        let c1 = @ex.constraints
-            c2 = @c1.constraints
-            c3 = @c2.constraints
-            c4 = (@loc.beta' <:? @c1.annotation) `DS.union`
-                 (@loc.beta' <:? @c2.annotation)
-            cs = c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
-        in applySubst @loc.theta cs
-
-
-      lhs.substitution = @loc.theta
-      lhs.annotation   = @loc.beta'
-
-      c1.typeEnvironment = applySubst @loc.theta0 @lhs.typeEnvironment
-      c1.annEnvironment  = applySubst @loc.theta0 @lhs.annEnvironment
-      c2.typeEnvironment = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.typeEnvironment
-      c2.annEnvironment  = applySubst (@loc.theta0 `dot` @loc.theta3) @lhs.annEnvironment
-
-  | CaseAlt
-      loc.beta : UNIQUEREF counter
-
-      loc.beta' = mkAnnVar @loc.beta
-
-      lhs.constraints = @bnd.constraints
-
-      loc.theta  = @pat.substitution
-      loc.ty = applySubst @loc.theta @bnd.ty
-      lhs.ty = @loc.ty
-      lhs.substitution = @loc.theta
-
-      lhs.annotation = @loc.beta'
-
-      lhs.lhsTy = Just @pat.ty
--}
 
 SEM MH
   | VBool
@@ -192,10 +128,10 @@ SEM MH
 
     -- apply substitutions in both directions, each alternative can supply information
     -- to the other alternatives.
-    loc.theta = unify (applySubst (@e.substitution `dot` @c2.substitution) @c1.ty) 
+    loc.theta = unify (applySubst (@c2.substitution `dot` @e.substitution) @c1.ty) 
                       (applySubst (@c1.substitution `dot` @e.substitution) @c2.ty)
 
-    loc.substitution = @e.substitution `dot` @c1.substitution `dot` @c2.substitution `dot` @loc.theta
+    loc.substitution = @loc.theta `dot` @c2.substitution `dot` @c1.substitution `dot` @e.substitution
 
     loc.constraints =
       let cs = @e.constraints `DS.union` @c1.constraints `DS.union` @c2.constraints
@@ -209,8 +145,8 @@ SEM MH
 
     c1.typeEnvironment = applySubst @e.substitution @lhs.typeEnvironment
     c1.annEnvironment  = applySubst @e.substitution @lhs.annEnvironment
-    c2.typeEnvironment = applySubst (@e.substitution `dot` @c1.substitution) @lhs.typeEnvironment
-    c2.annEnvironment  = applySubst (@e.substitution `dot` @c1.substitution) @lhs.annEnvironment
+    c2.typeEnvironment = applySubst (@c1.substitution `dot` @e.substitution) @lhs.typeEnvironment
+    c2.annEnvironment  = applySubst (@c1.substitution `dot` @e.substitution) @lhs.annEnvironment
   
     lhs.substitution = @loc.substitution
     lhs.ty = @loc.ty
@@ -243,8 +179,10 @@ SEM MH
     bnd.annEnvironment  = applySubst @loc.theta @loc.patAnnEnvironment
     
     -- missing applysubst..
-    loc.constraints = @pat.constraints `DS.union`
-                      @bnd.constraints
+    loc.constraints =
+      let cs = @pat.constraints `DS.union`
+               @bnd.constraints
+      in applySubst @loc.substitution cs
 
     loc.annotation = @bnd.annotation
 
@@ -367,8 +305,7 @@ SEM MH
       loc.constraints = @e.constraints `DS.union`
                         (@loc.betaf' <:? @loc.pi)
 
-      -- WARNING FIX THIS!!!!, substitutions should be idempotent
-      loc.ty = applySubst @loc.substitution (applySubst @loc.substitution (Arr @loc.alpha' @loc.betax' @e.ty @e.annotation))
+      loc.ty = applySubst @loc.substitution (Arr @loc.alpha' @loc.betax' @e.ty @e.annotation)
 
       loc.annotation = @loc.betaf'
 
