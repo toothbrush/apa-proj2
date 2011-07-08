@@ -145,6 +145,8 @@ SEM MH
 
     loc.substitution = @loc.theta `dot` @c2.substitution `dot` @c1.substitution `dot` @e.substitution
 
+    -- | Similar to the if the final annotation for this expression is subeffected by the
+    --   alternative bindings.
     loc.constraints =
       let cs = @e.constraints `DS.union` @c1.constraints `DS.union` @c2.constraints `DS.union`
                (@loc.betaf' <:? @c1.annotation) `DS.union`
