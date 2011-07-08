@@ -51,6 +51,7 @@
   ze daadwerkelijk getyped kunnen worden binnen ons systeem.
 
   * Opschonen, verwijderen code die niet wordt aangeroepen. Zaken consistenter maken.
-    Alleen waarneer je er zeker van bent dat het niet de code kapot maakt!
+    Alleen waarneer je er zeker van bent dat het niet de code kapot maakt! Code
+    die eventueel nog nuttig is voor de docent uitcommenten en laten staan (simplify, generalise..)
 
 
