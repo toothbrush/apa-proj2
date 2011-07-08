@@ -262,18 +262,11 @@ SEM MH
 
       loc.ty = applySubst @loc.theta3 @loc.alpha'
 
--- TODO: We might actually still require some constraint juggling here
-      -- | We do not generate constraints for an application of a
-      --   function to a primitive type.
       loc.constraints =
         let c1  = @e1.constraints
             c2  = @e2.constraints
             sc1 = applySubst (@loc.theta3 `dot` @loc.theta2) c1
             sc2 = applySubst @loc.theta3 c2
-            {- c3 = case @e2.ty of-}
-                  {- Arr _ _ _ -> @loc.beta' <:? @e1.annotation-}
-                  {- _         -> DS.empty-}
-            {- c4 = @loc.beta' <:? @e2.annotation-}
         in  sc1 `DS.union` sc2
 
       lhs.annotation   = Nothing
@@ -298,13 +291,11 @@ SEM MH
       loc.theta1 = @e1.substitution
       loc.theta2 = @e2.substitution
 
-      loc.ty = @e2.ty
-
+      loc.constraints  = let c1 = @e1.constraints
+                             c2 = applySubst @loc.theta2 @e2.constraints
+                         in  c1 `DS.union` c2
       loc.substitution = @loc.theta2 `dot` @loc.theta1
-
-      loc.constraints = let c1 = @e1.constraints
-                            c2 = applySubst @loc.theta2 @e2.constraints
-                        in  c1 `DS.union` c2
+      loc.ty           = @e2.ty
 
       lhs.annotation   = Nothing
       lhs.constraints  = @loc.constraints
@@ -405,10 +396,6 @@ SEM MH
       loc.substitution = @loc.theta5 `dot` @loc.theta4 `dot` @loc.theta3 `dot`
                          @loc.theta2 `dot` @loc.theta1
 
--- annotation: Maybe SAnn
-      loc.e1ann = @e1.annotation
-      loc.e2ann = @e2.annotation
-
 {-
 If neither branch has a function type, we're done for now.
 
@@ -420,57 +407,22 @@ types and then give the newly found Arr type a fresh annotation variable. This
 fresh annotation variable is then unioned with the annotation variables on the
 existing Arr.
 -}
-      {- loc.foo = case (@e1.ty, @e2.ty) of-}
-                  {- (t1@(Arr _ _ _), t2@(Arr _ _ _)) -> (t1, t2)-}
-                  {- (t1@(Arr _ _ _), t2) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t2-}
-                                          {- in  (t1, Arr a1 a2 @loc.beta3')-}
-                  {- (t1, t2@(Arr _ _ _)) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t2-}
-                                          {- in  (Arr a1 a2 @loc.beta2', t2)-}
-                  {- p -> p-}
 
-      -- First determine the types of e1 and e2. If one of them is a function
-      -- and the other a variable, we need to generate a fresh annotation for
-      -- the variable, which we will place on the result of the unification as
-      -- only annotation.
-      -- If both are already arrows, generate a new constraint which is a
-      -- superset of both (subeffecting) and place a new annvar on top of both
-      -- arrows.
-      --
-      -- Wait a tick... the example in the slides is misleading. The lambda gets
-      -- a type of a -> Nat, but it does NOT get an H on top of it. Instead, it
-      -- just gets a beta, and a constraint. So it becomes a -β-> Nat and
-      -- β ⊇ {H}. It is then just a matter of fixing the constraints.
-      --
-      --
-      -- TODO: Only do foo and bar if the types are arrows
-      {- loc.foo = case @loc.e1ann of-}
-      {-             Nothing -> Just $ AnnVar @loc.beta2'-}
-      {-             x       -> x-}
-      {- loc.bar = case @loc.e2ann of-}
-      {-             Nothing -> Just $ AnnVar @loc.beta3'-}
-      {-             x       -> x-}
-
-      loc.ty = @e2.ty
-        {- case @e2.ty of-}
-          {- Arr a b _ -> applySubst @loc.substitution (Arr a b @loc.beta')-}
-          {- _         -> @e2.ty-}
+      loc.ty = case (@e1.ty, @e2.ty) of
+                  (Arr _ _ _, t2@(Arr _ _ _)) -> t2
+                  (Arr _ _ cs, t2) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t2
+                                      in  Arr a1 a2 (DS.insert @loc.beta3' cs)
+                  (t1, Arr _ _ cs) -> let (Arr a1 a2 _) = applySubst @loc.theta5 t1
+                                      in  Arr a1 a2 (DS.insert @loc.beta2' cs)
+                  (_, t2) -> t2
 
       loc.constraints =
         let c1 = applySubst @loc.th5432 @c.constraints
             c2 = applySubst @loc.th543  @e1.constraints
             c3 = applySubst @loc.th54   @e2.constraints
-            -- TODO: Reimplement
-            c4 = DS.empty
-            {- c4 = (@loc.beta' <:? @e1.annotation) `DS.union`-}
-                 {- (@loc.beta' <:? @e2.annotation)-}
-        in  c1 `DS.union` c2 `DS.union` c3 `DS.union` c4
+        in  c1 `DS.union` c2 `DS.union` c3
 
-      loc.annotation = Nothing
-        {- case @loc.ty of-}
-        {-   Arr _ _ _ -> Just (AnnVar @loc.beta')-}
-        {-   _         -> Nothing-}
-
-      lhs.annotation   = @loc.annotation
+      lhs.annotation   = Nothing
       lhs.constraints  = @loc.constraints
       lhs.substitution = @loc.substitution
       lhs.ty           = @loc.ty
