@@ -73,6 +73,7 @@ SEM MH
     lhs.expressions = [(@loc.ty,@copy)]
 
   | Nil
+    lhs.annotDict = DM.singleton ("L" ++ show @loc.ppoint) @loc.copy
     loc.alpha  : UNIQUEREF counter
     loc.betaf1 : UNIQUEREF counter
     loc.betaf2 : UNIQUEREF counter
@@ -113,6 +114,9 @@ SEM MH
 
     loc.betaf1' = freshAnnVar @loc.betaf1
     loc.betaf2' = freshAnnVar @loc.betaf2
+    lhs.annotDict = DM.singleton ("L" ++ show @loc.ppoint) @loc.copy 
+                    `DM.union` @e1.annotDict
+                    `DM.union` @e2.annotDict
     loc.pi      = mkProgramPoint "L" @loc.ppoint
 
     loc.listTy = List @e1.ty @e1.annotation

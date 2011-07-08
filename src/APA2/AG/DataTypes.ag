@@ -129,8 +129,9 @@ tyAnn :: (Show a1, Show a) => a -> a1 -> [Char]
 tyAnn t a = "(" ++ show t ++ (colonOpt $ show a) ++ ")"
 
 tyAnnCont :: Show a => Map AnnVar SAnn -> a -> AnnVar -> [Char]
-tyAnnCont con t a = "(" ++ show t ++ (colonOpt $ a `from` con)
+tyAnnCont con t a = "" ++ show t ++ (colonOpt $ a `from` con) ++ ""
 
+colonOpt :: String -> String
 colonOpt []   = ""
 colonOpt xs   = " : " ++ xs
 
@@ -140,18 +141,20 @@ instance Show SAnn where
   show (AnnEmpty)   = "" -- really "{}"
 
 instance Show Ty where
-  show (TyVar a)    = a
-  show (Arr t a t' a') = tyAnn t a ++ " ➔  " ++ tyAnn t' a'
-  show Nat          = "Nat"
-  show Bool         = "Bool"
-  show (List t an)  = "(List " ++ show t ++ ") " ++ (colonOpt $ show an)
+  show = tyLayout DM.empty
 
 tyLayout :: Map AnnVar SAnn -> Ty -> String
-tyLayout _   (TyVar a)       = a -- we probably don't want to see this here. 
-tyLayout con (Arr t a t' a') = tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  " ++ tyAnnCont con t' ((fromSAnn a') `from` con)
+tyLayout _   (TyVar a)       = a
+tyLayout con (Arr t@(TyVar _) a t'@(TyVar _) a') =        tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  "   ++ tyAnnCont con t' ((fromSAnn a') `from` con)
+tyLayout con (Arr t@(TyVar _) a t'           a') =        tyAnnCont con t ((fromSAnn a) `from` con) ++ " ➔  ("  ++ tyAnnCont con t' ((fromSAnn a') `from` con) ++ ")"
+tyLayout con (Arr t           a t'@(TyVar _) a') = "(" ++ tyAnnCont con t ((fromSAnn a) `from` con) ++ ") ➔  "  ++ tyAnnCont con t' ((fromSAnn a') `from` con)
+tyLayout con (Arr t           a t'           a') = "(" ++ tyAnnCont con t ((fromSAnn a) `from` con) ++ ") ➔  (" ++ tyAnnCont con t' ((fromSAnn a') `from` con) ++ ")"
 tyLayout _   Nat             = "Nat"
 tyLayout _   Bool            = "Bool"
-tyLayout con (List t an)     = "((List " ++ tyLayout con t ++ ") " ++ (colonOpt $ (fromSAnn an) `from` con) ++ ")"
+tyLayout con (List t an)     = "List " ++ case t of
+                                            TyVar _ -> inner
+                                            _       -> "(" ++ inner ++ ")"
+                                        where inner = tyLayout con t ++ "" ++ (colonOpt $ fromSAnn an `from` con)
 
 from :: AnnVar -> Map AnnVar SAnn -> String
 from ann con = show $ DM.findWithDefault (AnnVar ann) ann con
@@ -179,25 +182,4 @@ ppMap :: (Show b) => Map String b -> String
 ppMap x = let f (a, b) = a ++ " == " ++ show b
               l = map f $ M.toList x
           in "{\n" ++ intercalate "\n" l ++ "\n}"
-
-{-
-instance Show Ty where
-  show (TyVar a)    = "TyVar \"" ++ a ++ "\""
-  show (Arr t a t' a') = "Arr ("++show t++") ("++show a++") ("++show t'++") ("++show a'++")"
-  show Nat          = "Nat"
-  show Bool         = "Bool"
-  show (List t an)  = "List (" ++ show t ++ ") (" ++ show an ++ ")"
-
-instance Show SAnn where
-  show (AnnVar var) = "AnnVar (\""++var++"\")"
-  show (AnnSet ps)  = "{" ++  intercalate ", " (toList ps) ++  "}"
-  show (AnnEmpty)   = "{}"
-
-instance Show SimpleSubstitution where
-  show Identity      = "Identity"
-  show (TySub v t)   = "TySub (\"" ++ v ++ "\") (" ++ show t ++ ")"
-  show (AnnSub a a') = "AnnSub (" ++ show a ++ ") (" ++ show a' ++ ")"
-  show (Dot s s') = "Dot (" ++ show s ++ ") (" ++ show s' ++ ")"
--}
-
 }
