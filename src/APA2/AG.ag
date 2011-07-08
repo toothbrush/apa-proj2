@@ -26,25 +26,10 @@ INCLUDE "AG/FreeTyVars.ag"
 INCLUDE "AG/FreeAnnVars.ag"
 
 {
-
-class Ord a => Lattice a where
-  top     :: a
-  bottom  :: a
-  join    :: a -> a -> a
-  pord    :: a -> a -> Bool
-
 type Worklist = MultiSet Constraint
 type EvalFunc = SAnn -> Map AnnVar SAnn -> SAnn
 type Influence = Map AnnVar Constraints
 type Analysis = Map AnnVar SAnn
-
-{-
-instance Lattice SAnn where
-  top    = error "SAnn does not have a concrete Top value"
-  bottom = AnnSet DS.empty
-  join   = annUnion
-  pord   = (>=)
--}
 
 partitionConstraints :: Constraints -> (Constraints, Constraints)
 partitionConstraints cs = DS.fold o (DS.empty, DS.empty) cs
