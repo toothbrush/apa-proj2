@@ -14,7 +14,6 @@
     * Natural semantics heeft niet echt toegevoegde waarde volgens mij, weg?
     * Belangrijk!! Type system consistent met code. Constraints omdraaien consistent met code. 
       Er missen ook nog een paar rules.
-    * W kan weg
 
   * Readme met instructie voor het gebruik van het programma
 
