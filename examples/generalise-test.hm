@@ -1,3 +1,0 @@
-let f = \ x -> True in
-    let g = \ k -> if f 0 then k else (\ y -> False) in
-        g f
