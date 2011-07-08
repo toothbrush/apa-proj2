@@ -2,6 +2,7 @@
 module Components where
 import Language.Haskell.Exts.Parser
 import qualified Language.Haskell.Exts.Syntax as H
+import Data.Map (Map)
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified  Data.MultiSet as DMS
@@ -17,7 +18,7 @@ initialInheritedAttributes =
          , counter_Inh_MH = 0
          }
 
-w :: MH -> (Ty, SAnn, SimpleSubstitution, Constraints, Expressions, String)
+w :: MH -> (Ty, SAnn, SimpleSubstitution, Constraints, Expressions, String, Map String MH)
 w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
        in  ( ty_Syn_MH           wrappedDS
            , annotation_Syn_MH   wrappedDS
@@ -25,9 +26,10 @@ w tm = let wrappedDS = wrap_MH (sem_MH tm) initialInheritedAttributes
            , constraints_Syn_MH  wrappedDS
            , expressions_Syn_MH  wrappedDS
            , debug_Syn_MH        wrappedDS
+           , annotDict_Syn_MH    wrappedDS
            )
 
-getConstraints (_,_,_,c,_,_) = c
+getConstraints (_,_,_,c,_,_,_) = c
 
 debugFile :: FilePath -> IO ()
 debugFile fl = do
@@ -37,18 +39,20 @@ debugFile fl = do
 debugInference :: MH -> IO ()
 debugInference tm =
   do
-    let (ty, annotation, subst, constraints, exprs, debug) = w tm
+    let (ty, annotation, subst, constraints, exprs, debug, annots) = w tm
     putStrLn ("Program: \n    " ++ show tm)
     print tm 
     putStrLn ""
     putStrLn "Substitution:"
     print subst
-    putStrLn ""    
+    putStrLn ""
     putStrLn "Ty:"
     print ty
     putStrLn ""
     putStrLn "Top level annotation: "
     print annotation
+    putStrLn "Annotation dictionary:"
+    putStrLn (ppMap annots)
     putStrLn ""
     putStrLn "Constraints: "
     print (DS.toList constraints)
@@ -63,7 +67,7 @@ debugInference tm =
 analysisResult :: MH -> IO ()
 analysisResult tm = 
   do 
-    let (ty, annotation, subst, constraints, exprs, debug) = w tm
+    let (ty, annotation, subst, constraints, exprs, debug, annots) = w tm
     putStrLn "Analysis result: " 
     printExpressions (applySubst (solutionSubst constraints) exprs)
 
