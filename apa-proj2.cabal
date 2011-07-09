@@ -36,6 +36,6 @@ source-repository head
 
 executable cfa
   main-is:             Main.hs
-  build-depends:       base, containers >= 0.4, syb >= 0.3, haskell-src-exts, multiset >= 0.2.1
+  build-depends:       base >= 3 && < 5, containers >= 0.4, syb >= 0.3, haskell-src-exts, multiset >= 0.2.1
   hs-source-dirs:      src
   Ghc-Options:         -Wall -fwarn-tabs
